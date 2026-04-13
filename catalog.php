@@ -267,7 +267,7 @@ function render_book_section(string $title, array $books): void
     .brand {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: var(--space-4);
       text-decoration: none;
       color: var(--ink);
       font-family: var(--font-serif);
@@ -276,16 +276,20 @@ function render_book_section(string $title, array $books): void
       letter-spacing: -0.02em;
     }
 
+    .brand span {
+      line-height: 1.08;
+    }
+
     .nav-links {
       display: flex;
       gap: var(--space-8);
     }
 
     .nav-links a {
-      font-family: var(--font-mono);
+      font-family: var(--font-sans);
       font-size: var(--text-sm);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      font-weight: 600;
+      letter-spacing: 0.01em;
       color: var(--muted);
       text-decoration: none;
       transition: color 0.2s ease-out;
@@ -303,10 +307,10 @@ function render_book_section(string $title, array $books): void
     }
 
     .nav-actions a {
-      font-family: var(--font-mono);
+      font-family: var(--font-sans);
       font-size: var(--text-sm);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      font-weight: 600;
+      letter-spacing: 0.01em;
       text-decoration: none;
     }
 
@@ -364,7 +368,7 @@ function render_book_section(string $title, array $books): void
       font-family: var(--font-serif);
       font-size: clamp(3rem, 6vw, 5rem);
       font-weight: 400;
-      line-height: 1;
+      line-height: 0.95;
       letter-spacing: -0.03em;
       color: var(--ink);
       margin: 0 0 var(--space-4) 0;
@@ -422,9 +426,9 @@ function render_book_section(string $title, array $books): void
     .hero-stat-label {
       display: block;
       font-family: var(--font-mono);
-      font-size: 0.68rem;
+      font-size: var(--text-xs);
       text-transform: uppercase;
-      letter-spacing: 0.09em;
+      letter-spacing: 0.08em;
       color: var(--muted);
     }
 
@@ -438,10 +442,10 @@ function render_book_section(string $title, array $books): void
     }
 
     .search-wrap h2 {
-      font-family: var(--font-mono);
+      font-family: var(--font-sans);
       font-size: var(--text-sm);
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
+      font-weight: 600;
+      letter-spacing: 0.02em;
       color: var(--muted);
       margin-bottom: var(--space-4);
       display: flex;
@@ -476,8 +480,8 @@ function render_book_section(string $title, array $books): void
       padding: 14px 16px;
       background: var(--paper);
       color: var(--ink);
-      font-size: var(--text-sm);
-      font-family: var(--font-mono);
+      font-size: var(--text-base);
+      font-family: var(--font-sans);
       transition: border-color 0.2s;
       appearance: none;
     }
@@ -498,10 +502,10 @@ function render_book_section(string $title, array $books): void
     }
 
     .search-box button {
-      font-family: var(--font-mono);
+      font-family: var(--font-sans);
       font-size: var(--text-sm);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      font-weight: 600;
+      letter-spacing: 0.01em;
       padding: 14px 24px;
       background: var(--ink);
       color: var(--paper);
@@ -518,10 +522,10 @@ function render_book_section(string $title, array $books): void
     }
 
     .search-box a.clear-btn {
-      font-family: var(--font-mono);
+      font-family: var(--font-sans);
       font-size: var(--text-sm);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      font-weight: 600;
+      letter-spacing: 0.01em;
       padding: 14px 24px;
       background: transparent;
       color: var(--ink);
@@ -613,10 +617,9 @@ function render_book_section(string $title, array $books): void
       align-items: center;
       gap: var(--space-4);
       margin-bottom: var(--space-8);
-      font-family: var(--font-mono);
+      font-family: var(--font-sans);
       font-size: var(--text-sm);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.01em;
       border-top: 1px solid var(--border);
       border-bottom: 1px solid var(--border);
       padding: var(--space-3) 0;
@@ -643,7 +646,7 @@ function render_book_section(string $title, array $books): void
       border: 1px solid var(--ink);
       background: transparent;
       color: var(--ink);
-      font-size: 0.75rem;
+      font-size: var(--text-xs);
       white-space: nowrap;
     }
 
@@ -743,7 +746,7 @@ function render_book_section(string $title, array $books): void
     }
 
     .book-author {
-      font-size: 0.9rem;
+      font-size: var(--text-sm);
       color: var(--muted);
       margin: 0 0 var(--space-2) 0;
       font-family: var(--font-sans);

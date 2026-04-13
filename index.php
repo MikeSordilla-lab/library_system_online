@@ -71,7 +71,7 @@ try {
     .brand {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: var(--space-4);
       text-decoration: none;
       color: var(--ink);
       font-family: var(--font-serif);
@@ -80,16 +80,20 @@ try {
       letter-spacing: -0.02em;
     }
 
+    .brand span {
+      line-height: 1.08;
+    }
+
     .nav-links {
       display: flex;
       gap: var(--space-8);
     }
 
     .nav-links a {
-      font-family: var(--font-mono);
+      font-family: var(--font-sans);
       font-size: var(--text-sm);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      font-weight: 600;
+      letter-spacing: 0.01em;
       color: var(--muted);
       text-decoration: none;
       transition: color 0.2s ease-out;
@@ -107,10 +111,10 @@ try {
     }
 
     .nav-actions a {
-      font-family: var(--font-mono);
+      font-family: var(--font-sans);
       font-size: var(--text-sm);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      font-weight: 600;
+      letter-spacing: 0.01em;
       text-decoration: none;
     }
 
@@ -198,10 +202,10 @@ try {
     }
 
     .editorial-btn {
-      font-family: var(--font-mono);
+      font-family: var(--font-sans);
       font-size: var(--text-sm);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      font-weight: 600;
+      letter-spacing: 0.02em;
       padding: var(--space-4) var(--space-8);
       text-decoration: none;
       transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s;
