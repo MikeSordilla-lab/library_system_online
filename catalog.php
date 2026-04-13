@@ -153,7 +153,7 @@ if ($availability !== 'all') {
 // Helper function to build query string for pagination
 function build_query_string($q, $category, $availability, $sort, $exclude_page = false)
 {
-  
+
   $params = [];
   if ($q !== '') $params['q'] = $q;
   if ($category !== '') $params['category'] = $category;
@@ -181,7 +181,7 @@ function render_book_card(array $book): void
   $available = (int) ($book['available_copies'] ?? 0);
   $total = (int) ($book['total_copies'] ?? 0);
   $has_cover = !empty($book['has_cover']);
-  ?>
+?>
   <article class="book-card btn-view-details" tabindex="0" role="button"
     data-book-id="<?= $book_id ?>"
     data-title="<?= $title ?>"
@@ -215,7 +215,7 @@ function render_book_card(array $book): void
       </div>
     </div>
   </article>
-  <?php
+<?php
 }
 
 function render_book_section(string $title, array $books): void
@@ -223,7 +223,7 @@ function render_book_section(string $title, array $books): void
   if (empty($books)) {
     return;
   }
-  ?>
+?>
   <section class="discovery-section">
     <h2 class="discovery-header"><?= esc($title) ?></h2>
     <div class="discovery-grid">
@@ -232,7 +232,7 @@ function render_book_section(string $title, array $books): void
       <?php endforeach; ?>
     </div>
   </section>
-  <?php
+<?php
 }
 ?>
 <!DOCTYPE html>
@@ -253,7 +253,7 @@ function render_book_section(string $title, array $books): void
       margin: 0;
       padding: 0;
     }
-    
+
     /* Editorial Navigation */
     .editorial-nav {
       display: flex;
@@ -291,7 +291,8 @@ function render_book_section(string $title, array $books): void
       transition: color 0.2s ease-out;
     }
 
-    .nav-links a:hover, .nav-links a.active {
+    .nav-links a:hover,
+    .nav-links a.active {
       color: var(--ink);
     }
 
@@ -553,7 +554,11 @@ function render_book_section(string $title, array $books): void
       z-index: 100;
       display: none;
     }
-    .search-suggestions.active { display: block; }
+
+    .search-suggestions.active {
+      display: block;
+    }
+
     .suggestion-item {
       width: 100%;
       border: 0;
@@ -569,11 +574,37 @@ function render_book_section(string $title, array $books): void
       gap: 12px;
       color: var(--ink);
     }
-    .suggestion-item:last-child { border-bottom: none; }
-    .suggestion-item:hover, .suggestion-item.active { background: var(--cream); }
-    .suggestion-icon { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--muted); }
-    .suggestion-text { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
-    .suggestion-type { font-family: var(--font-mono); font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .suggestion-item:last-child {
+      border-bottom: none;
+    }
+
+    .suggestion-item:hover,
+    .suggestion-item.active {
+      background: var(--cream);
+    }
+
+    .suggestion-icon {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      color: var(--muted);
+    }
+
+    .suggestion-text {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-weight: 500;
+    }
+
+    .suggestion-type {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
 
     /* Results Bar */
     .results-toolbar {
@@ -654,7 +685,7 @@ function render_book_section(string $title, array $books): void
       aspect-ratio: 2/3;
       background: var(--cream);
       border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
-      box-shadow: 0 16px 32px rgba(0,0,0,0.08);
+      box-shadow: 0 16px 32px rgba(0, 0, 0, 0.08);
       margin-bottom: var(--space-4);
       overflow: hidden;
       transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
@@ -674,7 +705,7 @@ function render_book_section(string $title, array $books): void
 
     .book-card:hover .book-cover-wrap {
       transform: scale(0.98);
-      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
     }
 
     .book-card:hover .book-cover-wrap::after {
@@ -729,11 +760,22 @@ function render_book_section(string $title, array $books): void
       letter-spacing: 0.05em;
     }
 
-    .book-cat { color: var(--muted); }
+    .book-cat {
+      color: var(--muted);
+    }
 
-    .book-status { font-weight: 600; }
-    .status-avail { color: var(--ink); }
-    .status-unavail { color: var(--accent); text-decoration: line-through; }
+    .book-status {
+      font-weight: 600;
+    }
+
+    .status-avail {
+      color: var(--ink);
+    }
+
+    .status-unavail {
+      color: var(--accent);
+      text-decoration: line-through;
+    }
 
     .book-popular-badge {
       position: absolute;
@@ -760,7 +802,8 @@ function render_book_section(string $title, array $books): void
       border-top: 1px solid var(--border);
     }
 
-    .pagination a, .pagination span {
+    .pagination a,
+    .pagination span {
       font-family: var(--font-mono);
       font-size: var(--text-sm);
       padding: var(--space-3) var(--space-4);
@@ -840,7 +883,8 @@ function render_book_section(string $title, array $books): void
       position: fixed;
       z-index: 1000;
       inset: 0;
-      background: rgba(247, 244, 238, 0.9); /* var(--paper) with opacity */
+      background: rgba(247, 244, 238, 0.9);
+      /* var(--paper) with opacity */
       backdrop-filter: blur(4px);
     }
 
@@ -856,7 +900,8 @@ function render_book_section(string $title, array $books): void
       padding: var(--space-8);
       width: 90%;
       max-width: 700px;
-      box-shadow: 20px 20px 0px color-mix(in srgb, var(--ink) 10%, transparent); /* Brutalist shadow */
+      box-shadow: 20px 20px 0px color-mix(in srgb, var(--ink) 10%, transparent);
+      /* Brutalist shadow */
       position: relative;
       max-height: 90vh;
       overflow-y: auto;
@@ -934,7 +979,10 @@ function render_book_section(string $title, array $books): void
       color: var(--ink);
     }
 
-    .modal-meta-label { color: var(--muted); text-transform: uppercase; }
+    .modal-meta-label {
+      color: var(--muted);
+      text-transform: uppercase;
+    }
 
     .modal-availability {
       font-family: var(--font-mono);
@@ -946,10 +994,19 @@ function render_book_section(string $title, array $books): void
       margin-top: auto;
     }
 
-    .modal-available { background: var(--paper); color: var(--ink); }
-    .modal-unavailable { background: color-mix(in srgb, var(--accent) 10%, transparent); border-color: var(--accent); color: var(--accent); }
+    .modal-available {
+      background: var(--paper);
+      color: var(--ink);
+    }
 
-    .btn-reserve, .btn-waitlist {
+    .modal-unavailable {
+      background: color-mix(in srgb, var(--accent) 10%, transparent);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .btn-reserve,
+    .btn-waitlist {
       display: block;
       width: 100%;
       padding: var(--space-4);
@@ -1002,15 +1059,38 @@ function render_book_section(string $title, array $books): void
     }
 
     @media (max-width: 980px) {
-      .search-box { grid-template-columns: 1fr 1fr; }
-      .search-box input { grid-column: 1 / -1; }
-      .catalog-hero-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .discovery-grid, .books-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
-      .modal-body { grid-template-columns: 1fr; }
-      .modal-cover { max-width: 200px; margin: 0 auto; }
-      .results-toolbar { flex-direction: column; align-items: flex-start; }
+      .search-box {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .search-box input {
+        grid-column: 1 / -1;
+      }
+
+      .catalog-hero-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .discovery-grid,
+      .books-grid {
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      }
+
+      .modal-body {
+        grid-template-columns: 1fr;
+      }
+
+      .modal-cover {
+        max-width: 200px;
+        margin: 0 auto;
+      }
+
+      .results-toolbar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
     }
-    
+
     @media (max-width: 640px) {
       .editorial-nav {
         display: grid;
@@ -1018,8 +1098,16 @@ function render_book_section(string $title, array $books): void
         gap: var(--space-3);
         padding: var(--space-4);
       }
-      .brand { font-size: var(--text-xl); gap: 12px; }
-      .nav-menu-toggle { display: inline-flex; }
+
+      .brand {
+        font-size: var(--text-xl);
+        gap: 12px;
+      }
+
+      .nav-menu-toggle {
+        display: inline-flex;
+      }
+
       .nav-links {
         grid-column: 1 / -1;
         display: none;
@@ -1027,27 +1115,67 @@ function render_book_section(string $title, array $books): void
         padding-top: var(--space-3);
         border-top: 1px solid var(--border);
       }
-      .nav-links.menu-open { display: flex; }
+
+      .nav-links.menu-open {
+        display: flex;
+      }
+
       .nav-actions {
         grid-column: 1 / -1;
         display: none;
         gap: var(--space-4);
       }
-      .nav-actions.menu-open { display: flex; }
-      .search-box { grid-template-columns: 1fr; }
-      .discovery-grid, .books-grid { grid-template-columns: repeat(2, 1fr); gap: var(--space-4); }
-      .catalog-hero h1 { font-size: 2.5rem; }
-      .catalog-hero p { font-size: var(--text-base); }
-      .catalog-hero-stats { grid-template-columns: 1fr; }
-      .modal-content { padding: var(--space-4); }
-      .modal-title { font-size: 1.8rem; }
-      .results-tags { width: 100%; overflow-x: auto; padding-bottom: 2px; }
+
+      .nav-actions.menu-open {
+        display: flex;
+      }
+
+      .search-box {
+        grid-template-columns: 1fr;
+      }
+
+      .discovery-grid,
+      .books-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-4);
+      }
+
+      .catalog-hero h1 {
+        font-size: 2.5rem;
+      }
+
+      .catalog-hero p {
+        font-size: var(--text-base);
+      }
+
+      .catalog-hero-stats {
+        grid-template-columns: 1fr;
+      }
+
+      .modal-content {
+        padding: var(--space-4);
+      }
+
+      .modal-title {
+        font-size: 1.8rem;
+      }
+
+      .results-tags {
+        width: 100%;
+        overflow-x: auto;
+        padding-bottom: 2px;
+      }
+
       .pagination {
         justify-content: flex-start;
         overflow-x: auto;
         padding-bottom: var(--space-2);
       }
-      .pagination a, .pagination span { white-space: nowrap; }
+
+      .pagination a,
+      .pagination span {
+        white-space: nowrap;
+      }
     }
   </style>
 </head>
@@ -1055,7 +1183,7 @@ function render_book_section(string $title, array $books): void
 <body>
   <nav class="editorial-nav" aria-label="Main Navigation">
     <a href="index.php" class="brand">
-      <img src="assets/images/logo.svg" alt="Library System Logo" style="height: 48px; width: auto; object-fit: contain;">
+      <img src="assets/images/library_logo_cropped.png" alt="Library System Logo" style="height: 48px; width: auto; object-fit: contain;" onerror="this.onerror=null;this.src='assets/images/logo.svg';">
       <span>Library System</span>
     </a>
 
@@ -1064,7 +1192,7 @@ function render_book_section(string $title, array $books): void
         <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="square" />
       </svg>
     </button>
-    
+
     <div class="nav-links" id="catalogNavLinks">
       <a href="index.php">Index</a>
       <a href="catalog.php" class="active">Catalog</a>
@@ -1179,73 +1307,73 @@ function render_book_section(string $title, array $books): void
 
         <!-- Books Grid -->
         <div class="books-grid" aria-label="Catalog book cards">
-        <?php if (empty($books)): ?>
-          <div class="empty-state">
-            <h3>No Records Found</h3>
-            <?php if ($q !== ''): ?>
-              <p>We searched the archive but found no matches for "<?= $q_escaped ?>".</p>
-            <?php else: ?>
-              <p>Your filter combination yielded zero results.</p>
-            <?php endif; ?>
+          <?php if (empty($books)): ?>
+            <div class="empty-state">
+              <h3>No Records Found</h3>
+              <?php if ($q !== ''): ?>
+                <p>We searched the archive but found no matches for "<?= $q_escaped ?>".</p>
+              <?php else: ?>
+                <p>Your filter combination yielded zero results.</p>
+              <?php endif; ?>
 
-            <div class="empty-suggestions">
-              <a href="catalog.php" class="suggestion-link">View Complete Archive</a>
-              <a href="?sort=newest" class="suggestion-link" title="View newly added books">Recent Additions</a>
+              <div class="empty-suggestions">
+                <a href="catalog.php" class="suggestion-link">View Complete Archive</a>
+                <a href="?sort=newest" class="suggestion-link" title="View newly added books">Recent Additions</a>
+              </div>
             </div>
-          </div>
-        <?php else: ?>
-          <?php foreach ($books as $book): ?>
-            <?php render_book_card($book); ?>
-          <?php endforeach; ?>
-        <?php endif; ?>
-      </div>
-
-      <!-- Pagination -->
-      <?php if ($total_pages > 1 && !empty($books)): ?>
-        <div class="pagination">
-          <?php if ($page > 1): ?>
-            <a href="?page=1<?php if (build_query_string($q, $category, $availability, $sort, true)) echo '&' . build_query_string($q, $category, $availability, $sort, true); ?>">FIRST</a>
-            <a href="?page=<?= $page - 1 ?><?php if (build_query_string($q, $category, $availability, $sort, true)) echo '&' . build_query_string($q, $category, $availability, $sort, true); ?>">PREV</a>
           <?php else: ?>
-            <span class="disabled">FIRST</span>
-            <span class="disabled">PREV</span>
-          <?php endif; ?>
-
-          <?php
-          $start = max(1, $page - 2);
-          $end = min($total_pages, $page + 2);
-
-          if ($start > 1): ?>
-            <a href="?page=1<?php if (build_query_string($q, $category, $availability, $sort, true)) echo '&' . build_query_string($q, $category, $availability, $sort, true); ?>">1</a>
-            <?php if ($start > 2): ?>
-              <span class="disabled">...</span>
-            <?php endif; ?>
-          <?php endif; ?>
-
-          <?php for ($i = $start; $i <= $end; $i++): ?>
-            <?php if ($i === $page): ?>
-              <span class="current"><?= $i ?></span>
-            <?php else: ?>
-              <a href="?page=<?= $i ?><?php if (build_query_string($q, $category, $availability, $sort, true)) echo '&' . build_query_string($q, $category, $availability, $sort, true); ?>"><?= $i ?></a>
-            <?php endif; ?>
-          <?php endfor; ?>
-
-          <?php if ($end < $total_pages): ?>
-            <?php if ($end < $total_pages - 1): ?>
-              <span class="disabled">...</span>
-            <?php endif; ?>
-            <a href="?page=<?= $total_pages ?><?php if (build_query_string($q, $category, $availability, $sort, true)) echo '&' . build_query_string($q, $category, $availability, $sort, true); ?>"><?= $total_pages ?></a>
-          <?php endif; ?>
-
-          <?php if ($page < $total_pages): ?>
-            <a href="?page=<?= $page + 1 ?><?php if (build_query_string($q, $category, $availability, $sort, true)) echo '&' . build_query_string($q, $category, $availability, $sort, true); ?>">NEXT</a>
-            <a href="?page=<?= $total_pages ?><?php if (build_query_string($q, $category, $availability, $sort, true)) echo '&' . build_query_string($q, $category, $availability, $sort, true); ?>">LAST</a>
-          <?php else: ?>
-            <span class="disabled">NEXT</span>
-            <span class="disabled">LAST</span>
+            <?php foreach ($books as $book): ?>
+              <?php render_book_card($book); ?>
+            <?php endforeach; ?>
           <?php endif; ?>
         </div>
-      <?php endif; ?>
+
+        <!-- Pagination -->
+        <?php if ($total_pages > 1 && !empty($books)): ?>
+          <div class="pagination">
+            <?php if ($page > 1): ?>
+              <a href="?page=1<?php if (build_query_string($q, $category, $availability, $sort, true)) echo '&' . build_query_string($q, $category, $availability, $sort, true); ?>">FIRST</a>
+              <a href="?page=<?= $page - 1 ?><?php if (build_query_string($q, $category, $availability, $sort, true)) echo '&' . build_query_string($q, $category, $availability, $sort, true); ?>">PREV</a>
+            <?php else: ?>
+              <span class="disabled">FIRST</span>
+              <span class="disabled">PREV</span>
+            <?php endif; ?>
+
+            <?php
+            $start = max(1, $page - 2);
+            $end = min($total_pages, $page + 2);
+
+            if ($start > 1): ?>
+              <a href="?page=1<?php if (build_query_string($q, $category, $availability, $sort, true)) echo '&' . build_query_string($q, $category, $availability, $sort, true); ?>">1</a>
+              <?php if ($start > 2): ?>
+                <span class="disabled">...</span>
+              <?php endif; ?>
+            <?php endif; ?>
+
+            <?php for ($i = $start; $i <= $end; $i++): ?>
+              <?php if ($i === $page): ?>
+                <span class="current"><?= $i ?></span>
+              <?php else: ?>
+                <a href="?page=<?= $i ?><?php if (build_query_string($q, $category, $availability, $sort, true)) echo '&' . build_query_string($q, $category, $availability, $sort, true); ?>"><?= $i ?></a>
+              <?php endif; ?>
+            <?php endfor; ?>
+
+            <?php if ($end < $total_pages): ?>
+              <?php if ($end < $total_pages - 1): ?>
+                <span class="disabled">...</span>
+              <?php endif; ?>
+              <a href="?page=<?= $total_pages ?><?php if (build_query_string($q, $category, $availability, $sort, true)) echo '&' . build_query_string($q, $category, $availability, $sort, true); ?>"><?= $total_pages ?></a>
+            <?php endif; ?>
+
+            <?php if ($page < $total_pages): ?>
+              <a href="?page=<?= $page + 1 ?><?php if (build_query_string($q, $category, $availability, $sort, true)) echo '&' . build_query_string($q, $category, $availability, $sort, true); ?>">NEXT</a>
+              <a href="?page=<?= $total_pages ?><?php if (build_query_string($q, $category, $availability, $sort, true)) echo '&' . build_query_string($q, $category, $availability, $sort, true); ?>">LAST</a>
+            <?php else: ?>
+              <span class="disabled">NEXT</span>
+              <span class="disabled">LAST</span>
+            <?php endif; ?>
+          </div>
+        <?php endif; ?>
       </section>
     </main>
 

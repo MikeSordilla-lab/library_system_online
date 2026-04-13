@@ -641,6 +641,28 @@ textarea {
   gap: var(--space-3);
 }
 
+.sidebar__brand-logo-wrap {
+  width: clamp(52px, 14vw, 64px);
+  height: clamp(52px, 14vw, 64px);
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 4px;
+  background: color-mix(in srgb, var(--sidebar-hover) 78%, transparent);
+  border: 1px solid rgba(201, 168, 76, 0.22);
+}
+
+.sidebar__brand-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 9px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.22));
+}
+
 .sidebar__brand-mark {
   width: 30px;
   height: 30px;
@@ -665,6 +687,7 @@ textarea {
 
 .sidebar__brand-text {
   letter-spacing: 0.01em;
+  line-height: 1.08;
 }
 
 .sidebar__brand:hover .sidebar__brand-mark {

@@ -147,7 +147,7 @@ if ($alertType !== '') {
     <!-- Left: hero image panel -->
     <div class="auth-hero" aria-hidden="true">
       <a href="index.php" class="auth-hero__brand auth-hero__brand--linked">
-        <img src="<?= BASE_URL ?>assets/images/logo.svg" alt="Library System Logo" class="auth-hero__logo">
+        <img src="<?= BASE_URL ?>assets/images/library_logo_cropped.png" alt="Library System Logo" class="auth-hero__logo" onerror="this.onerror=null;this.src='<?= BASE_URL ?>assets/images/logo.svg';">
         <span>Library System</span>
       </a>
       <hr class="auth-hero__divider">

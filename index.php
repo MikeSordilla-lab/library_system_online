@@ -1,4 +1,5 @@
 <?php
+
 /**
  * index.php — Public Landing Page
  *
@@ -24,9 +25,9 @@ $pdo = get_db();
 
 // Optional: Fetch some quick stats for the hero section
 try {
-    $books_count = (int) $pdo->query('SELECT COUNT(*) FROM Books')->fetchColumn();
-    // Fetch 3 random books with covers for the hero section
-    $hero_books = $pdo->query('
+  $books_count = (int) $pdo->query('SELECT COUNT(*) FROM Books')->fetchColumn();
+  // Fetch 3 random books with covers for the hero section
+  $hero_books = $pdo->query('
         SELECT b.id 
         FROM Books b 
         JOIN book_covers bc ON b.id = bc.book_id 
@@ -34,12 +35,13 @@ try {
         LIMIT 3
     ')->fetchAll(PDO::FETCH_COLUMN);
 } catch (Exception $e) {
-    $books_count = 0;
-    $hero_books = [];
+  $books_count = 0;
+  $hero_books = [];
 }
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -55,7 +57,7 @@ try {
       margin: 0;
       padding: 0;
     }
-    
+
     /* Editorial Navigation */
     .editorial-nav {
       display: flex;
@@ -93,7 +95,8 @@ try {
       transition: color 0.2s ease-out;
     }
 
-    .nav-links a:hover, .nav-links a.active {
+    .nav-links a:hover,
+    .nav-links a.active {
       color: var(--ink);
     }
 
@@ -240,7 +243,7 @@ try {
       width: 260px;
       aspect-ratio: 2 / 3;
       background: var(--cream);
-      box-shadow: 0 32px 64px rgba(0,0,0,0.15);
+      box-shadow: 0 32px 64px rgba(0, 0, 0, 0.15);
       border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
     }
 
@@ -277,18 +280,32 @@ try {
         grid-template-columns: 1fr;
         padding-bottom: var(--space-8);
       }
+
       .editorial-content {
         grid-column: 1 / -1;
         padding-bottom: var(--space-6);
       }
+
       .editorial-gallery {
         grid-column: 1 / -1;
         height: 450px;
         justify-content: flex-start;
       }
-      .book-bottom { top: 0; left: 0; }
-      .book-middle { top: 10%; left: 15%; }
-      .book-top { top: 20%; left: 30%; }
+
+      .book-bottom {
+        top: 0;
+        left: 0;
+      }
+
+      .book-middle {
+        top: 10%;
+        left: 15%;
+      }
+
+      .book-top {
+        top: 20%;
+        left: 30%;
+      }
     }
 
     @media (max-width: 768px) {
@@ -297,35 +314,42 @@ try {
         gap: var(--space-6);
         padding: var(--space-6) var(--space-4);
       }
+
       .nav-links {
         gap: var(--space-4);
       }
+
       .editorial-headline {
         font-size: clamp(3.5rem, 12vw, 5rem);
       }
+
       .editorial-actions {
         flex-direction: column;
       }
+
       .editorial-btn {
         text-align: center;
       }
+
       .editorial-gallery {
         height: 300px;
       }
+
       .gallery-book {
         width: 160px;
       }
     }
   </style>
 </head>
+
 <body>
 
   <nav class="editorial-nav" aria-label="Main Navigation">
     <a href="<?= BASE_URL ?>index.php" class="brand">
-      <img src="<?= BASE_URL ?>assets/images/logo.svg" alt="Library System Logo" style="height: 48px; width: auto; object-fit: contain;">
+      <img src="<?= BASE_URL ?>assets/images/library_logo_cropped.png" alt="Library System Logo" style="height: 48px; width: auto; object-fit: contain;" onerror="this.onerror=null;this.src='<?= BASE_URL ?>assets/images/logo.svg';">
       <span>Library System</span>
     </a>
-    
+
     <div class="nav-links">
       <a href="<?= BASE_URL ?>index.php" class="active">Index</a>
       <a href="<?= BASE_URL ?>catalog.php">Catalog</a>
@@ -349,18 +373,18 @@ try {
       <p class="editorial-sub">
         Access an extensive archive of literature, research materials, and historical texts. Knowledge meticulously curated and ready for exploration.
       </p>
-      
+
       <div class="editorial-actions">
-         <a href="<?= BASE_URL ?>catalog.php" class="editorial-btn editorial-btn--primary">Browse Archive</a>
-         <a href="<?= BASE_URL ?>register.php" class="editorial-btn editorial-btn--secondary">Join Library</a>
+        <a href="<?= BASE_URL ?>catalog.php" class="editorial-btn editorial-btn--primary">Browse Archive</a>
+        <a href="<?= BASE_URL ?>register.php" class="editorial-btn editorial-btn--secondary">Join Library</a>
       </div>
     </div>
 
     <div class="editorial-gallery" aria-hidden="true">
       <?php
-        $cover_1 = !empty($hero_books[0]) ? BASE_URL . "book-cover-public.php?book_id={$hero_books[0]}" : BASE_URL . 'assets/images/placeholder-book.png';
-        $cover_2 = !empty($hero_books[1]) ? BASE_URL . "book-cover-public.php?book_id={$hero_books[1]}" : BASE_URL . 'assets/images/placeholder-book.png';
-        $cover_3 = !empty($hero_books[2]) ? BASE_URL . "book-cover-public.php?book_id={$hero_books[2]}" : BASE_URL . 'assets/images/placeholder-book.png';
+      $cover_1 = !empty($hero_books[0]) ? BASE_URL . "book-cover-public.php?book_id={$hero_books[0]}" : BASE_URL . 'assets/images/placeholder-book.png';
+      $cover_2 = !empty($hero_books[1]) ? BASE_URL . "book-cover-public.php?book_id={$hero_books[1]}" : BASE_URL . 'assets/images/placeholder-book.png';
+      $cover_3 = !empty($hero_books[2]) ? BASE_URL . "book-cover-public.php?book_id={$hero_books[2]}" : BASE_URL . 'assets/images/placeholder-book.png';
       ?>
       <div class="gallery-book book-bottom">
         <img src="<?= htmlspecialchars($cover_3) ?>" alt="">
@@ -375,4 +399,5 @@ try {
   </main>
 
 </body>
+
 </html>
