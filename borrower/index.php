@@ -192,28 +192,11 @@ $pageTitle    = 'My Account | Library System';
           </nav>
           <span class="borrower-hero__eyebrow">Borrower Workspace</span>
           <h1>My Dashboard</h1>
-          <p>Welcome back, <?= $name ?>. Track your account and jump straight to your next task.</p>
-
-          <div class="borrower-hero__status" aria-label="Loan status summary">
-            <div class="hero-kpi">
-              <span class="hero-kpi__label">Active Loans</span>
-              <strong class="hero-kpi__value"><?= (int) $currently_borrowed ?></strong>
-            </div>
-            <div class="hero-kpi<?= $due_soon_count > 0 ? ' hero-kpi--warning' : '' ?>">
-              <span class="hero-kpi__label">Due Soon</span>
-              <strong class="hero-kpi__value"><?= (int) $due_soon_count ?></strong>
-            </div>
-            <div class="hero-kpi">
-              <span class="hero-kpi__label">Next Due Date</span>
-              <strong class="hero-kpi__value"><?= $next_return !== null ? htmlspecialchars(date('d M Y', strtotime($next_return)), ENT_QUOTES, 'UTF-8') : 'None' ?></strong>
-            </div>
-          </div>
+          <p>Welcome back, <?= $name ?>. Browse catalog or review your account details below.</p>
         </div>
         <div class="borrower-hero__actions" aria-label="Dashboard quick actions">
           <a class="btn-ghost is-current" href="<?= htmlspecialchars(BASE_URL . 'borrower/index.php', ENT_QUOTES, 'UTF-8') ?>" aria-current="page">Dashboard</a>
           <a class="btn-ghost" href="<?= htmlspecialchars(BASE_URL . 'borrower/catalog.php', ENT_QUOTES, 'UTF-8') ?>">Browse Catalog</a>
-          <a class="btn-primary" href="#borrower-records-title">Renew Loans</a>
-          <a class="btn-ghost" href="#pending-reservations">View Reservations</a>
         </div>
       </section>
 
