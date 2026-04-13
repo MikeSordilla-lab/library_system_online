@@ -31,31 +31,36 @@ $key === ($current_page ?? '') ? 'sidebar-item active' : 'sidebar-item';
     <span class="sidebar__brand-text">Library System</span>
   </a>
 
-  <a href="<?= BASE_URL ?>librarian/index.php" class="<?= $_sb_nav('librarian.index') ?>">
-    Dashboard
-  </a>
+  <div class="sidebar__nav-links">
+    <a href="<?= BASE_URL ?>librarian/index.php" class="<?= $_sb_nav('librarian.index') ?>">
+      Dashboard
+    </a>
 
-  <div class="sidebar__section-label">Catalog</div>
-  <a href="<?= BASE_URL ?>librarian/catalog.php" class="<?= $_sb_nav('librarian.catalog') ?>">
-    Book Catalog
-  </a>
+    <div class="sidebar__section-label">Catalog</div>
+    <a href="<?= BASE_URL ?>librarian/catalog.php" class="<?= $_sb_nav('librarian.catalog') ?>">
+      Book Catalog
+    </a>
 
-  <div class="sidebar__section-label">Circulation</div>
-  <a href="<?= BASE_URL ?>librarian/checkout.php" class="<?= $_sb_nav('librarian.checkout') ?>">
-    Process Check-Out
-  </a>
-  <a href="<?= BASE_URL ?>librarian/checkin.php" class="<?= $_sb_nav('librarian.checkin') ?>">
-    Process Returns
-  </a>
+    <div class="sidebar__section-label">Circulation</div>
+    <a href="<?= BASE_URL ?>librarian/checkout.php" class="<?= $_sb_nav('librarian.checkout') ?>">
+      Process Check-Out
+    </a>
+    <a href="<?= BASE_URL ?>librarian/checkin.php" class="<?= $_sb_nav('librarian.checkin') ?>">
+      Process Returns
+    </a>
+  </div>
 
   <div class="sidebar__avatar-section">
     <div class="sidebar-avatar">
       <div class="sidebar-avatar__initials"><?= htmlspecialchars($_sb_initials, ENT_QUOTES, 'UTF-8') ?></div>
-      <div>
+      <div class="sidebar-avatar__details">
         <div class="sidebar-avatar__name"><?= $_sb_name ?></div>
         <div class="sidebar-avatar__role"><?= $_sb_role ?></div>
-        <a href="<?= BASE_URL ?>logout.php" class="sidebar-avatar__logout">Log Out</a>
       </div>
     </div>
+    <a href="<?= BASE_URL ?>logout.php" class="sidebar__logout-btn" aria-label="Log out">
+      <span class="sidebar__logout-icon" aria-hidden="true">&#x21AA;</span>
+      <span>Log Out</span>
+    </a>
   </div>
 </nav>

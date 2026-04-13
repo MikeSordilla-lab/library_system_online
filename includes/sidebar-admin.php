@@ -31,20 +31,25 @@ $key === ($current_page ?? '') ? 'sidebar-item active' : 'sidebar-item';
     <span class="sidebar__brand-text">Library System</span>
   </a>
 
-  <a href="<?= BASE_URL ?>admin/index.php" class="<?= $_sb_nav('admin.index') ?>">Dashboard</a>
-  <a href="<?= BASE_URL ?>admin/about.php" class="<?= $_sb_nav('admin.about') ?>">Profile Details</a>
-  <a href="<?= BASE_URL ?>admin/change-password.php" class="<?= $_sb_nav('admin.change-password') ?>">Password &amp; Security</a>
-  <a href="<?= BASE_URL ?>admin/users.php" class="<?= $_sb_nav('admin.users') ?>">Users</a>
-  <a href="<?= BASE_URL ?>admin/settings.php" class="<?= $_sb_nav('admin.settings') ?>">Settings</a>
-  <a href="<?= BASE_URL ?>logout.php" class="sidebar-item">Logout</a>
+  <div class="sidebar__nav-links">
+    <a href="<?= BASE_URL ?>admin/index.php" class="<?= $_sb_nav('admin.index') ?>">Dashboard</a>
+    <a href="<?= BASE_URL ?>admin/about.php" class="<?= $_sb_nav('admin.about') ?>">Profile Details</a>
+    <a href="<?= BASE_URL ?>admin/change-password.php" class="<?= $_sb_nav('admin.change-password') ?>">Password &amp; Security</a>
+    <a href="<?= BASE_URL ?>admin/users.php" class="<?= $_sb_nav('admin.users') ?>">Users</a>
+    <a href="<?= BASE_URL ?>admin/settings.php" class="<?= $_sb_nav('admin.settings') ?>">Settings</a>
+  </div>
 
   <div class="sidebar__avatar-section">
     <div class="sidebar-avatar">
       <div class="sidebar-avatar__initials"><?= htmlspecialchars($_sb_initials, ENT_QUOTES, 'UTF-8') ?></div>
-      <div>
+      <div class="sidebar-avatar__details">
         <div class="sidebar-avatar__name"><?= $_sb_name ?></div>
         <div class="sidebar-avatar__role"><?= $_sb_role ?></div>
       </div>
     </div>
+    <a href="<?= BASE_URL ?>logout.php" class="sidebar__logout-btn" aria-label="Log out">
+      <span class="sidebar__logout-icon" aria-hidden="true">&#x21AA;</span>
+      <span>Log Out</span>
+    </a>
   </div>
 </nav>
