@@ -1,0 +1,39 @@
+# =============================================================================
+# Library Management System — .gitignore
+# =============================================================================
+
+# Local environment config — NEVER commit these files
+config.php
+config.production.php
+
+# PHP error logs & temporary files
+*.log
+error_log
+*.cache
+.env*
+*.tmp
+*.swp
+testsprite_execution.log
+
+# Test automation temporary files
+tests/automation/tmp/
+tests/automation/**/*.log
+
+# Uploaded files / user content
+uploads/
+assets/avatars/
+
+# IDE & editor
+.vscode/
+.idea/
+*.suo
+*.user
+
+# OS noise
+Thumbs.db
+.DS_Store
+Desktop.ini
+
+# Composer (not used in this project yet, but precautionary)
+vendor/
+composer.lock

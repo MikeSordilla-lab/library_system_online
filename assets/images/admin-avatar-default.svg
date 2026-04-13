@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240" role="img" aria-labelledby="title desc">
+  <title id="title">Default Admin Avatar</title>
+  <desc id="desc">A default profile image for admin users.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#12304a"/>
+      <stop offset="100%" stop-color="#2f6f95"/>
+    </linearGradient>
+    <linearGradient id="ring" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#d5b057"/>
+      <stop offset="100%" stop-color="#f0d18f"/>
+    </linearGradient>
+  </defs>
+  <rect width="240" height="240" rx="120" fill="url(#bg)"/>
+  <circle cx="120" cy="120" r="114" fill="none" stroke="url(#ring)" stroke-width="8"/>
+  <circle cx="120" cy="96" r="42" fill="#f2f6fa"/>
+  <path d="M52 204c12-32 40-52 68-52s56 20 68 52" fill="#f2f6fa"/>
+</svg>

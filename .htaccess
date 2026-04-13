@@ -1,0 +1,33 @@
+# Root .htaccess — Apache 2.4 syntax
+Options -Indexes
+
+# Block direct access to config.php
+<Files "config.php">
+    Require all denied
+</Files>
+
+# Block direct access to environment files
+<FilesMatch "^\.env(\.production)?$">
+    Require all denied
+</FilesMatch>
+
+# Enable mod_rewrite for future routing (not yet used)
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Force HTTPS on production domains.
+    RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1)$ [NC]
+    RewriteCond %{HTTPS} !=on
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# Baseline security headers.
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+
+    # HSTS is only sent over HTTPS responses.
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" "expr=%{HTTPS} == 'on'"
+</IfModule>
