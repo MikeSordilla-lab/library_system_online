@@ -185,12 +185,6 @@ $pageTitle    = 'My Account | Library System';
     <main class="main-content borrower-dashboard">
       <section class="borrower-hero">
         <div class="page-header borrower-hero__content">
-          <nav class="borrower-hero__crumb" aria-label="Breadcrumb">
-            <span>Borrower</span>
-            <span aria-hidden="true">/</span>
-            <span aria-current="page">Dashboard</span>
-          </nav>
-          <span class="borrower-hero__eyebrow">Borrower Workspace</span>
           <h1>My Dashboard</h1>
           <p>Welcome back, <?= $name ?>. Browse catalog or review your account details below.</p>
         </div>
