@@ -182,42 +182,77 @@ $pageTitle    = 'My Account | Library System';
   <div class="app-shell">
     <?php require_once __DIR__ . '/../includes/sidebar-borrower.php'; ?>
 
-    <main class="main-content">
-      <div class="page-header">
-        <h1>My Dashboard</h1>
-        <p>Welcome back, <?= $name ?></p>
-      </div>
+    <main class="main-content borrower-dashboard">
+      <section class="borrower-hero">
+        <div class="page-header borrower-hero__content">
+          <nav class="borrower-hero__crumb" aria-label="Breadcrumb">
+            <span>Borrower</span>
+            <span aria-hidden="true">/</span>
+            <span aria-current="page">Dashboard</span>
+          </nav>
+          <span class="borrower-hero__eyebrow">Borrower Workspace</span>
+          <h1>My Dashboard</h1>
+          <p>Welcome back, <?= $name ?>. Track your account and jump straight to your next task.</p>
 
-      <?php if ($flash_error !== ''): ?>
-        <div class="flash flash-error" role="alert" aria-live="assertive" aria-atomic="true"><?= htmlspecialchars($flash_error, ENT_QUOTES, 'UTF-8') ?></div>
-      <?php endif; ?>
-      <?php if ($flash_success !== ''): ?>
-        <div class="flash flash-success" role="alert" aria-live="polite" aria-atomic="true"><?= htmlspecialchars($flash_success, ENT_QUOTES, 'UTF-8') ?></div>
-      <?php endif; ?>
+          <div class="borrower-hero__status" aria-label="Loan status summary">
+            <div class="hero-kpi">
+              <span class="hero-kpi__label">Active Loans</span>
+              <strong class="hero-kpi__value"><?= (int) $currently_borrowed ?></strong>
+            </div>
+            <div class="hero-kpi<?= $due_soon_count > 0 ? ' hero-kpi--warning' : '' ?>">
+              <span class="hero-kpi__label">Due Soon</span>
+              <strong class="hero-kpi__value"><?= (int) $due_soon_count ?></strong>
+            </div>
+            <div class="hero-kpi">
+              <span class="hero-kpi__label">Next Due Date</span>
+              <strong class="hero-kpi__value"><?= $next_return !== null ? htmlspecialchars(date('d M Y', strtotime($next_return)), ENT_QUOTES, 'UTF-8') : 'None' ?></strong>
+            </div>
+          </div>
+        </div>
+        <div class="borrower-hero__actions" aria-label="Dashboard quick actions">
+          <a class="btn-ghost is-current" href="<?= htmlspecialchars(BASE_URL . 'borrower/index.php', ENT_QUOTES, 'UTF-8') ?>" aria-current="page">Dashboard</a>
+          <a class="btn-ghost" href="<?= htmlspecialchars(BASE_URL . 'borrower/catalog.php', ENT_QUOTES, 'UTF-8') ?>">Browse Catalog</a>
+          <a class="btn-primary" href="#borrower-records-title">Renew Loans</a>
+          <a class="btn-ghost" href="#pending-reservations">View Reservations</a>
+        </div>
+      </section>
 
-      <!-- ── Stat Cards ─────────────────────────────────────────────────────── -->
-      <div class="dash-stats">
-        <div class="stat-card">
-          <div class="stat-card__label">Currently Borrowed</div>
-          <div class="stat-card__value"><?= $currently_borrowed ?></div>
-          <div class="stat-card__sub">active &amp; overdue</div>
+      <section class="borrower-overview" aria-labelledby="borrower-overview-title">
+        <h2 id="borrower-overview-title" class="borrower-section-heading">Overview</h2>
+        <p class="borrower-section-subtitle">Track current loans, upcoming due dates, and reservation activity at a glance.</p>
+
+        <?php if ($flash_error !== ''): ?>
+          <div class="flash flash-error" role="alert" aria-live="assertive" aria-atomic="true"><?= htmlspecialchars($flash_error, ENT_QUOTES, 'UTF-8') ?></div>
+        <?php endif; ?>
+        <?php if ($flash_success !== ''): ?>
+          <div class="flash flash-success" role="alert" aria-live="polite" aria-atomic="true"><?= htmlspecialchars($flash_success, ENT_QUOTES, 'UTF-8') ?></div>
+        <?php endif; ?>
+
+        <!-- ── Stat Cards ─────────────────────────────────────────────────────── -->
+        <div class="dash-stats">
+          <div class="stat-card">
+            <div class="stat-card__label">Currently Borrowed</div>
+            <div class="stat-card__value"><?= $currently_borrowed ?></div>
+            <div class="stat-card__sub">active &amp; overdue</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card__label">Total Books Read</div>
+            <div class="stat-card__value"><?= $total_borrowed ?></div>
+            <div class="stat-card__sub">all time</div>
+          </div>
+          <div class="stat-card<?= $due_soon_count > 0 ? ' stat-card--warning' : '' ?>">
+            <div class="stat-card__label">Due Soon</div>
+            <div class="stat-card__value"><?= $due_soon_count ?></div>
+            <div class="stat-card__sub">within 3 days</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card__label">Reservations</div>
+            <div class="stat-card__value"><?= $pending_count ?></div>
+            <div class="stat-card__sub">pending</div>
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-card__label">Total Books Read</div>
-          <div class="stat-card__value"><?= $total_borrowed ?></div>
-          <div class="stat-card__sub">all time</div>
-        </div>
-        <div class="stat-card<?= $due_soon_count > 0 ? ' stat-card--warning' : '' ?>">
-          <div class="stat-card__label">Due Soon</div>
-          <div class="stat-card__value"><?= $due_soon_count ?></div>
-          <div class="stat-card__sub">within 3 days</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-card__label">Reservations</div>
-          <div class="stat-card__value"><?= $pending_count ?></div>
-          <div class="stat-card__sub">pending</div>
-        </div>
-      </div>
+
+      </section>
 
       <?php if ($due_soon_count > 0): ?>
         <div class="alert-due-soon">
@@ -229,62 +264,67 @@ $pageTitle    = 'My Account | Library System';
       <?php endif; ?>
 
       <!-- ── Charts ─────────────────────────────────────────────────────────── -->
-      <div class="dash-charts">
-        <div class="chart-card">
-          <div class="chart-card__title">Books by Category</div>
-          <div class="chart-wrapper">
-            <canvas id="categoryChart" aria-label="Books borrowed by category" role="img"></canvas>
+      <section class="borrower-charts" aria-labelledby="borrower-insights-title">
+        <h2 id="borrower-insights-title" class="borrower-section-heading">Reading Insights</h2>
+        <p class="borrower-section-subtitle">Your category mix and monthly borrowing pace from recent activity.</p>
+
+        <div class="dash-charts">
+          <div class="chart-card">
+            <div class="chart-card__title">Books by Category</div>
+            <div class="chart-wrapper">
+              <canvas id="categoryChart" aria-label="Books borrowed by category" role="img"></canvas>
+            </div>
+            <?php if (empty($categories)): ?>
+              <p style="text-align:center;color:var(--ink-muted);font-size:var(--text-sm);padding:var(--space-4)">
+                Borrow some books to see your reading profile here.
+              </p>
+            <?php else: ?>
+              <!-- Accessible text fallback for screen readers -->
+              <table style="display:none;width:100%;" role="presentation" aria-label="Books borrowed by category data">
+                <caption style="font-weight:bold;text-align:left;padding:var(--space-2);">Books by Category</caption>
+                <thead>
+                  <tr>
+                    <th style="text-align:left;padding:var(--space-2);">Category</th>
+                    <th style="text-align:right;padding:var(--space-2);">Count</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php foreach ($categories as $cat): ?>
+                    <tr>
+                      <td style="text-align:left;padding:var(--space-2);"><?= htmlspecialchars($cat['category'] ?: 'Uncategorised', ENT_QUOTES, 'UTF-8') ?></td>
+                      <td style="text-align:right;padding:var(--space-2);"><?= (int)$cat['cnt'] ?></td>
+                    </tr>
+                  <?php endforeach; ?>
+                </tbody>
+              </table>
+            <?php endif; ?>
           </div>
-          <?php if (empty($categories)): ?>
-            <p style="text-align:center;color:var(--ink-muted);font-size:var(--text-sm);padding:var(--space-4)">
-              Borrow some books to see your reading profile here.
-            </p>
-          <?php else: ?>
+          <div class="chart-card">
+            <div class="chart-card__title">Monthly Activity (last 12 months)</div>
+            <div class="chart-wrapper">
+              <canvas id="monthlyChart" aria-label="Books checked out per month" role="img"></canvas>
+            </div>
             <!-- Accessible text fallback for screen readers -->
-            <table style="display:none;width:100%;" role="presentation" aria-label="Books borrowed by category data">
-              <caption style="font-weight:bold;text-align:left;padding:var(--space-2);">Books by Category</caption>
+            <table style="display:none;width:100%;" role="presentation" aria-label="Books checked out per month data">
+              <caption style="font-weight:bold;text-align:left;padding:var(--space-2);">Monthly Activity (last 12 months)</caption>
               <thead>
                 <tr>
-                  <th style="text-align:left;padding:var(--space-2);">Category</th>
-                  <th style="text-align:right;padding:var(--space-2);">Count</th>
+                  <th style="text-align:left;padding:var(--space-2);">Month</th>
+                  <th style="text-align:right;padding:var(--space-2);">Books Borrowed</th>
                 </tr>
               </thead>
               <tbody>
-                <?php foreach ($categories as $cat): ?>
+                <?php foreach ($month_labels as $idx => $month): ?>
                   <tr>
-                    <td style="text-align:left;padding:var(--space-2);"><?= htmlspecialchars($cat['category'] ?: 'Uncategorised', ENT_QUOTES, 'UTF-8') ?></td>
-                    <td style="text-align:right;padding:var(--space-2);"><?= (int)$cat['cnt'] ?></td>
+                    <td style="text-align:left;padding:var(--space-2);"><?= htmlspecialchars($month, ENT_QUOTES, 'UTF-8') ?></td>
+                    <td style="text-align:right;padding:var(--space-2);"><?= (int)($month_values[$idx] ?? 0) ?></td>
                   </tr>
                 <?php endforeach; ?>
               </tbody>
             </table>
-          <?php endif; ?>
-        </div>
-        <div class="chart-card">
-          <div class="chart-card__title">Monthly Activity (last 12 months)</div>
-          <div class="chart-wrapper">
-            <canvas id="monthlyChart" aria-label="Books checked out per month" role="img"></canvas>
           </div>
-          <!-- Accessible text fallback for screen readers -->
-          <table style="display:none;width:100%;" role="presentation" aria-label="Books checked out per month data">
-            <caption style="font-weight:bold;text-align:left;padding:var(--space-2);">Monthly Activity (last 12 months)</caption>
-            <thead>
-              <tr>
-                <th style="text-align:left;padding:var(--space-2);">Month</th>
-                <th style="text-align:right;padding:var(--space-2);">Books Borrowed</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($month_labels as $idx => $month): ?>
-                <tr>
-                  <td style="text-align:left;padding:var(--space-2);"><?= htmlspecialchars($month, ENT_QUOTES, 'UTF-8') ?></td>
-                  <td style="text-align:right;padding:var(--space-2);"><?= (int)($month_values[$idx] ?? 0) ?></td>
-                </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
         </div>
-      </div>
+      </section>
 
       <!-- ── Reading Timeline ────────────────────────────────────────────────── -->
       <?php if (!empty($timeline)): ?>
@@ -316,101 +356,108 @@ $pageTitle    = 'My Account | Library System';
       <?php endif; ?>
 
       <!-- ── Active Loans ───────────────────────────────────────────────────── -->
-      <div class="section-card">
-        <div class="section-card__header">
-          <span class="section-card__title">Active Loans</span>
-        </div>
-        <?php if (empty($active_loans)): ?>
-          <div class="empty-state">
-            <div class="empty-state__icon">📚</div>
-            <p>No active or overdue loans.</p>
-          </div>
-        <?php else: ?>
-          <div class="tbl-wrapper">
-            <table class="tbl">
-              <thead>
-                <tr>
-                  <th>Loan #</th>
-                  <th>Book</th>
-                  <th>Checked Out</th>
-                  <th>Due Date</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                <?php foreach ($active_loans as $loan): ?>
-                  <tr<?= $loan['status'] === 'overdue' ? ' class="row-overdue"' : '' ?>>
-                    <td><?= (int) $loan['id'] ?></td>
-                    <td><?= htmlspecialchars($loan['title'], ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= htmlspecialchars($loan['checkout_date'], ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= htmlspecialchars($loan['due_date'], ENT_QUOTES, 'UTF-8') ?></td>
-                    <td>
-                      <?php if ($loan['status'] === 'overdue'): ?>
-                        <span class="badge badge-amber">Overdue</span>
-                      <?php else: ?>
-                        <span class="badge badge-blue">Active</span>
-                      <?php endif; ?>
-                    </td>
-                    <td>
-                      <form method="POST" action="<?= htmlspecialchars(BASE_URL . 'borrower/renew.php', ENT_QUOTES, 'UTF-8') ?>">
-                        <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-                        <input type="hidden" name="loan_id" value="<?= (int) $loan['id'] ?>">
-                        <button type="submit" class="btn-confirm" style="padding:5px 12px; font-size:.8125rem;">Renew</button>
-                      </form>
-                    </td>
-                    </tr>
-                  <?php endforeach; ?>
-              </tbody>
-            </table>
-          </div>
-        <?php endif; ?>
-      </div>
+      <section class="borrower-records" aria-labelledby="borrower-records-title">
+        <h2 id="borrower-records-title" class="borrower-section-heading">Loan Records</h2>
+        <p class="borrower-section-subtitle">Review active checkouts and recent returns without leaving this page.</p>
+        <div class="borrower-records__grid">
 
-      <!-- ── Loan History ───────────────────────────────────────────────────── -->
-      <div class="section-card">
-        <div class="section-card__header">
-          <span class="section-card__title">Loan History (last 20)</span>
+          <div class="section-card">
+            <div class="section-card__header">
+              <span class="section-card__title">Active Loans</span>
+            </div>
+            <?php if (empty($active_loans)): ?>
+              <div class="empty-state">
+                <div class="empty-state__icon">📚</div>
+                <p>No active or overdue loans.</p>
+              </div>
+            <?php else: ?>
+              <div class="tbl-wrapper">
+                <table class="tbl">
+                  <thead>
+                    <tr>
+                      <th>Loan #</th>
+                      <th>Book</th>
+                      <th>Checked Out</th>
+                      <th>Due Date</th>
+                      <th>Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <?php foreach ($active_loans as $loan): ?>
+                      <tr<?= $loan['status'] === 'overdue' ? ' class="row-overdue"' : '' ?>>
+                        <td><?= (int) $loan['id'] ?></td>
+                        <td><?= htmlspecialchars($loan['title'], ENT_QUOTES, 'UTF-8') ?></td>
+                        <td><?= htmlspecialchars($loan['checkout_date'], ENT_QUOTES, 'UTF-8') ?></td>
+                        <td><?= htmlspecialchars($loan['due_date'], ENT_QUOTES, 'UTF-8') ?></td>
+                        <td>
+                          <?php if ($loan['status'] === 'overdue'): ?>
+                            <span class="badge badge-amber">Overdue</span>
+                          <?php else: ?>
+                            <span class="badge badge-blue">Active</span>
+                          <?php endif; ?>
+                        </td>
+                        <td>
+                          <form method="POST" action="<?= htmlspecialchars(BASE_URL . 'borrower/renew.php', ENT_QUOTES, 'UTF-8') ?>">
+                            <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                            <input type="hidden" name="loan_id" value="<?= (int) $loan['id'] ?>">
+                            <button type="submit" class="btn-confirm" style="padding:5px 12px; font-size:.8125rem;">Renew</button>
+                          </form>
+                        </td>
+                        </tr>
+                      <?php endforeach; ?>
+                  </tbody>
+                </table>
+              </div>
+            <?php endif; ?>
+          </div>
+
+          <!-- ── Loan History ───────────────────────────────────────────────────── -->
+          <div class="section-card">
+            <div class="section-card__header">
+              <span class="section-card__title">Loan History (last 20)</span>
+            </div>
+            <?php if (empty($loan_history)): ?>
+              <div class="empty-state">
+                <div class="empty-state__icon">📖</div>
+                <p>No past loans on record.</p>
+              </div>
+            <?php else: ?>
+              <div class="tbl-wrapper">
+                <table class="tbl">
+                  <thead>
+                    <tr>
+                      <th>Book</th>
+                      <th>Returned</th>
+                      <th>Fine</th>
+                      <th>Fine Paid</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <?php foreach ($loan_history as $h): ?>
+                      <tr>
+                        <td><?= htmlspecialchars($h['title'], ENT_QUOTES, 'UTF-8') ?></td>
+                        <td><?= htmlspecialchars($h['return_date'] ?? 'N/A', ENT_QUOTES, 'UTF-8') ?></td>
+                        <td><?= htmlspecialchars(number_format((float) $h['fine_amount'], 2), ENT_QUOTES, 'UTF-8') ?></td>
+                        <td>
+                          <?php if ($h['fine_paid']): ?>
+                            <span class="badge badge-green">Yes</span>
+                          <?php else: ?>
+                            <span class="badge badge-red">No</span>
+                          <?php endif; ?>
+                        </td>
+                      </tr>
+                    <?php endforeach; ?>
+                  </tbody>
+                </table>
+              </div>
+            <?php endif; ?>
+          </div>
         </div>
-        <?php if (empty($loan_history)): ?>
-          <div class="empty-state">
-            <div class="empty-state__icon">📖</div>
-            <p>No past loans on record.</p>
-          </div>
-        <?php else: ?>
-          <div class="tbl-wrapper">
-            <table class="tbl">
-              <thead>
-                <tr>
-                  <th>Book</th>
-                  <th>Returned</th>
-                  <th>Fine</th>
-                  <th>Fine Paid</th>
-                </tr>
-              </thead>
-              <tbody>
-                <?php foreach ($loan_history as $h): ?>
-                  <tr>
-                    <td><?= htmlspecialchars($h['title'], ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= htmlspecialchars($h['return_date'] ?? 'N/A', ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= htmlspecialchars(number_format((float) $h['fine_amount'], 2), ENT_QUOTES, 'UTF-8') ?></td>
-                    <td>
-                      <?php if ($h['fine_paid']): ?>
-                        <span class="badge badge-green">Yes</span>
-                      <?php else: ?>
-                        <span class="badge badge-red">No</span>
-                      <?php endif; ?>
-                    </td>
-                  </tr>
-                <?php endforeach; ?>
-              </tbody>
-            </table>
-          </div>
-        <?php endif; ?>
-      </div>
+      </section>
 
       <!-- ── Pending Reservations ───────────────────────────────────────────── -->
-      <div class="section-card">
+      <div class="section-card" id="pending-reservations">
         <div class="section-card__header">
           <span class="section-card__title">Pending Reservations</span>
         </div>
@@ -477,8 +524,8 @@ $pageTitle    = 'My Account | Library System';
             datasets: [{
               data: catValues,
               backgroundColor: [
-                '#6C63FF', '#F59E0B', '#10B981', '#EF4444',
-                '#3B82F6', '#EC4899', '#8B5CF6', '#14B8A6'
+                '#4a6741', '#c9a84c', '#c8401a', '#768a70',
+                '#7f6a3d', '#b95a39', '#a6b19a', '#e6d7b8'
               ],
               borderWidth: 2,
               borderColor: '#fff'
@@ -514,8 +561,8 @@ $pageTitle    = 'My Account | Library System';
             datasets: [{
               label: 'Books Borrowed',
               data: monthValues,
-              backgroundColor: 'rgba(108,99,255,0.75)',
-              borderColor: 'rgba(108,99,255,1)',
+              backgroundColor: 'rgba(74,103,65,0.78)',
+              borderColor: 'rgba(59,85,52,1)',
               borderWidth: 1,
               borderRadius: 4
             }]
@@ -560,4 +607,3 @@ $pageTitle    = 'My Account | Library System';
 </body>
 
 </html>
-</script>

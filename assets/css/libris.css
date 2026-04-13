@@ -5747,6 +5747,186 @@ input[type="radio"] {
   color: var(--success-text);
 }
 
+/* ── Borrower dashboard refresh (scoped) ─────────────────────── */
+.borrower-dashboard {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.borrower-hero {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-6);
+  padding: var(--space-8);
+  border: 1px solid color-mix(in srgb, var(--gold) 24%, var(--border));
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(
+      circle at 94% 12%,
+      rgba(201, 168, 76, 0.22) 0%,
+      rgba(201, 168, 76, 0) 40%
+    ),
+    radial-gradient(
+      circle at 2% 90%,
+      rgba(74, 103, 65, 0.14) 0%,
+      rgba(74, 103, 65, 0) 44%
+    ),
+    linear-gradient(170deg, #fffdfa 0%, #f6f1e7 100%);
+  box-shadow: var(--shadow-sm);
+}
+
+.borrower-hero__content {
+  margin: 0;
+}
+
+.borrower-hero__eyebrow {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sage);
+  margin-bottom: var(--space-2);
+}
+
+.borrower-hero__actions {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.borrower-hero__actions .btn-primary,
+.borrower-hero__actions .btn-ghost {
+  white-space: nowrap;
+}
+
+.borrower-section-heading {
+  font-family: var(--font-serif);
+  font-size: clamp(var(--text-lg), 1.2vw + var(--text-base), var(--text-2xl));
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.borrower-section-subtitle {
+  margin-top: var(--space-2);
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.borrower-dashboard .dash-stats {
+  margin-top: var(--space-2);
+}
+
+.borrower-dashboard .stat-card {
+  border-radius: var(--radius-xl);
+  border-color: color-mix(in srgb, var(--border) 84%, white 16%);
+  background: linear-gradient(160deg, #ffffff 0%, #fefcf7 100%);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+}
+
+.borrower-dashboard .stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+  border-color: color-mix(in srgb, var(--gold) 52%, var(--border));
+}
+
+.borrower-dashboard .stat-card__value {
+  font-size: clamp(var(--text-2xl), 2.4vw, 2rem);
+}
+
+.borrower-dashboard .stat-card--warning {
+  background: linear-gradient(155deg, #fffaf0 0%, #f9ecce 100%);
+}
+
+.borrower-charts,
+.borrower-records {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.borrower-dashboard .chart-card,
+.borrower-dashboard .section-card {
+  border-radius: var(--radius-xl);
+  border-color: color-mix(in srgb, var(--border) 88%, white 12%);
+  box-shadow: 0 1px 2px rgba(17, 14, 10, 0.06);
+}
+
+.borrower-dashboard .chart-card__title {
+  font-family: var(--font-serif);
+  font-size: var(--text-base);
+}
+
+.borrower-records__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+}
+
+.borrower-dashboard .section-card__header {
+  background: linear-gradient(
+    180deg,
+    rgba(237, 233, 224, 0.5) 0%,
+    rgba(237, 233, 224, 0.15) 100%
+  );
+}
+
+.borrower-dashboard .tbl th {
+  background: #f6f1e7;
+}
+
+.borrower-dashboard .tbl tbody tr:hover {
+  background: #faf6ee;
+}
+
+.borrower-dashboard .timeline-item {
+  gap: var(--space-3);
+}
+
+.borrower-dashboard .timeline-badge {
+  min-width: 74px;
+  justify-content: center;
+}
+
+.borrower-dashboard .timeline-item__date {
+  min-width: 108px;
+}
+
+@media (max-width: 1024px) {
+  .borrower-records__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 899px) {
+  .borrower-hero {
+    padding: var(--space-6);
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .borrower-hero__actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 640px) {
+  .borrower-dashboard {
+    gap: var(--space-5);
+  }
+
+  .borrower-hero__actions .btn-primary,
+  .borrower-hero__actions .btn-ghost {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 /* ── Book cover thumbnails (borrower catalog) ────────────────── */
 td.cover-col {
   width: 72px;
