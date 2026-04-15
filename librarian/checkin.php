@@ -191,18 +191,18 @@ $pageTitle    = 'Check In | Library System';
               <tbody>
                 <?php foreach ($loans as $loan): ?>
                   <tr class="<?= $loan['status'] === 'overdue' ? 'row-overdue' : '' ?>">
-                    <td><?= (int) $loan['id'] ?></td>
-                    <td><?= htmlspecialchars($loan['full_name'], ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= htmlspecialchars($loan['title'], ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= htmlspecialchars($loan['due_date'], ENT_QUOTES, 'UTF-8') ?></td>
-                    <td>
+                    <td data-label="Loan #"><?= (int) $loan['id'] ?></td>
+                    <td data-label="Borrower"><?= htmlspecialchars($loan['full_name'], ENT_QUOTES, 'UTF-8') ?></td>
+                    <td data-label="Book"><?= htmlspecialchars($loan['title'], ENT_QUOTES, 'UTF-8') ?></td>
+                    <td data-label="Due Date"><?= htmlspecialchars($loan['due_date'], ENT_QUOTES, 'UTF-8') ?></td>
+                    <td data-label="Status">
                       <?php if ($loan['status'] === 'overdue'): ?>
                         <span class="badge badge-amber">Overdue</span>
                       <?php else: ?>
                         <span class="badge badge-blue">Active</span>
                       <?php endif; ?>
                     </td>
-                    <td>
+                    <td data-label="Action">
                       <form method="POST" action="<?= htmlspecialchars(BASE_URL . 'librarian/checkin.php', ENT_QUOTES, 'UTF-8') ?>">
                         <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                         <input type="hidden" name="loan_id" value="<?= (int) $loan['id'] ?>">

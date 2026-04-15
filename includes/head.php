@@ -31,7 +31,15 @@ $includeSweetAlert = array_key_exists('includeSweetAlert', get_defined_vars()) ?
   <?php endif; ?>
 <?php endforeach; ?>
 
+<!--
+  Compatibility bootstrap is loaded first (non-deferred) so legacy-safe polyfills
+  are in place before third-party scripts and deferred app bundles execute.
+  It also exposes window.LibrisCompat feature flags for progressive degradation.
+-->
+<script src="<?= BASE_URL ?>assets/js/libris-compat.js"></script>
+
 <?php if ($includeSweetAlert): ?>
+  <!-- Keep SweetAlert globally available for existing inline/scripted usage. -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
   <script src="<?= BASE_URL ?>assets/js/sweetalert-utils.js" defer></script>
 <?php endif; ?>

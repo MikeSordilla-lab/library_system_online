@@ -1117,7 +1117,7 @@ $has_feedback = $flash_success !== ''
                   $created_at_text = $created_at_stamp ? date('M j, Y', $created_at_stamp) : 'Unknown date';
                   ?>
                   <tr class="users-row">
-                    <td data-label="Select">
+                    <td data-label="Selection">
                       <?php if (!$is_superadmin_row): ?>
                         <label class="users-select-touch" for="user-select-<?= $uid ?>">
                           <span class="sr-only">Select <?= $safe_name ?></span>

@@ -80,6 +80,12 @@ try {
       letter-spacing: -0.02em;
     }
 
+    .brand img {
+      max-width: min(58vw, 220px);
+      width: auto;
+      height: 48px;
+    }
+
     .brand span {
       line-height: 1.08;
     }
@@ -87,6 +93,7 @@ try {
     .nav-links {
       display: flex;
       gap: var(--space-8);
+      flex-wrap: wrap;
     }
 
     .nav-links a {
@@ -97,6 +104,9 @@ try {
       color: var(--muted);
       text-decoration: none;
       transition: color 0.2s ease-out;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
     }
 
     .nav-links a:hover,
@@ -108,6 +118,8 @@ try {
       display: flex;
       gap: var(--space-6);
       align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
     }
 
     .nav-actions a {
@@ -116,6 +128,9 @@ try {
       font-weight: 600;
       letter-spacing: 0.01em;
       text-decoration: none;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
     }
 
     .btn-login {
@@ -145,6 +160,8 @@ try {
       max-width: 1600px;
       margin: 0 auto;
       width: 100%;
+      box-sizing: border-box;
+      /* Keep grid padding from causing viewport overflow. */
     }
 
     .editorial-content {
@@ -199,6 +216,7 @@ try {
     .editorial-actions {
       display: flex;
       gap: var(--space-4);
+      flex-wrap: wrap;
     }
 
     .editorial-btn {
@@ -211,6 +229,10 @@ try {
       transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s;
       border: 1px solid var(--ink);
       border-radius: 0;
+      min-height: 48px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .editorial-btn--primary {
@@ -236,15 +258,17 @@ try {
     .editorial-gallery {
       grid-column: 8 / 13;
       position: relative;
-      height: 600px;
+      height: clamp(320px, 44vw, 600px);
       display: flex;
       align-items: center;
       justify-content: center;
+      overflow: hidden;
+      /* Keep decorative stack inside viewport on narrow screens. */
     }
 
     .gallery-book {
       position: absolute;
-      width: 260px;
+      width: min(260px, 40vw);
       aspect-ratio: 2 / 3;
       background: var(--cream);
       box-shadow: 0 32px 64px rgba(0, 0, 0, 0.15);
@@ -319,8 +343,14 @@ try {
         padding: var(--space-6) var(--space-4);
       }
 
+      .brand img {
+        height: 40px;
+        max-width: 150px;
+      }
+
       .nav-links {
         gap: var(--space-4);
+        justify-content: center;
       }
 
       .editorial-headline {
@@ -336,11 +366,23 @@ try {
       }
 
       .editorial-gallery {
-        height: 300px;
+        height: clamp(220px, 58vw, 300px);
       }
 
       .gallery-book {
-        width: 160px;
+        width: min(160px, 42vw);
+      }
+
+      .book-bottom {
+        left: 0;
+      }
+
+      .book-middle {
+        left: 18%;
+      }
+
+      .book-top {
+        left: 34%;
       }
     }
   </style>
@@ -350,7 +392,7 @@ try {
 
   <nav class="editorial-nav" aria-label="Main Navigation">
     <a href="<?= BASE_URL ?>index.php" class="brand">
-      <img src="<?= BASE_URL ?>assets/images/library_logo_cropped.png" alt="Library System Logo" style="height: 48px; width: auto; object-fit: contain;" onerror="this.onerror=null;this.src='<?= BASE_URL ?>assets/images/logo.svg';">
+      <img src="<?= BASE_URL ?>assets/images/library_logo_cropped.png" alt="Library System Logo" width="220" height="48" decoding="async" style="height: 48px; width: auto; object-fit: contain;" onerror="this.onerror=null;this.src='<?= BASE_URL ?>assets/images/logo.svg';">
       <span>Library System</span>
     </a>
 
@@ -391,13 +433,13 @@ try {
       $cover_3 = !empty($hero_books[2]) ? BASE_URL . "book-cover-public.php?book_id={$hero_books[2]}" : BASE_URL . 'assets/images/placeholder-book.png';
       ?>
       <div class="gallery-book book-bottom">
-        <img src="<?= htmlspecialchars($cover_3) ?>" alt="">
+        <img src="<?= htmlspecialchars($cover_3) ?>" alt="" loading="lazy" decoding="async" width="260" height="390" sizes="(max-width: 768px) 42vw, (max-width: 1024px) 30vw, 260px">
       </div>
       <div class="gallery-book book-middle">
-        <img src="<?= htmlspecialchars($cover_2) ?>" alt="">
+        <img src="<?= htmlspecialchars($cover_2) ?>" alt="" loading="lazy" decoding="async" width="260" height="390" sizes="(max-width: 768px) 42vw, (max-width: 1024px) 30vw, 260px">
       </div>
       <div class="gallery-book book-top">
-        <img src="<?= htmlspecialchars($cover_1) ?>" alt="">
+        <img src="<?= htmlspecialchars($cover_1) ?>" alt="" loading="lazy" decoding="async" width="260" height="390" sizes="(max-width: 768px) 42vw, (max-width: 1024px) 30vw, 260px">
       </div>
     </div>
   </main>

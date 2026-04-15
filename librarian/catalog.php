@@ -120,25 +120,27 @@ $pageTitle    = 'Book Catalog | Library System';
               <tbody>
                 <?php foreach ($books as $book): ?>
                   <tr>
-                    <td><strong><?= h($book['title']) ?></strong></td>
-                    <td><?= h($book['author']) ?></td>
-                    <td><?= h($book['isbn']) ?></td>
-                    <td><?= h($book['category']) ?></td>
-                    <td>
+                    <td data-label="Title"><strong><?= h($book['title']) ?></strong></td>
+                    <td data-label="Author"><?= h($book['author']) ?></td>
+                    <td data-label="ISBN"><?= h($book['isbn']) ?></td>
+                    <td data-label="Category"><?= h($book['category']) ?></td>
+                    <td data-label="Available">
                       <?php if ((int)$book['available_copies'] > 0): ?>
                         <span class="badge badge-green"><?= h((string)$book['available_copies']) ?></span>
                       <?php else: ?>
                         <span class="badge badge-red">0</span>
                       <?php endif; ?>
                     </td>
-                    <td><?= h((string)$book['total_copies']) ?></td>
-                    <td>
-                      <a href="catalog-edit.php?id=<?= (int)$book['id'] ?>" class="btn-ghost">Edit</a>
-                      <form method="POST" action="catalog-delete.php" style="display:inline" class="delete-book-form" data-title="<?= h($book['title']) ?>">
-                        <input type="hidden" name="id" value="<?= (int)$book['id'] ?>">
-                        <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-                        <button type="submit" class="btn-accent">Delete</button>
-                      </form>
+                    <td data-label="Total"><?= h((string)$book['total_copies']) ?></td>
+                    <td data-label="Actions">
+                      <div class="actions-inline">
+                        <a href="catalog-edit.php?id=<?= (int)$book['id'] ?>" class="btn-ghost">Edit</a>
+                        <form method="POST" action="catalog-delete.php" class="delete-book-form" data-title="<?= h($book['title']) ?>">
+                          <input type="hidden" name="id" value="<?= (int)$book['id'] ?>">
+                          <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                          <button type="submit" class="btn-accent">Delete</button>
+                        </form>
+                      </div>
                     </td>
                   </tr>
                 <?php endforeach; ?>

@@ -198,9 +198,9 @@ function render_book_card(array $book): void
 
     <div class="book-cover-wrap">
       <?php if ($has_cover): ?>
-        <img class="book-cover" src="book-cover-public.php?book_id=<?= $book_id ?>" alt="Cover of <?= $title ?>" loading="lazy" data-fallback-src="assets/images/placeholder-book.png">
+        <img class="book-cover" src="book-cover-public.php?book_id=<?= $book_id ?>" alt="Cover of <?= $title ?>" loading="lazy" decoding="async" width="220" height="330" sizes="(max-width: 640px) 46vw, (max-width: 980px) 30vw, 220px" data-fallback-src="assets/images/placeholder-book.png">
       <?php else: ?>
-        <img class="book-cover" src="assets/images/placeholder-book.png" alt="No cover available" loading="lazy">
+        <img class="book-cover" src="assets/images/placeholder-book.png" alt="No cover available" loading="lazy" decoding="async" width="220" height="330" sizes="(max-width: 640px) 46vw, (max-width: 980px) 30vw, 220px">
       <?php endif; ?>
     </div>
 
@@ -276,6 +276,12 @@ function render_book_section(string $title, array $books): void
       letter-spacing: -0.02em;
     }
 
+    .brand img {
+      max-width: min(58vw, 220px);
+      width: auto;
+      height: 48px;
+    }
+
     .brand span {
       line-height: 1.08;
     }
@@ -283,6 +289,7 @@ function render_book_section(string $title, array $books): void
     .nav-links {
       display: flex;
       gap: var(--space-8);
+      flex-wrap: wrap;
     }
 
     .nav-links a {
@@ -293,6 +300,9 @@ function render_book_section(string $title, array $books): void
       color: var(--muted);
       text-decoration: none;
       transition: color 0.2s ease-out;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
     }
 
     .nav-links a:hover,
@@ -304,6 +314,8 @@ function render_book_section(string $title, array $books): void
       display: flex;
       gap: var(--space-6);
       align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
     }
 
     .nav-actions a {
@@ -312,6 +324,9 @@ function render_book_section(string $title, array $books): void
       font-weight: 600;
       letter-spacing: 0.01em;
       text-decoration: none;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
     }
 
     .btn-login {
@@ -323,6 +338,7 @@ function render_book_section(string $title, array $books): void
       padding: var(--space-2) var(--space-4);
       color: var(--ink);
       transition: all 0.2s ease-out;
+      white-space: nowrap;
     }
 
     .btn-signup:hover {
@@ -355,6 +371,8 @@ function render_book_section(string $title, array $books): void
       padding: var(--space-8) var(--space-8);
       width: 100%;
       flex: 1;
+      box-sizing: border-box;
+      /* Prevent edge overflow on very narrow screens. */
     }
 
     /* ── Hero Section ─────────────────────────────────── */
@@ -463,7 +481,7 @@ function render_book_section(string $title, array $books): void
 
     .search-box {
       display: grid;
-      grid-template-columns: 2fr 1fr 1fr 1fr auto;
+      grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr)) auto;
       gap: var(--space-4);
       align-items: end;
     }
@@ -513,6 +531,7 @@ function render_book_section(string $title, array $books): void
       border-radius: 0;
       cursor: pointer;
       min-height: 48px;
+      min-width: 110px;
       transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s;
     }
 
@@ -537,6 +556,7 @@ function render_book_section(string $title, array $books): void
       align-items: center;
       justify-content: center;
       min-height: 48px;
+      min-width: 110px;
       transition: background-color 0.2s;
     }
 
@@ -577,6 +597,8 @@ function render_book_section(string $title, array $books): void
       align-items: center;
       gap: 12px;
       color: var(--ink);
+      min-height: 44px;
+      /* Better touch target for mobile suggestions. */
     }
 
     .suggestion-item:last-child {
@@ -814,6 +836,10 @@ function render_book_section(string $title, array $books): void
       color: var(--ink);
       text-decoration: none;
       transition: background-color 0.2s, border-color 0.2s;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .pagination a:hover {
@@ -901,7 +927,7 @@ function render_book_section(string $title, array $books): void
       background: var(--paper);
       border: 1px solid var(--ink);
       padding: var(--space-8);
-      width: 90%;
+      width: min(92vw, 700px);
       max-width: 700px;
       box-shadow: 20px 20px 0px color-mix(in srgb, var(--ink) 10%, transparent);
       /* Brutalist shadow */
@@ -949,7 +975,7 @@ function render_book_section(string $title, array $books): void
 
     .modal-body {
       display: grid;
-      grid-template-columns: 200px 1fr;
+      grid-template-columns: minmax(140px, 200px) minmax(0, 1fr);
       gap: var(--space-8);
       margin-bottom: var(--space-8);
     }
@@ -1070,6 +1096,11 @@ function render_book_section(string $title, array $books): void
         grid-column: 1 / -1;
       }
 
+      .search-box button,
+      .search-box a.clear-btn {
+        width: 100%;
+      }
+
       .catalog-hero-stats {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
@@ -1107,6 +1138,11 @@ function render_book_section(string $title, array $books): void
         gap: 12px;
       }
 
+      .brand img {
+        height: 40px;
+        max-width: 150px;
+      }
+
       .nav-menu-toggle {
         display: inline-flex;
       }
@@ -1115,6 +1151,7 @@ function render_book_section(string $title, array $books): void
         grid-column: 1 / -1;
         display: none;
         gap: var(--space-4);
+        flex-wrap: wrap;
         padding-top: var(--space-3);
         border-top: 1px solid var(--border);
       }
@@ -1127,6 +1164,7 @@ function render_book_section(string $title, array $books): void
         grid-column: 1 / -1;
         display: none;
         gap: var(--space-4);
+        flex-wrap: wrap;
       }
 
       .nav-actions.menu-open {
@@ -1135,6 +1173,11 @@ function render_book_section(string $title, array $books): void
 
       .search-box {
         grid-template-columns: 1fr;
+      }
+
+      .search-box button,
+      .search-box a.clear-btn {
+        width: 100%;
       }
 
       .discovery-grid,
@@ -1157,6 +1200,7 @@ function render_book_section(string $title, array $books): void
 
       .modal-content {
         padding: var(--space-4);
+        box-shadow: 10px 10px 0px color-mix(in srgb, var(--ink) 10%, transparent);
       }
 
       .modal-title {
@@ -1186,7 +1230,7 @@ function render_book_section(string $title, array $books): void
 <body>
   <nav class="editorial-nav" aria-label="Main Navigation">
     <a href="index.php" class="brand">
-      <img src="assets/images/library_logo_cropped.png" alt="Library System Logo" style="height: 48px; width: auto; object-fit: contain;" onerror="this.onerror=null;this.src='assets/images/logo.svg';">
+      <img src="assets/images/library_logo_cropped.png" alt="Library System Logo" width="220" height="48" decoding="async" style="height: 48px; width: auto; object-fit: contain;" onerror="this.onerror=null;this.src='assets/images/logo.svg';">
       <span>Library System</span>
     </a>
 
@@ -1394,7 +1438,7 @@ function render_book_section(string $title, array $books): void
         <button type="button" class="modal-close" id="modalCloseButton" aria-label="Close book details">&times;</button>
       </div>
       <div class="modal-body">
-        <img id="modalCover" class="modal-cover" src="" alt="Book cover">
+        <img id="modalCover" class="modal-cover" src="" alt="Book cover" loading="lazy" decoding="async" width="200" height="300">
         <div class="modal-info">
           <p class="modal-author" id="modalAuthor"></p>
           <div class="modal-meta-grid">
@@ -1425,6 +1469,26 @@ function render_book_section(string $title, array $books): void
 
       target.src = fallback;
     }, true);
+
+    // Compatibility: fallback helpers for legacy browsers.
+    function getClosestForm(el) {
+      while (el && el.nodeType === 1) {
+        if (el.tagName === 'FORM') {
+          return el;
+        }
+        el = el.parentNode;
+      }
+      return null;
+    }
+
+    function isDesktopNav() {
+      if (typeof window.matchMedia === 'function') {
+        return window.matchMedia('(min-width: 641px)').matches;
+      }
+      return window.innerWidth > 640;
+    }
+
+    var hasFetchApi = typeof window.fetch === 'function';
 
     const modal = document.getElementById('bookModal');
     const modalPanel = modal ? modal.querySelector('.modal-content') : null;
@@ -1457,7 +1521,7 @@ function render_book_section(string $title, array $books): void
       });
 
       window.addEventListener('resize', function() {
-        if (window.innerWidth > 640) {
+        if (isDesktopNav()) {
           setMobileMenuState(false);
         }
       });
@@ -1635,13 +1699,16 @@ function render_book_section(string $title, array $books): void
           <span class="suggestion-type">${item.type}</span>
         `;
 
-        div.addEventListener('click', () => {
+        div.addEventListener('click', function() {
           searchInput.value = item.text;
           closeSuggestions();
-          searchInput.closest('form').submit();
+          var parentForm = getClosestForm(searchInput);
+          if (parentForm) {
+            parentForm.submit();
+          }
         });
 
-        div.addEventListener('mousemove', () => {
+        div.addEventListener('mousemove', function() {
           activeSuggestionIndex = index;
           updateSuggestionHighlight();
         });
@@ -1689,20 +1756,28 @@ function render_book_section(string $title, array $books): void
         const query = this.value.trim();
         clearTimeout(debounceTimer);
 
+        if (!hasFetchApi) {
+          // Compatibility: keep manual search functional when fetch is unavailable.
+          closeSuggestions();
+          return;
+        }
+
         if (query.length < 2) {
           closeSuggestions();
           return;
         }
 
-        debounceTimer = setTimeout(() => {
+        debounceTimer = setTimeout(function() {
           fetch('api/search-suggestions.php?q=' + encodeURIComponent(query))
-            .then(res => res.json())
-            .then(data => {
+            .then(function(res) {
+              return res.json();
+            })
+            .then(function(data) {
               suggestionsData = data.suggestions || [];
               activeSuggestionIndex = -1;
               renderSuggestions();
             })
-            .catch(err => {
+            .catch(function(err) {
               console.error('Suggestion error:', err);
               closeSuggestions();
             });

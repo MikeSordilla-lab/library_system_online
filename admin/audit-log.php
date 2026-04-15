@@ -188,10 +188,10 @@ $pageTitle    = 'Audit Log | Library System';
               <tbody>
                 <?php foreach ($log_rows as $row): ?>
                   <tr>
-                    <td><?= htmlspecialchars($row['created_at'], ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= htmlspecialchars($row['actor_name'], ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><span class="badge badge-mono"><?= htmlspecialchars($row['action_type'], ENT_QUOTES, 'UTF-8') ?></span></td>
-                    <td>
+                    <td data-label="Timestamp"><?= htmlspecialchars($row['created_at'], ENT_QUOTES, 'UTF-8') ?></td>
+                    <td data-label="Actor"><?= htmlspecialchars($row['actor_name'], ENT_QUOTES, 'UTF-8') ?></td>
+                    <td data-label="Action"><span class="badge badge-mono"><?= htmlspecialchars($row['action_type'], ENT_QUOTES, 'UTF-8') ?></span></td>
+                    <td data-label="Outcome">
                       <?php if (strtoupper($row['outcome']) === 'SUCCESS'): ?>
                         <span class="badge badge-green"><?= htmlspecialchars($row['outcome'], ENT_QUOTES, 'UTF-8') ?></span>
                       <?php elseif (stripos($row['outcome'], 'fail') !== false): ?>
@@ -200,8 +200,8 @@ $pageTitle    = 'Audit Log | Library System';
                         <span class="badge badge-mono"><?= htmlspecialchars($row['outcome'], ENT_QUOTES, 'UTF-8') ?></span>
                       <?php endif; ?>
                     </td>
-                    <td><?= htmlspecialchars($row['target_entity'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= $row['target_id'] !== null ? (int) $row['target_id'] : '&mdash;' ?></td>
+                    <td data-label="Target"><?= htmlspecialchars($row['target_entity'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                    <td data-label="Target ID"><?= $row['target_id'] !== null ? (int) $row['target_id'] : '&mdash;' ?></td>
                   </tr>
                 <?php endforeach; ?>
               </tbody>
