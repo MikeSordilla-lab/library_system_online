@@ -17,6 +17,7 @@ $allowed_roles = ['borrower'];
 require_once __DIR__ . '/../includes/auth_guard.php';
 require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/circulation.php';
+require_once __DIR__ . '/../includes/receipts.php';
 
 $pdo = get_db();
 
@@ -53,7 +54,7 @@ if ($action === 'place') {
   try {
     // Expire stale pending reservations before duplicate checks so they do not block
     // a new reservation or inflate queue counts. This MUST be inside the transaction.
-    $pdo->exec("UPDATE Reservations SET status = 'cancelled' WHERE status = 'pending' AND expires_at < NOW()");
+    expire_stale_reservations($pdo);
 
     // T023 — Check no existing pending reservation for same (user_id, book_id)
     // Use FOR UPDATE lock to prevent concurrent duplicate inserts
@@ -84,9 +85,9 @@ if ($action === 'place') {
     
     // Count active reservations
     $res_limit_stmt = $pdo->prepare(
-      'SELECT COUNT(*) FROM Reservations WHERE user_id = ? AND status = \'pending\''
+      'SELECT COUNT(*) FROM Reservations WHERE user_id = ? AND status IN (?, ?)'
     );
-    $res_limit_stmt->execute([$user_id]);
+    $res_limit_stmt->execute([$user_id, RESERVATION_STATUS_PENDING, RESERVATION_STATUS_APPROVED]);
     $current_res = (int) $res_limit_stmt->fetchColumn();
 
     $max_limit = (int) get_setting($pdo, 'max_borrow_limit', '3');
@@ -100,13 +101,13 @@ if ($action === 'place') {
 
     $dup_res_stmt = $pdo->prepare(
       'SELECT id FROM Reservations
-            WHERE user_id = ? AND book_id = ? AND status = \'pending\'
+            WHERE user_id = ? AND book_id = ? AND status IN (?, ?)
             FOR UPDATE'
     );
-    $dup_res_stmt->execute([$user_id, $book_id]);
+    $dup_res_stmt->execute([$user_id, $book_id, RESERVATION_STATUS_PENDING, RESERVATION_STATUS_APPROVED]);
     if ($dup_res_stmt->fetch()) {
       $pdo->rollBack();
-      $_SESSION['flash_error'] = 'You already have a pending reservation for this book.';
+      $_SESSION['flash_error'] = 'You already have an active reservation request for this book.';
       header('Location: ' . BASE_URL . 'borrower/catalog.php');
       exit;
     }
@@ -131,10 +132,21 @@ if ($action === 'place') {
 
     $ins_stmt = $pdo->prepare(
       'INSERT INTO Reservations (user_id, book_id, expires_at, status)
-           VALUES (?, ?, DATE_ADD(NOW(), INTERVAL ? DAY), \'pending\')'
+           VALUES (?, ?, DATE_ADD(NOW(), INTERVAL ? DAY), ?)'
     );
-    $ins_stmt->execute([$user_id, $book_id, $expiry_days]);
+    $ins_stmt->execute([$user_id, $book_id, $expiry_days, RESERVATION_STATUS_PENDING]);
     $new_res_id = (int) $pdo->lastInsertId();
+
+    $res_meta_stmt = $pdo->prepare(
+      'SELECT r.expires_at, b.title, u.full_name
+         FROM Reservations r
+         JOIN Books b ON r.book_id = b.id
+         JOIN Users u ON r.user_id = u.id
+        WHERE r.id = ?
+        LIMIT 1'
+    );
+    $res_meta_stmt->execute([$new_res_id]);
+    $res_meta = $res_meta_stmt->fetch();
 
     // Compute queue position: count non-expired pending reservations for the same
     // book that were placed before this one.  Bug fix: AND expires_at >= NOW()
@@ -142,12 +154,12 @@ if ($action === 'place') {
     $queue_stmt = $pdo->prepare(
       'SELECT COUNT(*) + 1 AS position
              FROM Reservations
-            WHERE book_id = ?
-              AND status = \'pending\'
-              AND expires_at >= NOW()
-              AND reserved_at < (SELECT reserved_at FROM Reservations WHERE id = ?)'
+             WHERE book_id = ?
+               AND status IN (?, ?)
+               AND expires_at >= NOW()
+               AND reserved_at < (SELECT reserved_at FROM Reservations WHERE id = ?)'
     );
-    $queue_stmt->execute([$book_id, $new_res_id]);
+    $queue_stmt->execute([$book_id, RESERVATION_STATUS_PENDING, RESERVATION_STATUS_APPROVED, $new_res_id]);
     $queue_row      = $queue_stmt->fetch();
     $queue_position = (int) ($queue_row['position'] ?? 1);
 
@@ -161,6 +173,25 @@ if ($action === 'place') {
       'outcome'       => 'success',
     ]);
 
+    $receipt = issue_receipt_ticket($pdo, [
+      'type'            => 'reservation_place',
+      'actor_user_id'   => $user_id,
+      'actor_role'      => $actor_role,
+      'patron_user_id'  => $user_id,
+      'reference_table' => 'Reservations',
+      'reference_id'    => $new_res_id,
+      'format'          => 'thermal',
+      'channel'         => 'borrower_portal',
+      'payload'         => [
+        'reservation_id' => $new_res_id,
+        'book_id'        => $book_id,
+        'book_title'     => (string) ($res_meta['title'] ?? ''),
+        'patron_name'    => (string) ($res_meta['full_name'] ?? ''),
+        'expires_at'     => (string) ($res_meta['expires_at'] ?? ''),
+        'queue_position' => $queue_position,
+      ],
+    ]);
+
     $pdo->commit();
   } catch (Throwable $e) {
     $pdo->rollBack();
@@ -171,7 +202,9 @@ if ($action === 'place') {
   }
 
   $_SESSION['flash_success'] = 'Reservation placed. You are #' . $queue_position . ' in line.';
-  header('Location: ' . BASE_URL . 'borrower/catalog.php');
+  $receipt_no = (string) ($receipt['receipt_no'] ?? '');
+  $close_to = rawurlencode('borrower/catalog.php');
+  header('Location: ' . BASE_URL . 'receipt/view.php?no=' . rawurlencode($receipt_no) . '&close_to=' . $close_to . '&autofocus_close=1');
   exit;
 }
 
@@ -187,38 +220,64 @@ if ($action === 'cancel') {
     exit;
   }
 
-  // Fetch reservation; verify ownership and pending status
-  $res_stmt = $pdo->prepare(
-    'SELECT id, user_id, book_id, status FROM Reservations WHERE id = ? LIMIT 1'
-  );
-  $res_stmt->execute([$reservation_id]);
-  $reservation = $res_stmt->fetch();
+  $pdo->beginTransaction();
 
-  if (!$reservation || (int) $reservation['user_id'] !== $user_id || $reservation['status'] !== 'pending') {
-    $_SESSION['flash_error'] = 'Reservation not found or cannot be cancelled.';
+  try {
+    expire_stale_reservations($pdo);
+
+    // Lock reservation row and verify ownership/current status.
+    $res_stmt = $pdo->prepare(
+      'SELECT id, user_id, status
+         FROM Reservations
+        WHERE id = ?
+        FOR UPDATE'
+    );
+    $res_stmt->execute([$reservation_id]);
+    $reservation = $res_stmt->fetch();
+
+    if (!$reservation || (int) $reservation['user_id'] !== $user_id) {
+      $pdo->rollBack();
+      $_SESSION['flash_error'] = 'Reservation not found.';
+      header('Location: ' . BASE_URL . 'borrower/index.php');
+      exit;
+    }
+
+    $currentStatus = (string) $reservation['status'];
+    if (!in_array($currentStatus, reservation_open_statuses(), true)) {
+      $pdo->commit();
+      $_SESSION['flash_error'] = 'Reservation already changed and can no longer be cancelled.';
+      header('Location: ' . BASE_URL . 'borrower/index.php');
+      exit;
+    }
+
+    $changed = transition_reservation_status(
+      $pdo,
+      $reservation_id,
+      $currentStatus,
+      RESERVATION_STATUS_CANCELLED,
+      [
+        'actor_id' => $user_id,
+        'actor_role' => $actor_role,
+        'action_type' => 'reservation_cancel',
+      ]
+    );
+
+    $pdo->commit();
+
+    if ($changed) {
+      $_SESSION['flash_success'] = 'Reservation cancelled.';
+    } else {
+      $_SESSION['flash_error'] = 'Reservation status changed by another request. Refresh and try again.';
+    }
+    header('Location: ' . BASE_URL . 'borrower/index.php');
+    exit;
+  } catch (Throwable $e) {
+    $pdo->rollBack();
+    error_log('[reserve.php] cancel transaction failed: ' . $e->getMessage());
+    $_SESSION['flash_error'] = 'An unexpected error occurred. Please try again.';
     header('Location: ' . BASE_URL . 'borrower/index.php');
     exit;
   }
-
-  // Cancel the reservation
-  $upd_stmt = $pdo->prepare(
-    'UPDATE Reservations SET status = \'cancelled\' WHERE id = ?'
-  );
-  $upd_stmt->execute([$reservation_id]);
-
-  // Audit log (FR-026)
-  log_circulation($pdo, [
-    'actor_id'      => $user_id,
-    'actor_role'    => $actor_role,
-    'action_type'   => 'reservation_cancel',
-    'target_entity' => 'Reservations',
-    'target_id'     => $reservation_id,
-    'outcome'       => 'success',
-  ]);
-
-  $_SESSION['flash_success'] = 'Reservation cancelled.';
-  header('Location: ' . BASE_URL . 'borrower/index.php');
-  exit;
 }
 
 // Unknown action — fall through to catalog

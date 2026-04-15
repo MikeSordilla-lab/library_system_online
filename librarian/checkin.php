@@ -100,6 +100,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       : '';
 
     $_SESSION['flash_success'] = 'Book returned successfully. Loan ID: ' . $loan_id . '.' . $fine_msg . $alert_msg;
+    $_SESSION['flash_print_url'] = BASE_URL . 'librarian/print-record.php?loan_id=' . $loan_id . '&type=checkin';
+    $_SESSION['flash_print_label'] = 'Print Return Record';
     header('Location: ' . BASE_URL . 'librarian/checkin.php');
     exit;
   } catch (Throwable $e) {
@@ -137,7 +139,9 @@ $loans = $loans_stmt->fetchAll();
 // Flash messages
 $flash_error   = $_SESSION['flash_error']   ?? '';
 $flash_success = $_SESSION['flash_success'] ?? '';
-unset($_SESSION['flash_error'], $_SESSION['flash_success']);
+$flash_print_url = $_SESSION['flash_print_url'] ?? '';
+$flash_print_label = $_SESSION['flash_print_label'] ?? 'Print Record';
+unset($_SESSION['flash_error'], $_SESSION['flash_success'], $_SESSION['flash_print_url'], $_SESSION['flash_print_label']);
 
 $logout_url = htmlspecialchars(BASE_URL . 'logout.php', ENT_QUOTES, 'UTF-8');
 $current_page = 'librarian.checkin';
@@ -162,7 +166,19 @@ $pageTitle    = 'Check In | Library System';
         <div class="flash flash-error" role="alert" aria-live="assertive" aria-atomic="true"><?= htmlspecialchars($flash_error, ENT_QUOTES, 'UTF-8') ?></div>
       <?php endif; ?>
       <?php if ($flash_success !== ''): ?>
-        <div class="flash flash-success" role="alert" aria-live="polite" aria-atomic="true"><?= htmlspecialchars($flash_success, ENT_QUOTES, 'UTF-8') ?></div>
+        <div class="flash flash-success" role="alert" aria-live="polite" aria-atomic="true">
+          <?= htmlspecialchars($flash_success, ENT_QUOTES, 'UTF-8') ?>
+          <?php if ($flash_print_url !== ''): ?>
+            <div style="margin-top: var(--space-3);">
+              <a
+                class="btn-confirm"
+                href="<?= htmlspecialchars($flash_print_url, ENT_QUOTES, 'UTF-8') ?>"
+                target="_blank"
+                rel="noopener noreferrer"
+              ><?= htmlspecialchars($flash_print_label, ENT_QUOTES, 'UTF-8') ?></a>
+            </div>
+          <?php endif; ?>
+        </div>
       <?php endif; ?>
 
       <div class="section-card">

@@ -50,7 +50,7 @@ $loan_history = $history_stmt->fetchAll();
 
 // Bug fix: expire stale pending reservations before displaying them so the
 // pending list and queue positions reflect reality.
-$pdo->exec("UPDATE Reservations SET status = 'cancelled' WHERE status = 'pending' AND expires_at < NOW()");
+expire_stale_reservations($pdo);
 
 // T028 — Pending reservations with queue position (optimized: avoid N+1 query)
 // First, fetch all pending reservations for this user

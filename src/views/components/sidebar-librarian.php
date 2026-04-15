@@ -49,6 +49,9 @@ $key === ($current_page ?? '') ? 'sidebar-item active' : 'sidebar-item';
   <a href="<?= BASE_URL ?>librarian/checkin.php" class="<?= $_sb_nav('librarian.checkin') ?>">
     Process Returns
   </a>
+  <a href="<?= BASE_URL ?>librarian/reservations.php" class="<?= $_sb_nav('librarian.reservations') ?>">
+    Reservations
+  </a>
 
   <div class="sidebar__avatar-section">
     <div class="sidebar-avatar">

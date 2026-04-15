@@ -15,6 +15,7 @@ $allowed_roles = ['librarian'];
 require_once __DIR__ . '/../includes/auth_guard.php';
 require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/circulation.php';
+require_once __DIR__ . '/../includes/receipts.php';
 
 $pdo = get_db();
 
@@ -40,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   try {
     // Expire stale reservations first
-    $pdo->exec("UPDATE Reservations SET status = 'cancelled' WHERE status = 'pending' AND expires_at < NOW()");
+    expire_stale_reservations($pdo);
 
     // T008 — Lock the book row and check availability
     $book_stmt = $pdo->prepare(
@@ -124,9 +125,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $current_loans = (int) $limit_stmt->fetchColumn();
 
     $res_limit_stmt = $pdo->prepare(
-      'SELECT COUNT(*) FROM Reservations WHERE user_id = ? AND status = \'pending\' AND book_id != ?'
+      'SELECT COUNT(*) FROM Reservations WHERE user_id = ? AND status IN (?, ?) AND book_id != ?'
     );
-    $res_limit_stmt->execute([$user_id, $book_id]);
+    $res_limit_stmt->execute([$user_id, RESERVATION_STATUS_PENDING, RESERVATION_STATUS_APPROVED, $book_id]);
     $current_res = (int) $res_limit_stmt->fetchColumn();
 
     $max_limit = (int) get_setting($pdo, 'max_borrow_limit', '3');
@@ -172,19 +173,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ins_stmt->execute([$user_id, $book_id, $loan_days]);
     $new_loan_id = (int) $pdo->lastInsertId();
 
+    $loan_meta_stmt = $pdo->prepare(
+      'SELECT c.due_date, b.title, u.full_name
+         FROM Circulation c
+         JOIN Books b ON c.book_id = b.id
+         JOIN Users u ON c.user_id = u.id
+        WHERE c.id = ?
+        LIMIT 1'
+    );
+    $loan_meta_stmt->execute([$new_loan_id]);
+    $loan_meta = $loan_meta_stmt->fetch();
+
     $upd_stmt = $pdo->prepare(
       'UPDATE Books SET available_copies = available_copies - 1 WHERE id = ?'
     );
     $upd_stmt->execute([$book_id]);
 
-    // Bug fix: if this borrower had a pending reservation for this book, mark it
-    // fulfilled now that the book is physically in their hands.
-    $fulfill_stmt = $pdo->prepare(
-      "UPDATE Reservations SET status = 'fulfilled'
-         WHERE user_id = ? AND book_id = ? AND status = 'pending'
-         LIMIT 1"
+    // Fulfill reservation queue deterministically: approved first, fallback pending.
+    $res_pick_stmt = $pdo->prepare(
+      'SELECT id, status
+         FROM Reservations
+        WHERE user_id = ?
+          AND book_id = ?
+          AND status IN (?, ?)
+        ORDER BY
+          CASE status WHEN ? THEN 0 ELSE 1 END ASC,
+          reserved_at ASC,
+          id ASC
+        LIMIT 1
+        FOR UPDATE'
     );
-    $fulfill_stmt->execute([$user_id, $book_id]);
+    $res_pick_stmt->execute([
+      $user_id,
+      $book_id,
+      RESERVATION_STATUS_APPROVED,
+      RESERVATION_STATUS_PENDING,
+      RESERVATION_STATUS_APPROVED,
+    ]);
+    $reservationToFulfill = $res_pick_stmt->fetch();
+
+    if ($reservationToFulfill) {
+      transition_reservation_status(
+        $pdo,
+        (int) $reservationToFulfill['id'],
+        (string) $reservationToFulfill['status'],
+        RESERVATION_STATUS_FULFILLED,
+        [
+          'actor_id' => $actor_id,
+          'actor_role' => $actor_role,
+          'action_type' => 'reservation_fulfill',
+        ]
+      );
+    }
 
     log_circulation($pdo, [
       'actor_id'      => $actor_id,
@@ -195,11 +235,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       'outcome'       => 'success',
     ]);
 
+    $receipt = issue_receipt_ticket($pdo, [
+      'type'           => 'checkout',
+      'actor_user_id'  => $actor_id,
+      'actor_role'     => $actor_role,
+      'patron_user_id' => $user_id,
+      'reference_table' => 'Circulation',
+      'reference_id'   => $new_loan_id,
+      'format'         => 'thermal',
+      'channel'        => 'librarian_console',
+      'payload'        => [
+        'loan_id'      => $new_loan_id,
+        'book_id'      => $book_id,
+        'book_title'   => (string) ($loan_meta['title'] ?? ''),
+        'patron_name'  => (string) ($loan_meta['full_name'] ?? ''),
+        'due_date'     => (string) ($loan_meta['due_date'] ?? ''),
+        'loan_days'    => $loan_days,
+      ],
+    ]);
+
     $pdo->commit();
 
-    $_SESSION['flash_success'] = 'Check-out successful. Loan ID: ' . $new_loan_id
-      . '. Due in ' . $loan_days . ' days.';
-    header('Location: ' . BASE_URL . 'librarian/checkout.php');
+    $receipt_no = (string) ($receipt['receipt_no'] ?? '');
+    $close_to = rawurlencode('librarian/checkout.php');
+    header('Location: ' . BASE_URL . 'receipt/view.php?no=' . rawurlencode($receipt_no) . '&close_to=' . $close_to . '&autofocus_close=1');
     exit;
   } catch (Throwable $e) {
     $pdo->rollBack();
@@ -247,7 +306,15 @@ $users_with_fines = $fines_stmt->fetchAll();
 // Flash messages
 $flash_error   = $_SESSION['flash_error']   ?? '';
 $flash_success = $_SESSION['flash_success'] ?? '';
-unset($_SESSION['flash_error'], $_SESSION['flash_success']);
+$flash_info    = $_SESSION['flash_info'] ?? '';
+$flash_print_url = $_SESSION['flash_print_url'] ?? '';
+$flash_print_label = $_SESSION['flash_print_label'] ?? 'Print Record';
+<<<<<<< ours
+$flash_receipt_no = $_SESSION['flash_receipt_no'] ?? '';
+unset($_SESSION['flash_error'], $_SESSION['flash_success'], $_SESSION['flash_info'], $_SESSION['flash_print_url'], $_SESSION['flash_print_label'], $_SESSION['flash_receipt_no']);
+=======
+unset($_SESSION['flash_error'], $_SESSION['flash_success'], $_SESSION['flash_info'], $_SESSION['flash_print_url'], $_SESSION['flash_print_label']);
+>>>>>>> theirs
 
 $name       = htmlspecialchars($_SESSION['full_name'], ENT_QUOTES, 'UTF-8');
 $logout_url = htmlspecialchars(BASE_URL . 'logout.php', ENT_QUOTES, 'UTF-8');
@@ -273,9 +340,33 @@ $pageTitle    = 'Check Out | Library System';
         <div class="flash flash-error" role="alert" aria-live="assertive" aria-atomic="true"><?= htmlspecialchars($flash_error, ENT_QUOTES, 'UTF-8') ?></div>
       <?php endif; ?>
       <?php if ($flash_success !== ''): ?>
-        <div class="flash flash-success" role="alert" aria-live="polite" aria-atomic="true"><?= htmlspecialchars($flash_success, ENT_QUOTES, 'UTF-8') ?></div>
+        <div class="flash flash-success" role="alert" aria-live="polite" aria-atomic="true">
+          <?= htmlspecialchars($flash_success, ENT_QUOTES, 'UTF-8') ?>
+          <?php if ($flash_print_url !== ''): ?>
+            <div style="margin-top: var(--space-3);">
+              <a
+                class="btn-confirm"
+                href="<?= htmlspecialchars($flash_print_url, ENT_QUOTES, 'UTF-8') ?>"
+                target="_blank"
+                rel="noopener noreferrer"
+              ><?= htmlspecialchars($flash_print_label, ENT_QUOTES, 'UTF-8') ?></a>
+            </div>
+          <?php endif; ?>
+        </div>
       <?php endif; ?>
+      <?php if ($flash_info !== ''): ?>
+        <div class="flash flash-info" role="status" aria-live="polite" aria-atomic="true"><?= htmlspecialchars($flash_info, ENT_QUOTES, 'UTF-8') ?></div>
+      <?php endif; ?>
+<<<<<<< ours
+      <?php
+      $receipt_modal_title = 'Receipt issued';
+      $receipt_modal_message = 'Checkout or fine payment was completed successfully. Open the ticket from the actions below.';
+      $receipt_modal_view_label = 'View Ticket';
+      require __DIR__ . '/../includes/receipt-success-modal.php';
+      ?>
 
+=======
+>>>>>>> theirs
       <div class="section-card">
         <div class="section-card__header">
           <span class="section-card__title">Checkout Form</span>

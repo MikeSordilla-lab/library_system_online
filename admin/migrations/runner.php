@@ -23,6 +23,16 @@ require_once __DIR__ . '/../../includes/db.php';
 
 // Define available migrations
 $migrations = [
+    'receipts-phase1' => [
+        'file' => 'database/migration-receipts-phase1.sql',
+        'description' => 'Add phase 1 receipt tickets and receipt logs',
+        'aliases' => ['receipts', 'ticket', 'tickets']
+    ],
+    'receipts-phase1-safe' => [
+        'file' => 'database/migration-receipts-phase1-safe.sql',
+        'description' => 'Idempotent receipt phase 1 column-extension script',
+        'aliases' => ['receipts-safe', 'ticket-safe']
+    ],
     'avatar-support' => [
         'file' => 'database/migration-avatar-support.sql',
         'description' => 'Add avatar support (avatar_url column and index)',
@@ -42,6 +52,11 @@ $migrations = [
         'file' => 'database/migration-add-performance-indexes.sql',
         'description' => 'Add 20 performance indexes for query optimization',
         'aliases' => ['performance', 'indexes', 'optimize']
+    ],
+    'reservations-approval-phase1' => [
+        'file' => 'database/migration-reservations-approval-phase1.sql',
+        'description' => 'Add reservation approval/rejection metadata and indexes',
+        'aliases' => ['reservations-approval', 'reservations', 'reservation-approval']
     ]
 ];
 
@@ -211,10 +226,13 @@ COMMANDS:
   <migration>       Run specific migration by name or alias
 
 AVAILABLE MIGRATIONS:
+  receipts-phase1        - Add receipt/ticket tables (aliases: receipts, ticket, tickets)
+  receipts-phase1-safe   - Safe re-run receipt extension (aliases: receipts-safe, ticket-safe)
   avatar-support         - Add avatar support (aliases: avatar)
   password-reset         - Add password reset (aliases: password, reset)
   email-verification     - Add email verification (aliases: email, otp, verification)
   performance-indexes    - Add performance indexes (aliases: performance, indexes, optimize)
+  reservations-approval-phase1 - Add reservation approval columns/indexes (aliases: reservations-approval, reservations, reservation-approval)
 
 EXAMPLES:
   php runner.php                    # Show this help

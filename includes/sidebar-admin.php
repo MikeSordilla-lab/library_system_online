@@ -39,6 +39,8 @@ $key === ($current_page ?? '') ? 'sidebar-item active' : 'sidebar-item';
     <a href="<?= BASE_URL ?>admin/change-password.php" class="<?= $_sb_nav('admin.change-password') ?>">Password &amp; Security</a>
     <a href="<?= BASE_URL ?>admin/users.php" class="<?= $_sb_nav('admin.users') ?>">Users</a>
     <a href="<?= BASE_URL ?>admin/settings.php" class="<?= $_sb_nav('admin.settings') ?>">Settings</a>
+    <a href="<?= BASE_URL ?>receipt/index.php" class="<?= $_sb_nav('receipt.index') ?>">Receipts</a>
+    <a href="<?= BASE_URL ?>librarian/visitor-pass.php" class="<?= $_sb_nav('librarian.visitor-pass') ?>">Visitor Pass</a>
   </div>
 
   <div class="sidebar__avatar-section">

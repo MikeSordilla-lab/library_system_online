@@ -40,6 +40,9 @@ $key === ($current_page ?? '') ? 'sidebar-item active' : 'sidebar-item';
     <a href="<?= BASE_URL ?>borrower/catalog.php" class="<?= $_sb_nav('borrower.catalog') ?>">
       Browse Catalog
     </a>
+    <a href="<?= BASE_URL ?>receipt/index.php" class="<?= $_sb_nav('receipt.index') ?>">
+      My Receipts
+    </a>
   </div>
 
   <div class="sidebar__avatar-section">

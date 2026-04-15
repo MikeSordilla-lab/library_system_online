@@ -23,6 +23,7 @@ define('CIRCULATION_PHP_LOADED', true);
 
 // Load settings helper (includes get_setting function)
 require_once __DIR__ . '/settings.php';
+require_once __DIR__ . '/constants.php';
 
 /**
  * Return the configured loan period in days.
@@ -112,4 +113,176 @@ function get_overdue_loan_count(PDO $pdo, int $user_id): int
   );
   $stmt->execute([$user_id]);
   return (int) $stmt->fetchColumn();
+}
+
+/**
+ * Transition stale open reservations to expired (preferred) or cancelled fallback.
+ *
+ * @param PDO $pdo Active PDO connection
+ * @return int Number of reservations transitioned
+ */
+function expire_stale_reservations(PDO $pdo): int
+{
+  $fromStates = reservation_open_statuses();
+  $placeholders = implode(', ', array_fill(0, count($fromStates), '?'));
+
+  $setParts = ['status = ?'];
+  if (reservation_column_exists($pdo, 'updated_at')) {
+    $setParts[] = 'updated_at = NOW()';
+  }
+  $setClause = implode(', ', $setParts);
+
+  $sql = "UPDATE Reservations
+             SET $setClause
+            WHERE status IN ($placeholders)
+              AND expires_at < NOW()";
+
+  $params = array_merge([RESERVATION_STATUS_EXPIRED], $fromStates);
+
+  try {
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    return (int) $stmt->rowCount();
+  } catch (Throwable $e) {
+    // Compatibility fallback for legacy status enum schemas that do not include 'expired'.
+    $fallback = "UPDATE Reservations
+                    SET $setClause
+                  WHERE status IN ($placeholders)
+                    AND expires_at < NOW()";
+    $fallbackStmt = $pdo->prepare($fallback);
+    $fallbackStmt->execute(array_merge([RESERVATION_STATUS_CANCELLED], $fromStates));
+    return (int) $fallbackStmt->rowCount();
+  }
+}
+
+/**
+ * Perform a conditional reservation state transition with optimistic concurrency.
+ *
+ * @param PDO    $pdo Active PDO connection
+ * @param int    $reservationId Reservation ID
+ * @param string $fromStatus Required current status
+ * @param string $toStatus New status
+ * @param array  $meta Optional actor/reason metadata
+ * @return bool True when transitioned, false on state conflict/no row
+ */
+function transition_reservation_status(
+  PDO $pdo,
+  int $reservationId,
+  string $fromStatus,
+  string $toStatus,
+  array $meta = []
+): bool {
+  $setParts = ['status = ?'];
+  $params = [$toStatus];
+
+  if (reservation_column_exists($pdo, 'updated_at')) {
+    $setParts[] = 'updated_at = NOW()';
+  }
+
+  $actorId = (int) ($meta['actor_id'] ?? 0);
+
+  if ($toStatus === RESERVATION_STATUS_APPROVED) {
+    if (reservation_column_exists($pdo, 'approved_at')) {
+      $setParts[] = 'approved_at = NOW()';
+    }
+    if (reservation_column_exists($pdo, 'approved_by')) {
+      $setParts[] = 'approved_by = ?';
+      $params[] = $actorId > 0 ? $actorId : null;
+    }
+  }
+
+  if ($toStatus === RESERVATION_STATUS_REJECTED) {
+    if (reservation_column_exists($pdo, 'rejected_at')) {
+      $setParts[] = 'rejected_at = NOW()';
+    }
+    if (reservation_column_exists($pdo, 'rejected_by')) {
+      $setParts[] = 'rejected_by = ?';
+      $params[] = $actorId > 0 ? $actorId : null;
+    }
+    if (reservation_column_exists($pdo, 'rejection_reason') && array_key_exists('rejection_reason', $meta)) {
+      $setParts[] = 'rejection_reason = ?';
+      $params[] = (string) $meta['rejection_reason'];
+    }
+  }
+
+  $params[] = $reservationId;
+  $params[] = $fromStatus;
+
+  $sql = 'UPDATE Reservations
+             SET ' . implode(', ', $setParts) . '
+           WHERE id = ? AND status = ?';
+
+  $stmt = $pdo->prepare($sql);
+  $stmt->execute($params);
+  $changed = $stmt->rowCount() > 0;
+
+  log_circulation($pdo, [
+    'actor_id'      => (int) ($meta['actor_id'] ?? 0),
+    'actor_role'    => (string) ($meta['actor_role'] ?? ''),
+    'action_type'   => (string) ($meta['action_type'] ?? ('reservation_' . $toStatus)),
+    'target_entity' => 'Reservations',
+    'target_id'     => $reservationId,
+    'outcome'       => $changed ? LOG_OUTCOME_SUCCESS : LOG_OUTCOME_FAILURE,
+  ]);
+
+  return $changed;
+}
+
+/**
+ * Fetch pending reservations in strict FIFO order.
+ *
+ * @param PDO $pdo Active PDO connection
+ * @return array<int, array<string, mixed>>
+ */
+function get_pending_reservation_queue(PDO $pdo): array
+{
+  $stmt = $pdo->prepare(
+    'SELECT r.id, r.user_id, r.book_id, r.status, r.reserved_at, r.expires_at,
+            (
+              SELECT COUNT(*) + 1
+                FROM Reservations q
+               WHERE q.book_id = r.book_id
+                 AND q.status = ?
+                 AND (
+                   q.reserved_at < r.reserved_at
+                   OR (q.reserved_at = r.reserved_at AND q.id < r.id)
+                 )
+            ) AS queue_position,
+            u.full_name AS borrower_name, u.email AS borrower_email,
+            b.title AS book_title, b.author AS book_author
+       FROM Reservations r
+       JOIN Users u ON r.user_id = u.id
+       JOIN Books b ON r.book_id = b.id
+       WHERE r.status = ?
+       ORDER BY r.reserved_at ASC, r.id ASC'
+  );
+  $stmt->execute([RESERVATION_STATUS_PENDING, RESERVATION_STATUS_PENDING]);
+  return $stmt->fetchAll();
+}
+
+/**
+ * Cached Reservations table column existence check.
+ *
+ * @param PDO $pdo Active PDO connection
+ * @param string $column Column name
+ * @return bool
+ */
+function reservation_column_exists(PDO $pdo, string $column): bool
+{
+  static $cache = [];
+  if (array_key_exists($column, $cache)) {
+    return $cache[$column];
+  }
+
+  // SHOW COLUMNS does not support bound placeholders on some MariaDB versions.
+  if (!preg_match('/\A[A-Za-z0-9_]+\z/', $column)) {
+    $cache[$column] = false;
+    return false;
+  }
+
+  $escapedColumn = str_replace(['\\', "'"], ['\\\\', "\\'"], $column);
+  $stmt = $pdo->query("SHOW COLUMNS FROM Reservations LIKE '{$escapedColumn}'");
+  $cache[$column] = $stmt->fetch() !== false;
+
+  return $cache[$column];
 }

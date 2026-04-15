@@ -811,6 +811,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // GET / render
 $q = trim((string) ($_GET['q'] ?? ''));
+$role_filter = trim((string) ($_GET['role'] ?? ''));
+$status_filter = trim((string) ($_GET['status'] ?? ''));
+
+$allowed_role_filters = ['admin', 'librarian', 'borrower'];
+$allowed_status_filters = ['active', 'inactive'];
+
+if ($role_filter !== '' && !in_array($role_filter, $allowed_role_filters, true)) {
+  $role_filter = '';
+}
+if ($status_filter !== '' && !in_array($status_filter, $allowed_status_filters, true)) {
+  $status_filter = '';
+}
+
 if ($q !== '') {
   if (strlen($q) < 2) {
     $flash_error = 'Enter at least 2 characters to search.';
@@ -819,11 +832,25 @@ if ($q !== '') {
   }
 }
 
-$where_sql = '';
+$where_parts = [];
 $query_params = [];
 if ($q !== '' && $flash_error === '') {
-  $where_sql = ' WHERE full_name LIKE :q OR email LIKE :q';
+  $where_parts[] = '(full_name LIKE :q OR email LIKE :q)';
   $query_params[':q'] = '%' . $q . '%';
+}
+if ($role_filter !== '') {
+  $where_parts[] = 'role = :role';
+  $query_params[':role'] = $role_filter;
+}
+if ($status_filter === 'active') {
+  $where_parts[] = 'is_suspended = 0';
+} elseif ($status_filter === 'inactive') {
+  $where_parts[] = 'is_suspended = 1';
+}
+
+$where_sql = '';
+if (!empty($where_parts)) {
+  $where_sql = ' WHERE ' . implode(' AND ', $where_parts);
 }
 
 $summary_stmt = $pdo->prepare(
@@ -870,10 +897,16 @@ $users = $stmt->fetchAll();
 $page_range_start = $total_users > 0 ? ($offset + 1) : 0;
 $page_range_end = $offset + count($users);
 
-$build_page_url = static function (int $target_page) use ($self_url, $q): string {
+$build_page_url = static function (int $target_page) use ($self_url, $q, $role_filter, $status_filter): string {
   $params = ['page' => $target_page];
   if ($q !== '') {
     $params['q'] = $q;
+  }
+  if ($role_filter !== '') {
+    $params['role'] = $role_filter;
+  }
+  if ($status_filter !== '') {
+    $params['status'] = $status_filter;
   }
   return $self_url . '?' . http_build_query($params);
 };
@@ -1003,7 +1036,7 @@ $has_feedback = $flash_success !== ''
             </div>
           </div>
 
-         <div class="users-filter-bar-modern">
+          <div class="users-filter-bar-modern">
             <form method="get" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" class="users-filter-form-modern" role="search">
               <div class="users-filter-input-wrapper">
                 <svg class="users-filter-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
@@ -1012,9 +1045,24 @@ $has_feedback = $flash_success !== ''
                 </svg>
                 <input class="field-input users-filter-input" type="text" id="users-search-input" name="q" placeholder="Search by name or email" value="<?= htmlspecialchars($q, ENT_QUOTES, 'UTF-8') ?>" aria-label="Search users by name or email">
               </div>
+              <div class="users-filter-selects" aria-label="Filter users by role and status">
+                <label class="sr-only" for="users-role-filter">Filter by role</label>
+                <select class="field-select" id="users-role-filter" name="role">
+                  <option value="">All roles</option>
+                  <option value="admin" <?= $role_filter === 'admin' ? 'selected' : '' ?>>Admin</option>
+                  <option value="librarian" <?= $role_filter === 'librarian' ? 'selected' : '' ?>>Librarian</option>
+                  <option value="borrower" <?= $role_filter === 'borrower' ? 'selected' : '' ?>>Borrower</option>
+                </select>
+                <label class="sr-only" for="users-status-filter">Filter by account status</label>
+                <select class="field-select" id="users-status-filter" name="status">
+                  <option value="">All statuses</option>
+                  <option value="active" <?= $status_filter === 'active' ? 'selected' : '' ?>>Active</option>
+                  <option value="inactive" <?= $status_filter === 'inactive' ? 'selected' : '' ?>>Deactivated</option>
+                </select>
+              </div>
               <div class="users-filter-actions">
                 <button type="submit" class="btn-primary" aria-label="Search users">Search</button>
-                <?php if ($q !== ''): ?>
+                <?php if ($q !== '' || $role_filter !== '' || $status_filter !== ''): ?>
                   <a href="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" class="btn-ghost" aria-label="Clear search">Clear</a>
                 <?php endif; ?>
               </div>
@@ -1056,19 +1104,17 @@ $has_feedback = $flash_success !== ''
 
                 <div class="users-bulk-toolbar__controls">
                   <label class="sr-only" for="bulk_action">Choose bulk action</label>
-                  <select id="bulk_action" name="bulk_action" class="field-select" required>
-                    <option value="">Choose action...</option>
-                    <option value="activate">Activate selected users</option>
-                    <option value="deactivate">Deactivate selected users</option>
-                    <option value="role_borrower">Set as Borrower</option>
-                    <option value="role_librarian">Set as Librarian</option>
-                    <option value="role_admin">Set as Admin</option>
-                    <option value="delete" class="users-bulk-delete-option">Delete selected users</option>
-                  </select>
-                  <button type="submit" id="apply-bulk-action" class="btn-primary" disabled>Apply</button>
-                  <button type="button" id="bulk-delete-confirm-btn" class="btn-accent users-bulk-toolbar__delete" style="display: none;" aria-label="Delete selected users">Delete Users</button>
-                </div>
-             </div>
+                   <select id="bulk_action" name="bulk_action" class="field-select" required>
+                     <option value="">Choose action...</option>
+                     <option value="activate">Activate selected users</option>
+                     <option value="deactivate">Deactivate selected users</option>
+                     <option value="role_borrower">Set as Borrower</option>
+                     <option value="role_librarian">Set as Librarian</option>
+                     <option value="role_admin">Set as Admin</option>
+                   </select>
+                   <button type="submit" id="apply-bulk-action" class="btn-primary" disabled>Apply</button>
+                 </div>
+              </div>
             <p class="users-result-meta" id="users-result-meta" aria-live="polite" aria-atomic="true">
               Showing <?= (int) $page_range_start ?>-<?= (int) $page_range_end ?> of <?= (int) $total_users ?> user(s).
               <?php if ($total_pages > 1): ?>
@@ -1804,9 +1850,6 @@ $has_feedback = $flash_success !== ''
       const bulkToolbar = document.getElementById('users-bulk-toolbar');
       const bulkForm = document.getElementById('users-bulk-form');
       const selectAllCheckbox = document.getElementById('users-select-all');
-      const bulkDeleteBtn = document.getElementById('bulk-delete-confirm-btn');
-      const bulkActionSelect = document.getElementById('bulk_action');
-      const applyBulkActionBtn = document.getElementById('apply-bulk-action');
 
       // ── Show onboarding banner if not dismissed ──
       if (onboardingBanner) {
@@ -1833,6 +1876,16 @@ $has_feedback = $flash_success !== ''
 
       // ── Keyboard shortcuts ──
       document.addEventListener('keydown', function(e) {
+        if (e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+          const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+          const isTypingContext = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select' || (document.activeElement && document.activeElement.isContentEditable);
+          if (!isTypingContext && searchInput) {
+            e.preventDefault();
+            searchInput.focus();
+            searchInput.select();
+          }
+        }
+
         // Cmd+K / Ctrl+K to focus search
         if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
           e.preventDefault();
@@ -1860,49 +1913,21 @@ $has_feedback = $flash_success !== ''
         });
       }
 
-       // ── Bulk delete functionality ──
-       if (bulkDeleteBtn && bulkForm && bulkActionSelect) {
-         bulkDeleteBtn.addEventListener('click', async function(e) {
-           e.preventDefault();
-           
-           const selectedCheckboxes = document.querySelectorAll(
-             '.users-bulk-form input[type="checkbox"][name="user_ids[]"]:checked'
-           );
-           
-           if (selectedCheckboxes.length === 0) {
-             await sweetAlertUtils.showError('No Users Selected', 'Please select at least one user to delete.');
-             return;
-           }
+       // ── Update bulk toolbar visibility based on selection ──
+       function updateBulkToolbarVisibility() {
+         if (!bulkToolbar) return;
 
-           const result = await sweetAlertUtils.confirmBulkDelete(selectedCheckboxes.length);
-           if (result.isConfirmed) {
-             bulkActionSelect.value = 'delete';
-             applyBulkActionBtn.click();
-           }
-         });
+         const selectedCheckboxes = document.querySelectorAll(
+           '.users-select-row:checked'
+         );
+         const hasSelection = selectedCheckboxes.length > 0;
+
+         if (hasSelection) {
+           bulkToolbar.classList.add('users-bulk-toolbar--has-selection');
+         } else {
+           bulkToolbar.classList.remove('users-bulk-toolbar--has-selection');
+         }
        }
-
-      // ── Update bulk toolbar visibility based on selection ──
-      function updateBulkToolbarVisibility() {
-        if (!bulkToolbar) return;
-
-        const selectedCheckboxes = document.querySelectorAll(
-          '.users-bulk-form input[type="checkbox"][name="user_ids[]"]:checked'
-        );
-        const hasSelection = selectedCheckboxes.length > 0;
-
-        if (hasSelection) {
-          bulkToolbar.classList.add('users-bulk-toolbar--has-selection');
-          if (bulkDeleteBtn) {
-            bulkDeleteBtn.style.display = 'inline-flex';
-          }
-        } else {
-          bulkToolbar.classList.remove('users-bulk-toolbar--has-selection');
-          if (bulkDeleteBtn) {
-            bulkDeleteBtn.style.display = 'none';
-          }
-        }
-      }
 
       // ── Listen to checkbox changes ──
       if (selectAllCheckbox) {
@@ -1910,7 +1935,7 @@ $has_feedback = $flash_success !== ''
       }
 
       const userCheckboxes = document.querySelectorAll(
-        '.users-bulk-form input[type="checkbox"][name="user_ids[]"]'
+        '.users-select-row'
       );
       userCheckboxes.forEach(function(checkbox) {
         checkbox.addEventListener('change', updateBulkToolbarVisibility);

@@ -37,9 +37,6 @@
     }
 
     toggle.setAttribute("aria-controls", sidebar.id);
-    if (!toggle.getAttribute("aria-expanded")) {
-      toggle.setAttribute("aria-expanded", "false");
-    }
 
     var overlay = document.querySelector(".sidebar-overlay");
     if (!overlay) {
@@ -87,6 +84,15 @@
       }
     }
 
+    function syncToggleAriaState() {
+      var isOpen = sidebar.classList.contains("active");
+      toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      toggle.setAttribute(
+        "aria-label",
+        isOpen ? "Close navigation menu" : "Open navigation menu"
+      );
+    }
+
     function toggleSidebar() {
       if (sidebar.classList.contains("active")) {
         closeSidebar();
@@ -95,7 +101,9 @@
       }
     }
 
-    if (toggle.getAttribute("data-sidebar-bound") !== "true") {
+    syncToggleAriaState();
+
+    if (!toggle.__mobileSidebarBound) {
       var suppressClickUntil = 0;
 
       function activateToggle(event) {
@@ -164,12 +172,16 @@
         }
       });
 
-      toggle.setAttribute("data-sidebar-bound", "true");
+      toggle.__mobileSidebarBound = true;
     }
 
     // ── Logout confirmation with SweetAlert2 ──
     var logoutLinks = sidebar.querySelectorAll("a[href*='logout.php']");
     logoutLinks.forEach(function(link) {
+      if (link.__logoutConfirmBound) {
+        return;
+      }
+
       link.addEventListener("click", function(e) {
         e.preventDefault();
         
@@ -191,6 +203,8 @@
           }
         }
       });
+
+      link.__logoutConfirmBound = true;
     });
   }
 
