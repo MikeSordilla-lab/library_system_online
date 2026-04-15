@@ -1060,12 +1060,16 @@ textarea {
     height: 44px;
     position: fixed;
     top: var(--space-3);
+    top: calc(var(--space-3) + env(safe-area-inset-top, 0px));
     left: var(--space-3);
-    z-index: 1001;
+    z-index: 1301;
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     cursor: pointer;
+    pointer-events: auto;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
     gap: var(--space-1);
     flex-direction: column;
     box-shadow: var(--shadow-sm);
@@ -5656,8 +5660,8 @@ input[type="radio"] {
     flex: 1 1 100%;
     padding: var(--space-8) var(--space-5);
   }
-  .sidebar {
-    display: none;
+  .auth-wrap .sidebar {
+    display: none; /* Keep auth layout clean; avoid hiding app off-canvas sidebars globally. */
   }
   .main-content {
     padding: var(--space-5);

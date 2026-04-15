@@ -9,7 +9,10 @@
       sidebar.id = "app-sidebar";
     }
 
-    var toggle = document.querySelector("[data-sidebar-toggle]");
+    var toggle = document.querySelector('[data-sidebar-toggle="true"]');
+    if (!toggle) {
+      toggle = document.querySelector("[data-sidebar-toggle]");
+    }
     if (!toggle) {
       toggle = document.createElement("button");
       toggle.type = "button";
@@ -25,6 +28,17 @@
       }
 
       document.body.appendChild(toggle);
+    }
+
+    if (toggle.classList) {
+      toggle.classList.add("sidebar-toggle");
+    } else if ((" " + toggle.className + " ").indexOf(" sidebar-toggle ") === -1) {
+      toggle.className += (toggle.className ? " " : "") + "sidebar-toggle";
+    }
+
+    toggle.setAttribute("aria-controls", sidebar.id);
+    if (!toggle.getAttribute("aria-expanded")) {
+      toggle.setAttribute("aria-expanded", "false");
     }
 
     var overlay = document.querySelector(".sidebar-overlay");
@@ -81,27 +95,77 @@
       }
     }
 
-    toggle.addEventListener("click", toggleSidebar);
-    overlay.addEventListener("click", closeSidebar);
+    if (toggle.getAttribute("data-sidebar-bound") !== "true") {
+      var suppressClickUntil = 0;
 
-    sidebar.addEventListener("click", function (event) {
-      var navLink = event.target.closest("a");
-      if (navLink && isMobileLayout()) {
-        closeSidebar();
-      }
-    });
+      function activateToggle(event) {
+        var eventType = event.type;
+        var now = Date.now();
 
-    document.addEventListener("keydown", function (event) {
-      if (event.key === "Escape" && sidebar.classList.contains("active")) {
-        closeSidebar();
-      }
-    });
+        if (eventType === "keydown") {
+          var key = event.key;
+          var keyCode = event.keyCode;
+          var isEnter = key === "Enter" || keyCode === 13;
+          var isSpace = key === " " || key === "Spacebar" || keyCode === 32;
 
-    window.addEventListener("resize", function () {
-      if (!isMobileLayout()) {
-        closeSidebar();
+          if (!isEnter && !isSpace) {
+            return;
+          }
+
+          event.preventDefault();
+          toggleSidebar();
+          return;
+        }
+
+        if (eventType === "pointerup" || eventType === "touchend") {
+          suppressClickUntil = now + 700;
+          event.preventDefault();
+          toggleSidebar();
+          return;
+        }
+
+        if (eventType === "click") {
+          if (now < suppressClickUntil) {
+            event.preventDefault();
+            return;
+          }
+          event.preventDefault();
+          toggleSidebar();
+        }
       }
-    });
+
+      toggle.addEventListener("click", activateToggle);
+      toggle.addEventListener("keydown", activateToggle);
+
+      if (window.PointerEvent) {
+        toggle.addEventListener("pointerup", activateToggle);
+      } else {
+        toggle.addEventListener("touchend", activateToggle);
+      }
+
+      overlay.addEventListener("click", closeSidebar);
+
+      sidebar.addEventListener("click", function (event) {
+        var navLink = event.target.closest("a");
+        if (navLink && isMobileLayout()) {
+          closeSidebar();
+        }
+      });
+
+      document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape" && sidebar.classList.contains("active")) {
+          closeSidebar();
+        }
+      });
+
+      window.addEventListener("resize", function () {
+        if (!isMobileLayout()) {
+          closeSidebar();
+        }
+      });
+
+      toggle.setAttribute("data-sidebar-bound", "true");
+    }
 
     // ── Logout confirmation with SweetAlert2 ──
     var logoutLinks = sidebar.querySelectorAll("a[href*='logout.php']");
@@ -110,12 +174,16 @@
         e.preventDefault();
         
         if (typeof Swal !== 'undefined' && typeof sweetAlertUtils !== 'undefined') {
-          (async function() {
-            var result = await sweetAlertUtils.confirmLogout();
-            if (result.isConfirmed) {
-              window.location.href = link.href;
-            }
-          })();
+          sweetAlertUtils
+            .confirmLogout()
+            .then(function(result) {
+              if (result && result.isConfirmed) {
+                window.location.href = link.href;
+              }
+            })
+            .catch(function() {
+              // Ignore SweetAlert errors and stay on page.
+            });
         } else {
           // Fallback to native confirm if SweetAlert2 not available
           if (confirm('Are you sure you want to sign out?')) {
