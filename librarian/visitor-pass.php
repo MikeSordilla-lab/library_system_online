@@ -101,16 +101,12 @@ $pageTitle = 'Visitor Pass | Library System';
       <?php if ($flash_success !== ''): ?>
         <div class="flash flash-success" role="status"><?= htmlspecialchars($flash_success, ENT_QUOTES, 'UTF-8') ?></div>
       <?php endif; ?>
-<<<<<<< ours
       <?php
       $receipt_modal_title = 'Visitor pass ticket ready';
       $receipt_modal_message = 'Visitor pass issuance completed successfully. Open the visitor ticket from the actions below.';
       $receipt_modal_view_label = 'Open Visitor Ticket';
       require __DIR__ . '/../includes/receipt-success-modal.php';
       ?>
-
-=======
->>>>>>> theirs
       <div class="section-card">
         <div class="section-card__header">
           <span class="section-card__title">Visitor Details</span>

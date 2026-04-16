@@ -309,12 +309,8 @@ $flash_success = $_SESSION['flash_success'] ?? '';
 $flash_info    = $_SESSION['flash_info'] ?? '';
 $flash_print_url = $_SESSION['flash_print_url'] ?? '';
 $flash_print_label = $_SESSION['flash_print_label'] ?? 'Print Record';
-<<<<<<< ours
 $flash_receipt_no = $_SESSION['flash_receipt_no'] ?? '';
 unset($_SESSION['flash_error'], $_SESSION['flash_success'], $_SESSION['flash_info'], $_SESSION['flash_print_url'], $_SESSION['flash_print_label'], $_SESSION['flash_receipt_no']);
-=======
-unset($_SESSION['flash_error'], $_SESSION['flash_success'], $_SESSION['flash_info'], $_SESSION['flash_print_url'], $_SESSION['flash_print_label']);
->>>>>>> theirs
 
 $name       = htmlspecialchars($_SESSION['full_name'], ENT_QUOTES, 'UTF-8');
 $logout_url = htmlspecialchars(BASE_URL . 'logout.php', ENT_QUOTES, 'UTF-8');
@@ -357,16 +353,12 @@ $pageTitle    = 'Check Out | Library System';
       <?php if ($flash_info !== ''): ?>
         <div class="flash flash-info" role="status" aria-live="polite" aria-atomic="true"><?= htmlspecialchars($flash_info, ENT_QUOTES, 'UTF-8') ?></div>
       <?php endif; ?>
-<<<<<<< ours
       <?php
       $receipt_modal_title = 'Receipt issued';
       $receipt_modal_message = 'Checkout or fine payment was completed successfully. Open the ticket from the actions below.';
       $receipt_modal_view_label = 'View Ticket';
       require __DIR__ . '/../includes/receipt-success-modal.php';
       ?>
-
-=======
->>>>>>> theirs
       <div class="section-card">
         <div class="section-card__header">
           <span class="section-card__title">Checkout Form</span>
