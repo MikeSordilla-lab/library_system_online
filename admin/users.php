@@ -470,6 +470,248 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 
   // -------------------------------------------------------------------------
+  // Update User Credentials
+  // -------------------------------------------------------------------------
+  if ($post_action === 'update_user_credentials') {
+    $user_id = (int) ($_POST['user_id'] ?? 0);
+    $full_name = trim((string) ($_POST['full_name'] ?? ''));
+    $email = trim((string) ($_POST['email'] ?? ''));
+
+    if ($user_id <= 0 || $full_name === '' || $email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+      try {
+        $pdo->beginTransaction();
+        log_admin_action($pdo, [
+          'actor_id' => $actor_id,
+          'actor_role' => 'admin',
+          'action_type' => 'user_credentials_update',
+          'target_entity' => 'Users',
+          'target_id' => $user_id > 0 ? $user_id : null,
+          'outcome' => 'failure:validation',
+        ]);
+        $pdo->commit();
+      } catch (PDOException $e) {
+        if ($pdo->inTransaction()) {
+          $pdo->rollBack();
+        }
+        error_log('[admin/users.php] update_user_credentials validation log error: ' . $e->getMessage());
+      }
+
+      $_SESSION['flash_error_msg'] = 'Enter a valid full name and email before saving credentials.';
+      header('Location: ' . $self_url);
+      exit;
+    }
+
+    try {
+      $pdo->beginTransaction();
+
+      $stmt = $pdo->prepare('SELECT id, full_name, email, is_superadmin FROM Users WHERE id = ? FOR UPDATE');
+      $stmt->execute([$user_id]);
+      $target = $stmt->fetch();
+
+      if (!$target) {
+        $pdo->rollBack();
+        $pdo->beginTransaction();
+        log_admin_action($pdo, [
+          'actor_id' => $actor_id,
+          'actor_role' => 'admin',
+          'action_type' => 'user_credentials_update',
+          'target_entity' => 'Users',
+          'target_id' => $user_id,
+          'outcome' => 'failure:user_not_found',
+        ]);
+        $pdo->commit();
+        $_SESSION['flash_error_msg'] = 'That user account was not found.';
+        header('Location: ' . $self_url);
+        exit;
+      }
+
+      if (is_superadmin_user($target)) {
+        $pdo->rollBack();
+        $pdo->beginTransaction();
+        log_admin_action($pdo, [
+          'actor_id' => $actor_id,
+          'actor_role' => 'admin',
+          'action_type' => 'user_credentials_update',
+          'target_entity' => 'Users',
+          'target_id' => $user_id,
+          'outcome' => 'failure:protected_superadmin',
+        ]);
+        $pdo->commit();
+        $_SESSION['flash_error_msg'] = 'You cannot update credentials for the Superadmin account.';
+        header('Location: ' . $self_url);
+        exit;
+      }
+
+      $dup_stmt = $pdo->prepare('SELECT id FROM Users WHERE email = ? AND id <> ? LIMIT 1');
+      $dup_stmt->execute([$email, $user_id]);
+      if ($dup_stmt->fetch()) {
+        $pdo->rollBack();
+        $pdo->beginTransaction();
+        log_admin_action($pdo, [
+          'actor_id' => $actor_id,
+          'actor_role' => 'admin',
+          'action_type' => 'user_credentials_update',
+          'target_entity' => 'Users',
+          'target_id' => $user_id,
+          'outcome' => 'failure:duplicate_email',
+        ]);
+        $pdo->commit();
+        $_SESSION['flash_error_msg'] = 'A user with that email already exists.';
+        header('Location: ' . $self_url);
+        exit;
+      }
+
+      $upd = $pdo->prepare('UPDATE Users SET full_name = ?, email = ?, updated_at = NOW() WHERE id = ? LIMIT 1');
+      $upd->execute([$full_name, $email, $user_id]);
+
+      log_admin_action($pdo, [
+        'actor_id' => $actor_id,
+        'actor_role' => 'admin',
+        'action_type' => 'user_credentials_update',
+        'target_entity' => 'Users',
+        'target_id' => $user_id,
+        'outcome' => 'success',
+      ]);
+
+      $pdo->commit();
+
+      if ($user_id === $actor_id) {
+        $_SESSION['full_name'] = $full_name;
+        $_SESSION['email'] = $email;
+      }
+
+      $_SESSION['flash_success'] = 'User credentials updated.';
+    } catch (PDOException $e) {
+      if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+      }
+      error_log('[admin/users.php] update_user_credentials DB error: ' . $e->getMessage());
+      $_SESSION['flash_error_msg'] = 'We could not update credentials right now. Please try again.';
+    }
+
+    header('Location: ' . $self_url);
+    exit;
+  }
+
+  // -------------------------------------------------------------------------
+  // Admin Reset User Password
+  // -------------------------------------------------------------------------
+  if ($post_action === 'admin_reset_user_password') {
+    $user_id = (int) ($_POST['user_id'] ?? 0);
+    $new_password = (string) ($_POST['new_password'] ?? '');
+    $confirm_password = (string) ($_POST['confirm_password'] ?? '');
+
+    if ($user_id <= 0 || $new_password === '' || $confirm_password === '' || strlen($new_password) < 8 || !hash_equals($new_password, $confirm_password)) {
+      try {
+        $pdo->beginTransaction();
+        log_admin_action($pdo, [
+          'actor_id' => $actor_id,
+          'actor_role' => 'admin',
+          'action_type' => 'admin_password_reset',
+          'target_entity' => 'Users',
+          'target_id' => $user_id > 0 ? $user_id : null,
+          'outcome' => 'failure:validation',
+        ]);
+        $pdo->commit();
+      } catch (PDOException $e) {
+        if ($pdo->inTransaction()) {
+          $pdo->rollBack();
+        }
+        error_log('[admin/users.php] admin_reset_user_password validation log error: ' . $e->getMessage());
+      }
+
+      $_SESSION['flash_error_msg'] = 'Password reset requires a valid user, matching passwords, and at least 8 characters.';
+      header('Location: ' . $self_url);
+      exit;
+    }
+
+    try {
+      $pdo->beginTransaction();
+
+      $stmt = $pdo->prepare('SELECT id, is_superadmin, password_hash FROM Users WHERE id = ? FOR UPDATE');
+      $stmt->execute([$user_id]);
+      $target = $stmt->fetch();
+
+      if (!$target) {
+        $pdo->rollBack();
+        $pdo->beginTransaction();
+        log_admin_action($pdo, [
+          'actor_id' => $actor_id,
+          'actor_role' => 'admin',
+          'action_type' => 'admin_password_reset',
+          'target_entity' => 'Users',
+          'target_id' => $user_id,
+          'outcome' => 'failure:user_not_found',
+        ]);
+        $pdo->commit();
+        $_SESSION['flash_error_msg'] = 'That user account was not found.';
+        header('Location: ' . $self_url);
+        exit;
+      }
+
+      if (is_superadmin_user($target)) {
+        $pdo->rollBack();
+        $pdo->beginTransaction();
+        log_admin_action($pdo, [
+          'actor_id' => $actor_id,
+          'actor_role' => 'admin',
+          'action_type' => 'admin_password_reset',
+          'target_entity' => 'Users',
+          'target_id' => $user_id,
+          'outcome' => 'failure:protected_superadmin',
+        ]);
+        $pdo->commit();
+        $_SESSION['flash_error_msg'] = 'You cannot reset the Superadmin password from this page.';
+        header('Location: ' . $self_url);
+        exit;
+      }
+
+      $existing_hash = (string) ($target['password_hash'] ?? '');
+      if ($existing_hash !== '' && password_verify($new_password, $existing_hash)) {
+        $pdo->rollBack();
+        $pdo->beginTransaction();
+        log_admin_action($pdo, [
+          'actor_id' => $actor_id,
+          'actor_role' => 'admin',
+          'action_type' => 'admin_password_reset',
+          'target_entity' => 'Users',
+          'target_id' => $user_id,
+          'outcome' => 'failure:password_reuse',
+        ]);
+        $pdo->commit();
+        $_SESSION['flash_error_msg'] = 'New password must be different from the current password.';
+        header('Location: ' . $self_url);
+        exit;
+      }
+
+      $new_hash = password_hash($new_password, PASSWORD_BCRYPT);
+      $upd = $pdo->prepare('UPDATE Users SET password_hash = ?, updated_at = NOW() WHERE id = ? LIMIT 1');
+      $upd->execute([$new_hash, $user_id]);
+
+      log_admin_action($pdo, [
+        'actor_id' => $actor_id,
+        'actor_role' => 'admin',
+        'action_type' => 'admin_password_reset',
+        'target_entity' => 'Users',
+        'target_id' => $user_id,
+        'outcome' => 'success',
+      ]);
+
+      $pdo->commit();
+      $_SESSION['flash_success'] = 'User password updated.';
+    } catch (PDOException $e) {
+      if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+      }
+      error_log('[admin/users.php] admin_reset_user_password DB error: ' . $e->getMessage());
+      $_SESSION['flash_error_msg'] = 'We could not update the password right now. Please try again.';
+    }
+
+    header('Location: ' . $self_url);
+    exit;
+  }
+
+  // -------------------------------------------------------------------------
   // Role Change
   // -------------------------------------------------------------------------
   if ($post_action === 'role_change') {
@@ -1236,6 +1478,30 @@ $has_feedback = $flash_success !== ''
                           <details class="users-actions__more">
                             <summary>Role &amp; delete</summary>
                             <div class="users-actions__panel">
+                              <p class="users-actions__label">Credentials</p>
+                              <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" class="users-credentials-form" data-user-name="<?= $safe_name ?>" data-current-name="<?= $safe_name ?>" data-current-email="<?= $safe_email ?>">
+                                <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                                <input type="hidden" name="action" value="update_user_credentials">
+                                <input type="hidden" name="user_id" value="<?= $uid ?>">
+                                <label class="sr-only" for="credentials-full-name-<?= $uid ?>">Full name for <?= $safe_name ?></label>
+                                <input id="credentials-full-name-<?= $uid ?>" type="text" name="full_name" class="field-input" value="<?= $safe_name ?>" required>
+                                <label class="sr-only" for="credentials-email-<?= $uid ?>">Email for <?= $safe_name ?></label>
+                                <input id="credentials-email-<?= $uid ?>" type="email" name="email" class="field-input" value="<?= $safe_email ?>" required>
+                                <button type="submit" class="btn-ghost">Save credentials</button>
+                              </form>
+
+                              <p class="users-actions__label">Password reset</p>
+                              <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" class="users-password-reset-form" data-user-name="<?= $safe_name ?>">
+                                <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                                <input type="hidden" name="action" value="admin_reset_user_password">
+                                <input type="hidden" name="user_id" value="<?= $uid ?>">
+                                <label class="sr-only" for="password-new-<?= $uid ?>">New password for <?= $safe_name ?></label>
+                                <input id="password-new-<?= $uid ?>" type="password" name="new_password" class="field-input" minlength="8" placeholder="New password (8+ chars)" required autocomplete="new-password">
+                                <label class="sr-only" for="password-confirm-<?= $uid ?>">Confirm password for <?= $safe_name ?></label>
+                                <input id="password-confirm-<?= $uid ?>" type="password" name="confirm_password" class="field-input" minlength="8" placeholder="Confirm password" required autocomplete="new-password">
+                                <button type="submit" class="btn-ghost">Update password</button>
+                              </form>
+
                               <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" class="users-role-form" data-user-name="<?= $safe_name ?>" data-current-role="<?= htmlspecialchars($role, ENT_QUOTES, 'UTF-8') ?>">
                                 <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                                 <input type="hidden" name="action" value="role_change">
@@ -1421,6 +1687,8 @@ $has_feedback = $flash_success !== ''
       const liveAnnouncer = document.getElementById('users-live-announcer');
       const roleForms = document.querySelectorAll('.users-role-form');
       const deleteForms = document.querySelectorAll('.users-delete-form');
+      const credentialsForms = document.querySelectorAll('.users-credentials-form');
+      const passwordResetForms = document.querySelectorAll('.users-password-reset-form');
       let hasInitializedBulkState = false;
 
       function announce(message) {
@@ -1537,6 +1805,108 @@ $has_feedback = $flash_success !== ''
           
           const userName = form.dataset.userName || 'this account';
           const message = 'Delete "' + userName + '" permanently? This cannot be undone.';
+          if (!window.confirm(message)) {
+            e.preventDefault();
+            const submit = form.querySelector('button[type="submit"]');
+            if (submit) {
+              submit.disabled = false;
+              if (submit.dataset.originalText) {
+                submit.textContent = submit.dataset.originalText;
+              }
+            }
+          }
+        });
+      });
+
+      credentialsForms.forEach((form) => {
+        form.addEventListener('submit', function(e) {
+          if (typeof sweetAlertUtils !== 'undefined') return; // Handled by SweetAlert handler below
+
+          const userName = form.dataset.userName || 'this user';
+          const currentName = form.dataset.currentName || '';
+          const currentEmail = form.dataset.currentEmail || '';
+          const fullNameInput = form.querySelector('input[name="full_name"]');
+          const emailInput = form.querySelector('input[name="email"]');
+          const nextName = fullNameInput ? fullNameInput.value.trim() : '';
+          const nextEmail = emailInput ? emailInput.value.trim() : '';
+
+          if (!nextName || !nextEmail) {
+            e.preventDefault();
+            window.alert('Full name and email are required.');
+            const submit = form.querySelector('button[type="submit"]');
+            if (submit) {
+              submit.disabled = false;
+              if (submit.dataset.originalText) {
+                submit.textContent = submit.dataset.originalText;
+              }
+            }
+            return;
+          }
+
+          if (nextName === currentName && nextEmail.toLowerCase() === currentEmail.toLowerCase()) {
+            e.preventDefault();
+            window.alert('No credential changes detected for ' + userName + '.');
+            const submit = form.querySelector('button[type="submit"]');
+            if (submit) {
+              submit.disabled = false;
+              if (submit.dataset.originalText) {
+                submit.textContent = submit.dataset.originalText;
+              }
+            }
+            return;
+          }
+
+          const message = 'Save credential updates for "' + userName + '" now?';
+          if (!window.confirm(message)) {
+            e.preventDefault();
+            const submit = form.querySelector('button[type="submit"]');
+            if (submit) {
+              submit.disabled = false;
+              if (submit.dataset.originalText) {
+                submit.textContent = submit.dataset.originalText;
+              }
+            }
+          }
+        });
+      });
+
+      passwordResetForms.forEach((form) => {
+        form.addEventListener('submit', function(e) {
+          if (typeof sweetAlertUtils !== 'undefined') return; // Handled by SweetAlert handler below
+
+          const userName = form.dataset.userName || 'this user';
+          const newPasswordInput = form.querySelector('input[name="new_password"]');
+          const confirmPasswordInput = form.querySelector('input[name="confirm_password"]');
+          const newPassword = newPasswordInput ? newPasswordInput.value : '';
+          const confirmPassword = confirmPasswordInput ? confirmPasswordInput.value : '';
+
+          if (newPassword.length < 8) {
+            e.preventDefault();
+            window.alert('Password must be at least 8 characters.');
+            const submit = form.querySelector('button[type="submit"]');
+            if (submit) {
+              submit.disabled = false;
+              if (submit.dataset.originalText) {
+                submit.textContent = submit.dataset.originalText;
+              }
+            }
+            return;
+          }
+
+          if (newPassword !== confirmPassword) {
+            e.preventDefault();
+            window.alert('Password confirmation does not match.');
+            const submit = form.querySelector('button[type="submit"]');
+            if (submit) {
+              submit.disabled = false;
+              if (submit.dataset.originalText) {
+                submit.textContent = submit.dataset.originalText;
+              }
+            }
+            return;
+          }
+
+          const message = 'Reset password for "' + userName + '" now?';
           if (!window.confirm(message)) {
             e.preventDefault();
             const submit = form.querySelector('button[type="submit"]');
@@ -2013,6 +2383,78 @@ $has_feedback = $flash_success !== ''
            if (result.isConfirmed) {
              // Set the checkbox to confirm deletion
              confirmCheckbox.checked = true;
+             form.submit();
+           }
+         });
+       });
+
+       // Handle credentials update forms
+       const credentialsUpdateForms = document.querySelectorAll('.users-credentials-form');
+       credentialsUpdateForms.forEach(function(form) {
+         form.addEventListener('submit', async function(e) {
+           e.preventDefault();
+
+           const userName = form.getAttribute('data-user-name') || 'this user';
+           const currentName = form.getAttribute('data-current-name') || '';
+           const currentEmail = form.getAttribute('data-current-email') || '';
+           const fullNameInput = form.querySelector('input[name="full_name"]');
+           const emailInput = form.querySelector('input[name="email"]');
+           const nextName = fullNameInput ? fullNameInput.value.trim() : '';
+           const nextEmail = emailInput ? emailInput.value.trim() : '';
+
+           if (!nextName || !nextEmail) {
+             await sweetAlertUtils.showError('Missing Required Fields', 'Full name and email are required.');
+             return;
+           }
+
+           if (nextName === currentName && nextEmail.toLowerCase() === currentEmail.toLowerCase()) {
+             await sweetAlertUtils.showInfo('No Changes', 'No credential changes were detected for this account.');
+             return;
+           }
+
+           const result = await sweetAlertUtils.confirmAction(
+             'Save Credential Changes?',
+             '<p><strong>' + escapeHtml(userName) + '</strong></p><p style="margin-top: 10px; font-size: 0.9rem;">Updates to full name and email will take effect immediately.</p>',
+             'Save Credentials',
+             'Cancel'
+           );
+
+           if (result.isConfirmed) {
+             form.submit();
+           }
+         });
+       });
+
+       // Handle password reset forms
+       const passwordResetForms = document.querySelectorAll('.users-password-reset-form');
+       passwordResetForms.forEach(function(form) {
+         form.addEventListener('submit', async function(e) {
+           e.preventDefault();
+
+           const userName = form.getAttribute('data-user-name') || 'this user';
+           const newPasswordInput = form.querySelector('input[name="new_password"]');
+           const confirmPasswordInput = form.querySelector('input[name="confirm_password"]');
+           const newPassword = newPasswordInput ? newPasswordInput.value : '';
+           const confirmPassword = confirmPasswordInput ? confirmPasswordInput.value : '';
+
+           if (newPassword.length < 8) {
+             await sweetAlertUtils.showError('Invalid Password', 'Password must be at least 8 characters.');
+             return;
+           }
+
+           if (newPassword !== confirmPassword) {
+             await sweetAlertUtils.showError('Password Mismatch', 'New password and confirmation must match.');
+             return;
+           }
+
+           const result = await sweetAlertUtils.confirmAction(
+             'Reset User Password?',
+             '<p><strong>' + escapeHtml(userName) + '</strong></p><p style="margin-top: 10px; font-size: 0.9rem;">This will replace the user\'s current password immediately.</p>',
+             'Update Password',
+             'Cancel'
+           );
+
+           if (result.isConfirmed) {
              form.submit();
            }
          });
