@@ -595,6 +595,9 @@ function receipt_type_label(string $type): string
   if ($type === 'checkout') {
     return 'Checkout Ticket';
   }
+  if ($type === 'checkin') {
+    return 'Return Ticket';
+  }
   if ($type === 'fine_payment') {
     return 'Fine Payment Receipt';
   }
@@ -617,6 +620,8 @@ function build_receipt_view_model(PDO $pdo, array $receipt, bool $mask_pii = tru
   $section = 'details';
   if ($type === 'checkout') {
     $section = 'checkout';
+  } elseif ($type === 'checkin') {
+    $section = 'checkin';
   } elseif ($type === 'fine_payment') {
     $section = 'payment';
   } elseif ($type === 'reservation_place') {
@@ -649,6 +654,13 @@ function build_receipt_view_model(PDO $pdo, array $receipt, bool $mask_pii = tru
     $detail_lines[] = ['Book', (string) ($payload_clean['book_title'] ?? 'N/A')];
     $detail_lines[] = ['Due Date', (string) ($payload_clean['due_date'] ?? 'N/A')];
     $detail_lines[] = ['Loan Period', (string) ($payload_clean['loan_days'] ?? 'N/A') . ' day(s)'];
+  } elseif ($type === 'checkin') {
+    $detail_lines[] = ['Loan ID', (string) ($payload_clean['loan_id'] ?? $receipt['reference_id'])];
+    $detail_lines[] = ['Book', (string) ($payload_clean['book_title'] ?? 'N/A')];
+    $detail_lines[] = ['Due Date', (string) ($payload_clean['due_date'] ?? 'N/A')];
+    $detail_lines[] = ['Returned At', (string) ($payload_clean['returned_at'] ?? 'N/A')];
+    $detail_lines[] = ['Days Late', (string) ($payload_clean['days_late'] ?? '0')];
+    $detail_lines[] = ['Fine Assessed', number_format((float) ($payload_clean['fine_amount'] ?? 0), 2) . ' ' . (string) ($receipt['currency'] ?? 'USD')];
   } elseif ($type === 'fine_payment') {
     $detail_lines[] = ['Borrower ID', (string) ($receipt['patron_user_id'] ?? 'N/A')];
     $detail_lines[] = ['Settlement', (string) ($payload_clean['settled_scope'] ?? 'fine_payment')];

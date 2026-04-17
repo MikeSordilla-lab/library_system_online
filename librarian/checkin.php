@@ -16,6 +16,7 @@ $allowed_roles = ['librarian'];
 require_once __DIR__ . '/../includes/auth_guard.php';
 require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/circulation.php';
+require_once __DIR__ . '/../includes/receipts.php';
 
 $pdo = get_db();
 
@@ -37,7 +38,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   // T014 — Fetch loan; reject if not found or already returned
   $loan_stmt = $pdo->prepare(
-    'SELECT id, book_id, due_date, status FROM Circulation WHERE id = ? LIMIT 1'
+    'SELECT c.id, c.user_id, c.book_id, c.due_date, c.status,
+            b.title AS book_title,
+            u.full_name AS borrower_name
+       FROM Circulation c
+       JOIN Books b ON c.book_id = b.id
+       JOIN Users u ON c.user_id = u.id
+      WHERE c.id = ?
+      LIMIT 1'
   );
   $loan_stmt->execute([$loan_id]);
   $loan = $loan_stmt->fetch();
@@ -84,6 +92,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       'outcome'       => 'success',
     ]);
 
+    $receipt = issue_receipt_ticket($pdo, [
+      'type'            => 'checkin',
+      'actor_user_id'   => $actor_id,
+      'actor_role'      => $actor_role,
+      'patron_user_id'  => (int) $loan['user_id'],
+      'reference_table' => 'Circulation',
+      'reference_id'    => $loan_id,
+      'format'          => 'thermal',
+      'channel'         => 'librarian_console',
+      'payload'         => [
+        'loan_id'       => $loan_id,
+        'book_id'       => (int) $loan['book_id'],
+        'book_title'    => (string) ($loan['book_title'] ?? ''),
+        'patron_name'   => (string) ($loan['borrower_name'] ?? ''),
+        'due_date'      => (string) ($loan['due_date'] ?? ''),
+        'returned_at'   => date('Y-m-d H:i:s'),
+        'days_late'     => $days_late,
+        'fine_amount'   => $fine,
+      ],
+    ]);
+
     $pdo->commit();
 
     // --- NEW LOGIC: Reservation Alert ---
@@ -100,6 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       : '';
 
     $_SESSION['flash_success'] = 'Book returned successfully. Loan ID: ' . $loan_id . '.' . $fine_msg . $alert_msg;
+    $_SESSION['flash_receipt_no'] = (string) ($receipt['receipt_no'] ?? '');
     $_SESSION['flash_print_url'] = BASE_URL . 'librarian/print-record.php?loan_id=' . $loan_id . '&type=checkin';
     $_SESSION['flash_print_label'] = 'Print Return Record';
     header('Location: ' . BASE_URL . 'librarian/checkin.php');
@@ -141,7 +171,8 @@ $flash_error   = $_SESSION['flash_error']   ?? '';
 $flash_success = $_SESSION['flash_success'] ?? '';
 $flash_print_url = $_SESSION['flash_print_url'] ?? '';
 $flash_print_label = $_SESSION['flash_print_label'] ?? 'Print Record';
-unset($_SESSION['flash_error'], $_SESSION['flash_success'], $_SESSION['flash_print_url'], $_SESSION['flash_print_label']);
+$flash_receipt_no = $_SESSION['flash_receipt_no'] ?? '';
+unset($_SESSION['flash_error'], $_SESSION['flash_success'], $_SESSION['flash_print_url'], $_SESSION['flash_print_label'], $_SESSION['flash_receipt_no']);
 
 $logout_url = htmlspecialchars(BASE_URL . 'logout.php', ENT_QUOTES, 'UTF-8');
 $current_page = 'librarian.checkin';
@@ -180,6 +211,12 @@ $pageTitle    = 'Check In | Library System';
           <?php endif; ?>
         </div>
       <?php endif; ?>
+      <?php
+      $receipt_modal_title = 'Receipt issued';
+      $receipt_modal_message = 'Book return was completed successfully. Print the ticket from this overlay.';
+      $receipt_modal_print_label = 'Print Ticket';
+      require __DIR__ . '/../includes/receipt-success-modal.php';
+      ?>
 
       <div class="section-card">
         <div class="section-card__header">

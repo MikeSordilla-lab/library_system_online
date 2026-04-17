@@ -264,6 +264,7 @@ $pageTitle = 'Receipt ' . (string) ($model['receipt_no'] ?? '');
     .ticket.thermal .meta { text-align: left; }
     .ticket.thermal .line-grid td:first-child { width: 42%; }
     .section-checkout .sub::after { content: " • CHECKOUT"; }
+    .section-checkin .sub::after { content: " • RETURN"; }
     .section-payment .sub::after { content: " • PAYMENT"; }
     .section-reservation .sub::after { content: " • RESERVATION"; }
     .section-visitor .sub::after { content: " • VISITOR PASS"; }
