@@ -87,8 +87,8 @@ try {
     $pdo->commit();
     $_SESSION['flash_success'] = 'Successfully cleared fines ($' . number_format($total_fines, 2) . ') for user.';
     $receipt_no = (string) ($receipt['receipt_no'] ?? '');
-    $close_to = rawurlencode('librarian/checkout.php');
-    header('Location: ' . BASE_URL . 'receipt/view.php?no=' . rawurlencode($receipt_no) . '&close_to=' . $close_to . '&autofocus_close=1');
+    $_SESSION['flash_receipt_no'] = $receipt_no;
+    header('Location: ' . BASE_URL . 'librarian/checkout.php');
     exit;
   } else {
     $pdo->rollBack();

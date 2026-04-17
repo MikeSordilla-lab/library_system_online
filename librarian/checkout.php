@@ -257,8 +257,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $pdo->commit();
 
     $receipt_no = (string) ($receipt['receipt_no'] ?? '');
-    $close_to = rawurlencode('librarian/checkout.php');
-    header('Location: ' . BASE_URL . 'receipt/view.php?no=' . rawurlencode($receipt_no) . '&close_to=' . $close_to . '&autofocus_close=1');
+    $_SESSION['flash_receipt_no'] = $receipt_no;
+    header('Location: ' . BASE_URL . 'librarian/checkout.php');
     exit;
   } catch (Throwable $e) {
     $pdo->rollBack();
@@ -355,8 +355,8 @@ $pageTitle    = 'Check Out | Library System';
       <?php endif; ?>
       <?php
       $receipt_modal_title = 'Receipt issued';
-      $receipt_modal_message = 'Checkout or fine payment was completed successfully. Open the ticket from the actions below.';
-      $receipt_modal_view_label = 'View Ticket';
+      $receipt_modal_message = 'Checkout or fine payment was completed successfully. Print the ticket from this overlay.';
+      $receipt_modal_print_label = 'Print Ticket';
       require __DIR__ . '/../includes/receipt-success-modal.php';
       ?>
       <div class="section-card">

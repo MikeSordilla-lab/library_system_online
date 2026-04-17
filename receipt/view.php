@@ -148,30 +148,118 @@ $pageTitle = 'Receipt ' . (string) ($model['receipt_no'] ?? '');
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= esc($pageTitle) ?></title>
+  <link rel="stylesheet" href="<?= htmlspecialchars($base_url . 'assets/css/libris.css', ENT_QUOTES, 'UTF-8') ?>">
   <style>
-    body { font-family: "Segoe UI", Tahoma, Arial, sans-serif; background: #f6f7f9; color: #1f2937; margin: 0; }
-    .ticket-wrap { max-width: 760px; margin: 24px auto; padding: 0 16px; }
-    .ticket { background: #fff; border: 1px solid #d6dae1; border-radius: 8px; padding: 20px; }
-    .ticket.thermal { max-width: 420px; margin: 0 auto; }
-    .ticket.a4 { max-width: 794px; margin: 0 auto; }
-    .head { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px dashed #c5cad3; padding-bottom: 12px; margin-bottom: 14px; }
-    .title { margin: 0; font-size: 1.25rem; }
-    .sub { margin: 4px 0 0 0; font-size: 0.9rem; color: #4b5563; }
-    .meta { text-align: right; font-size: 0.9rem; }
+    body {
+      font-family: var(--font-sans, "DM Sans", system-ui, sans-serif);
+      background:
+        radial-gradient(1100px 480px at 8% -8%, rgba(201, 168, 76, 0.14), transparent 65%),
+        radial-gradient(1000px 520px at 92% -12%, rgba(74, 103, 65, 0.12), transparent 70%),
+        var(--paper, #f7f4ee);
+      color: var(--ink, #0f0e0c);
+      margin: 0;
+      min-height: 100vh;
+    }
+    .ticket-wrap { max-width: 860px; margin: 30px auto; padding: 0 16px; }
+    .ticket {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, #ffffff 42%);
+      border: 1px solid var(--border, #d5cfc4);
+      border-radius: 14px;
+      box-shadow: 0 14px 36px rgba(16, 14, 10, 0.12);
+      padding: 22px;
+      position: relative;
+      overflow: hidden;
+    }
+    .ticket::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--accent, #c8401a), var(--gold, #c9a84c), var(--sage, #4a6741));
+    }
+    .ticket.thermal { max-width: 460px; margin: 0 auto; }
+    .ticket.a4 { max-width: 820px; margin: 0 auto; }
+    .head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      border-bottom: 1px dashed var(--border, #d5cfc4);
+      padding-bottom: 12px;
+      margin-bottom: 14px;
+    }
+    .title {
+      margin: 0;
+      font-family: var(--font-serif, "Playfair Display", Georgia, serif);
+      font-size: 1.45rem;
+      line-height: 1.2;
+      letter-spacing: 0.01em;
+    }
+    .sub {
+      margin: 4px 0 0 0;
+      font-size: 0.86rem;
+      color: var(--muted, #5f5850);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    .meta { text-align: right; font-size: 0.88rem; color: var(--muted, #5f5850); }
     .meta div { margin-bottom: 3px; }
-    .section-label { margin: 16px 0 8px; font-size: 0.85rem; letter-spacing: 0.03em; color: #6b7280; text-transform: uppercase; }
+    .meta strong { color: var(--ink, #0f0e0c); font-weight: 600; }
+    .section-label {
+      margin: 16px 0 8px;
+      font-size: 0.78rem;
+      letter-spacing: 0.09em;
+      color: var(--muted, #5f5850);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
     .line-grid { width: 100%; border-collapse: collapse; }
-    .line-grid td { padding: 7px 0; vertical-align: top; border-bottom: 1px solid #eef0f4; font-size: 0.95rem; }
-    .line-grid td:first-child { width: 35%; color: #4b5563; }
-    .qr { margin-top: 14px; padding: 10px; border: 1px dashed #9aa4b2; background: #f8fafc; font-family: Consolas, "Courier New", monospace; font-size: 0.84rem; word-break: break-all; }
+    .line-grid td {
+      padding: 8px 0;
+      vertical-align: top;
+      border-bottom: 1px solid rgba(213, 207, 196, 0.42);
+      font-size: 0.95rem;
+    }
+    .line-grid td:first-child { width: 35%; color: var(--muted, #5f5850); }
+    .qr {
+      margin-top: 14px;
+      padding: 10px;
+      border: 1px dashed #b7ae9c;
+      border-radius: 8px;
+      background: #faf8f2;
+      font-family: var(--font-mono, "DM Mono", "Courier New", monospace);
+      font-size: 0.83rem;
+      color: #2a2723;
+      word-break: break-all;
+    }
     .actions { margin: 14px 0 0; display: flex; gap: 8px; flex-wrap: wrap; }
-    .btn { display: inline-block; text-decoration: none; border: 1px solid #1f2937; padding: 8px 12px; border-radius: 6px; background: #111827; color: #fff; font-size: 0.9rem; }
-    .btn.secondary { background: #fff; color: #111827; }
-    .flash { border-radius: 6px; margin: 0 0 12px 0; padding: 10px 12px; font-size: 0.9rem; }
-    .flash.error { border: 1px solid #ef4444; background: #fef2f2; color: #7f1d1d; }
-    .flash.success { border: 1px solid #22c55e; background: #f0fdf4; color: #14532d; }
+    .btn {
+      display: inline-block;
+      text-decoration: none;
+      border: 1px solid #2e2b27;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: #2e2b27;
+      color: #f7f4ee;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn.secondary { background: #ffffff; color: #1c1a17; border-color: #c5bcad; }
+    .flash { border-radius: 8px; margin: 0 0 12px 0; padding: 10px 12px; font-size: 0.9rem; }
+    .flash.error { border: 1px solid var(--error-border, #fca5a5); background: var(--error-bg, #fee2e2); color: var(--error-text, #991b1b); }
+    .flash.success { border: 1px solid var(--success-border, #6ee7b7); background: var(--success-bg, #d1fae5); color: var(--success-text, #065f46); }
     .reprint-form { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
-    .reprint-form input { flex: 1; min-width: 240px; border: 1px solid #c5cad3; border-radius: 6px; padding: 8px 10px; font-size: 0.9rem; }
+    .reprint-form input {
+      flex: 1;
+      min-width: 240px;
+      border: 1px solid #c5bcad;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 0.9rem;
+      background: #fff;
+      color: #1c1a17;
+    }
     .ticket.thermal .head { flex-direction: column; }
     .ticket.thermal .meta { text-align: left; }
     .ticket.thermal .line-grid td:first-child { width: 42%; }
@@ -183,6 +271,7 @@ $pageTitle = 'Receipt ' . (string) ($model['receipt_no'] ?? '');
       body { background: #fff; }
       .ticket-wrap { margin: 0; padding: 0; max-width: none; }
       .ticket { border: none; border-radius: 0; }
+      .ticket::before { display: none; }
       .actions { display: none; }
       .reprint-form { display: none; }
       .flash { display: none; }

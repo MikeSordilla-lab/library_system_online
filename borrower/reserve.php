@@ -203,8 +203,8 @@ if ($action === 'place') {
 
   $_SESSION['flash_success'] = 'Reservation placed. You are #' . $queue_position . ' in line.';
   $receipt_no = (string) ($receipt['receipt_no'] ?? '');
-  $close_to = rawurlencode('borrower/catalog.php');
-  header('Location: ' . BASE_URL . 'receipt/view.php?no=' . rawurlencode($receipt_no) . '&close_to=' . $close_to . '&autofocus_close=1');
+  $_SESSION['flash_receipt_no'] = $receipt_no;
+  header('Location: ' . BASE_URL . 'borrower/catalog.php');
   exit;
 }
 

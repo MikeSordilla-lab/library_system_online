@@ -59,7 +59,8 @@ $books = $stmt->fetchAll();
 
 $flash_error = $_SESSION['flash_error'] ?? '';
 $flash_success = $_SESSION['flash_success'] ?? '';
-unset($_SESSION['flash_error'], $_SESSION['flash_success']);
+$flash_receipt_no = (string) ($_SESSION['flash_receipt_no'] ?? '');
+unset($_SESSION['flash_error'], $_SESSION['flash_success'], $_SESSION['flash_receipt_no']);
 
 $qEscaped = htmlspecialchars($q, ENT_QUOTES, 'UTF-8');
 $current_page = 'borrower.catalog';
@@ -125,8 +126,8 @@ function buildCatalogUrl(string $q, int $page): string
 				<?php endif; ?>
 				<?php
 				$receipt_modal_title = 'Reservation ticket ready';
-				$receipt_modal_message = 'Your reservation was submitted successfully. Open the reservation ticket from the actions below.';
-				$receipt_modal_view_label = 'View Reservation Ticket';
+				$receipt_modal_message = 'Your reservation was submitted successfully. Print the reservation ticket from this overlay.';
+				$receipt_modal_print_label = 'Print Reservation Ticket';
 				require __DIR__ . '/../includes/receipt-success-modal.php';
 				?>
 				<div class="catalog-results" role="status" aria-live="polite">

@@ -55,8 +55,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $_SESSION['flash_success'] = 'Visitor pass ticket issued.';
     $receipt_no = (string) ($receipt['receipt_no'] ?? '');
-    $close_to = rawurlencode('librarian/visitor-pass.php');
-    header('Location: ' . $base_url . 'receipt/view.php?no=' . rawurlencode($receipt_no) . '&close_to=' . $close_to . '&autofocus_close=1');
+    $_SESSION['flash_receipt_no'] = $receipt_no;
+    header('Location: ' . $base_url . 'librarian/visitor-pass.php');
     exit;
   } catch (Throwable $e) {
     error_log('[visitor-pass.php] ' . $e->getMessage());
@@ -69,7 +69,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $flash_error = (string) ($_SESSION['flash_error'] ?? '');
 $flash_success = (string) ($_SESSION['flash_success'] ?? '');
-unset($_SESSION['flash_error'], $_SESSION['flash_success']);
+$flash_receipt_no = (string) ($_SESSION['flash_receipt_no'] ?? '');
+unset($_SESSION['flash_error'], $_SESSION['flash_success'], $_SESSION['flash_receipt_no']);
 
 $current_page = 'librarian.visitor-pass';
 $pageTitle = 'Visitor Pass | Library System';
@@ -103,8 +104,8 @@ $pageTitle = 'Visitor Pass | Library System';
       <?php endif; ?>
       <?php
       $receipt_modal_title = 'Visitor pass ticket ready';
-      $receipt_modal_message = 'Visitor pass issuance completed successfully. Open the visitor ticket from the actions below.';
-      $receipt_modal_view_label = 'Open Visitor Ticket';
+      $receipt_modal_message = 'Visitor pass issuance completed successfully. Print the visitor ticket from this overlay.';
+      $receipt_modal_print_label = 'Print Visitor Ticket';
       require __DIR__ . '/../includes/receipt-success-modal.php';
       ?>
       <div class="section-card">
