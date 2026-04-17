@@ -1041,6 +1041,7 @@ textarea {
 @media (max-width: 1024px) {
   :root {
     --sidebar-mobile-width: 240px;
+    --mobile-top-clearance: calc(64px + env(safe-area-inset-top, 0px));
   }
 
   .sidebar {
@@ -1073,8 +1074,8 @@ textarea {
     top: calc(var(--space-3) + env(safe-area-inset-top, 0px));
     left: var(--space-3);
     z-index: 1301;
-    background: var(--card);
-    border: 1px solid var(--border);
+    background: color-mix(in srgb, var(--paper) 74%, var(--card));
+    border: 1px solid color-mix(in srgb, var(--border) 86%, var(--sage));
     border-radius: var(--radius);
     cursor: pointer;
     pointer-events: auto;
@@ -1082,7 +1083,7 @@ textarea {
     -webkit-tap-highlight-color: transparent;
     gap: var(--space-1);
     flex-direction: column;
-    box-shadow: var(--shadow-sm);
+    box-shadow: 0 2px 10px rgba(28, 26, 23, 0.14);
     transition:
       background 0.2s cubic-bezier(0.4, 0, 0.2, 1),
       border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
@@ -1158,12 +1159,14 @@ textarea {
 
   .main-content {
     padding: var(--space-6);
+    padding-top: var(--mobile-top-clearance);
   }
 }
 
 @media (max-width: 768px) {
   :root {
     --sidebar-mobile-width: min(82vw, 280px);
+    --mobile-top-clearance: calc(60px + env(safe-area-inset-top, 0px));
   }
 
   .sidebar {
@@ -1173,6 +1176,7 @@ textarea {
 
   .main-content {
     padding: var(--space-4);
+    padding-top: var(--mobile-top-clearance);
   }
 
   /* Hamburger menu button (add if not exists) */
@@ -1181,6 +1185,7 @@ textarea {
 @media (max-width: 640px) {
   :root {
     --sidebar-mobile-width: min(86vw, 320px);
+    --mobile-top-clearance: calc(56px + env(safe-area-inset-top, 0px));
   }
 
   .sidebar {
@@ -1190,6 +1195,7 @@ textarea {
 
   .main-content {
     padding: var(--space-4) var(--space-3);
+    padding-top: var(--mobile-top-clearance);
   }
 
   .page-header h1 {
@@ -5968,6 +5974,7 @@ input[type="radio"] {
   }
   .main-content {
     padding: var(--space-5);
+    padding-top: var(--mobile-top-clearance, var(--space-5));
   }
   .stat-grid,
   .quick-grid {
