@@ -26,7 +26,7 @@ $_sb_nav = fn(string $key) =>
 $key === ($current_page ?? '') ? 'sidebar-item active' : 'sidebar-item';
 ?>
 <nav class="sidebar" aria-label="Borrower navigation">
-  <a href="<?= BASE_URL ?>borrower/index.php" class="sidebar__brand" style="text-decoration: none; color: inherit;" aria-label="Go to borrower dashboard">
+  <a href="<?= BASE_URL ?>borrower/index.php" class="sidebar__brand" aria-label="Go to borrower dashboard">
     <span class="sidebar__brand-logo-wrap" aria-hidden="true">
       <img src="<?= BASE_URL ?>assets/images/library_logo_cropped.png" alt="Library System Logo" class="sidebar__brand-logo" onerror="this.onerror=null;this.src='<?= BASE_URL ?>assets/images/logo.svg';">
     </span>
