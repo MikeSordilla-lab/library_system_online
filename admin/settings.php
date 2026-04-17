@@ -142,7 +142,7 @@ $pageTitle    = 'Global Settings | Library System';
 <body>
   <div class="app-shell">
     <?php require_once __DIR__ . '/../includes/sidebar-admin.php'; ?>
-    <main class="main-content">
+    <main class="main-content admin-settings-page">
       <div class="page-header">
         <h1>Global Settings</h1>
       </div>
@@ -158,50 +158,50 @@ $pageTitle    = 'Global Settings | Library System';
         <div class="section-card__header">
           <span class="section-card__title">Operational Settings</span>
         </div>
-        <form method="post" action="<?= $self_url ?>" style="padding: var(--space-6)">
+        <form method="post" action="<?= $self_url ?>" class="admin-settings-form">
           <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
 
-          <div style="margin-bottom: var(--space-5)">
+          <div class="admin-settings-field">
             <label class="field-label" for="max_borrow_limit">Max Borrow Limit</label>
             <input class="field-input" type="number" id="max_borrow_limit" name="max_borrow_limit" min="1"
               value="<?= htmlspecialchars($values['max_borrow_limit'], ENT_QUOTES, 'UTF-8') ?>">
             <?php if ($errors['max_borrow_limit'] !== ''): ?>
-              <div class="flash-error" style="margin-top:var(--space-2)"><?= htmlspecialchars($errors['max_borrow_limit'], ENT_QUOTES, 'UTF-8') ?></div>
+              <div class="flash-error admin-settings-field-error"><?= htmlspecialchars($errors['max_borrow_limit'], ENT_QUOTES, 'UTF-8') ?></div>
             <?php else: ?>
-              <p style="font-size:var(--text-xs);color:var(--muted);margin-top:var(--space-1)">Maximum number of books a Borrower can have checked out at once (minimum 1).</p>
+              <p class="admin-settings-field-help">Maximum number of books a Borrower can have checked out at once (minimum 1).</p>
             <?php endif; ?>
           </div>
 
-          <div style="margin-bottom: var(--space-5)">
+          <div class="admin-settings-field">
             <label class="field-label" for="fine_per_day">Fine Per Day</label>
             <input class="field-input" type="number" id="fine_per_day" name="fine_per_day" min="0" step="0.01"
               value="<?= htmlspecialchars($values['fine_per_day'], ENT_QUOTES, 'UTF-8') ?>">
             <?php if ($errors['fine_per_day'] !== ''): ?>
-              <div class="flash-error" style="margin-top:var(--space-2)"><?= htmlspecialchars($errors['fine_per_day'], ENT_QUOTES, 'UTF-8') ?></div>
+              <div class="flash-error admin-settings-field-error"><?= htmlspecialchars($errors['fine_per_day'], ENT_QUOTES, 'UTF-8') ?></div>
             <?php else: ?>
-              <p style="font-size:var(--text-xs);color:var(--muted);margin-top:var(--space-1)">Daily overdue fine per book. Zero is accepted (no-fine policy).</p>
+              <p class="admin-settings-field-help">Daily overdue fine per book. Zero is accepted (no-fine policy).</p>
             <?php endif; ?>
           </div>
 
-          <div style="margin-bottom: var(--space-5)">
+          <div class="admin-settings-field">
             <label class="field-label" for="loan_period_days">Loan Period (Days)</label>
             <input class="field-input" type="number" id="loan_period_days" name="loan_period_days" min="1"
               value="<?= htmlspecialchars($values['loan_period_days'], ENT_QUOTES, 'UTF-8') ?>">
             <?php if ($errors['loan_period_days'] !== ''): ?>
-              <div class="flash-error" style="margin-top:var(--space-2)"><?= htmlspecialchars($errors['loan_period_days'], ENT_QUOTES, 'UTF-8') ?></div>
+              <div class="flash-error admin-settings-field-error"><?= htmlspecialchars($errors['loan_period_days'], ENT_QUOTES, 'UTF-8') ?></div>
             <?php else: ?>
-              <p style="font-size:var(--text-xs);color:var(--muted);margin-top:var(--space-1)">Default loan duration in days applied to every new checkout (minimum 1).</p>
+              <p class="admin-settings-field-help">Default loan duration in days applied to every new checkout (minimum 1).</p>
             <?php endif; ?>
           </div>
 
-          <div style="margin-bottom: var(--space-5)">
+          <div class="admin-settings-field">
             <label class="field-label" for="reservation_expiry_days">Reservation Expiry (Days)</label>
             <input class="field-input" type="number" id="reservation_expiry_days" name="reservation_expiry_days" min="1"
               value="<?= htmlspecialchars($values['reservation_expiry_days'], ENT_QUOTES, 'UTF-8') ?>">
             <?php if ($errors['reservation_expiry_days'] !== ''): ?>
-              <div class="flash-error" style="margin-top:var(--space-2)"><?= htmlspecialchars($errors['reservation_expiry_days'], ENT_QUOTES, 'UTF-8') ?></div>
+              <div class="flash-error admin-settings-field-error"><?= htmlspecialchars($errors['reservation_expiry_days'], ENT_QUOTES, 'UTF-8') ?></div>
             <?php else: ?>
-              <p style="font-size:var(--text-xs);color:var(--muted);margin-top:var(--space-1)">How many days a book remains reserved for a user before expiring (minimum 1).</p>
+              <p class="admin-settings-field-help">How many days a book remains reserved for a user before expiring (minimum 1).</p>
             <?php endif; ?>
           </div>
 

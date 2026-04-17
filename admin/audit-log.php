@@ -114,7 +114,7 @@ function sort_header(string $label, string $key, string $current_key, string $cu
     $arrow   = '';
   }
   $url = htmlspecialchars(audit_url(['sort' => $key, 'dir' => $new_dir, 'page' => '1']), ENT_QUOTES, 'UTF-8');
-  return '<a href="' . $url . '" style="color:#fff;text-decoration:none">'
+  return '<a href="' . $url . '" class="admin-audit-sort-link">'
     . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . $arrow . '</a>';
 }
 
@@ -134,7 +134,7 @@ $pageTitle    = 'Audit Log | Library System';
 <body>
   <div class="app-shell">
     <?php require_once __DIR__ . '/../includes/sidebar-admin.php'; ?>
-    <main class="main-content">
+    <main class="main-content admin-audit-page">
       <div class="page-header">
         <h1>Audit Log</h1>
       </div>
@@ -145,8 +145,8 @@ $pageTitle    = 'Audit Log | Library System';
         </div>
 
         <!-- Date range filter (T011) -->
-        <div class="filter-bar" style="padding: var(--space-4)">
-          <form method="get" action="<?= $clear_url ?>" style="display:flex; gap:var(--space-3); align-items:center; flex-wrap:wrap">
+        <div class="filter-bar admin-audit-filter-wrap">
+          <form method="get" action="<?= $clear_url ?>" class="admin-audit-filter-form">
             <?php if (!empty($_GET['sort'])): ?>
               <input type="hidden" name="sort" value="<?= htmlspecialchars($_GET['sort'], ENT_QUOTES, 'UTF-8') ?>">
             <?php endif; ?>
@@ -154,12 +154,12 @@ $pageTitle    = 'Audit Log | Library System';
               <input type="hidden" name="dir" value="<?= htmlspecialchars($_GET['dir'], ENT_QUOTES, 'UTF-8') ?>">
             <?php endif; ?>
 
-            <label class="field-label" for="from" style="margin-bottom:0">From:</label>
-            <input class="field-input" type="date" id="from" name="from" style="width:auto"
+            <label class="field-label admin-audit-filter-label" for="from">From:</label>
+            <input class="field-input admin-audit-date-input" type="date" id="from" name="from"
               value="<?= htmlspecialchars($from_raw, ENT_QUOTES, 'UTF-8') ?>">
 
-            <label class="field-label" for="to" style="margin-bottom:0">To:</label>
-            <input class="field-input" type="date" id="to" name="to" style="width:auto"
+            <label class="field-label admin-audit-filter-label" for="to">To:</label>
+            <input class="field-input admin-audit-date-input" type="date" id="to" name="to"
               value="<?= htmlspecialchars($to_raw, ENT_QUOTES, 'UTF-8') ?>">
 
             <button type="submit" class="btn-primary">Filter</button>
@@ -209,7 +209,7 @@ $pageTitle    = 'Audit Log | Library System';
           </div>
 
           <!-- Pagination (T011) -->
-          <div style="display:flex; align-items:center; justify-content:center; gap:var(--space-4); padding:var(--space-4); color:var(--muted)">
+          <div class="admin-audit-pagination">
             <?php if ($page > 1): ?>
               <a href="<?= htmlspecialchars(audit_url(['page' => $page - 1]), ENT_QUOTES, 'UTF-8') ?>" class="btn-ghost">&larr; Prev</a>
             <?php endif; ?>

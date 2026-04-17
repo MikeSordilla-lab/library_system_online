@@ -146,7 +146,7 @@ $pageTitle = 'Reservations | Library System';
 <body>
   <div class="app-shell">
     <?php require_once __DIR__ . '/../includes/sidebar-librarian.php'; ?>
-    <main class="main-content">
+    <main class="main-content librarian-reservations-page">
       <div class="page-header">
         <h1>Reservation Queue</h1>
         <p>Review pending reservation requests in first-in, first-out order.</p>
@@ -198,11 +198,11 @@ $pageTitle = 'Reservations | Library System';
                     <td data-label="Author"><?= htmlspecialchars((string) ($row['book_author'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
                     <td data-label="Expires"><?= htmlspecialchars((string) $row['expires_at'], ENT_QUOTES, 'UTF-8') ?></td>
                     <td data-label="Actions">
-                      <form method="POST" action="<?= htmlspecialchars(BASE_URL . 'librarian/reservations.php', ENT_QUOTES, 'UTF-8') ?>" style="display:grid; gap:6px; min-width: 230px;">
+                      <form method="POST" action="<?= htmlspecialchars(BASE_URL . 'librarian/reservations.php', ENT_QUOTES, 'UTF-8') ?>" class="table-action-form reservation-action-form">
                         <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                         <input type="hidden" name="reservation_id" value="<?= (int) $row['id'] ?>">
                         <input type="text" name="rejection_reason" maxlength="255" placeholder="Optional rejection reason" class="field-input" aria-label="Optional rejection reason for reservation <?= (int) $row['id'] ?>">
-                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <div class="table-action-buttons reservation-action-buttons">
                           <button type="submit" name="action" value="approve" class="btn-confirm">Approve</button>
                           <button type="submit" name="action" value="reject" class="btn-accent">Reject</button>
                         </div>

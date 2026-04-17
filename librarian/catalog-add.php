@@ -216,7 +216,7 @@ $pageTitle    = 'Add Book | Library System';
 <body>
   <div class="app-shell">
     <?php require_once __DIR__ . '/../includes/sidebar-librarian.php'; ?>
-    <main class="main-content">
+    <main class="main-content librarian-catalog-form-page">
       <div class="page-header">
         <h1>Add Book</h1>
       </div>
@@ -237,58 +237,58 @@ $pageTitle    = 'Add Book | Library System';
         <div class="section-card__header">
           <span class="section-card__title">Book Details</span>
         </div>
-        <form method="POST" action="catalog-add.php" enctype="multipart/form-data" novalidate style="padding: var(--space-6)">
+        <form method="POST" action="catalog-add.php" enctype="multipart/form-data" novalidate class="librarian-catalog-form">
           <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
 
-          <div style="margin-bottom: var(--space-5)">
-            <label class="field-label" for="title">Title <span style="color:var(--accent)">*</span></label>
+          <div class="librarian-form-field">
+            <label class="field-label" for="title">Title <span class="field-label__required">*</span></label>
             <input class="field-input" type="text" id="title" name="title" maxlength="255"
               value="<?= h($f['title']) ?>" required>
           </div>
 
-          <div style="margin-bottom: var(--space-5)">
-            <label class="field-label" for="author">Author <span style="color:var(--accent)">*</span></label>
+          <div class="librarian-form-field">
+            <label class="field-label" for="author">Author <span class="field-label__required">*</span></label>
             <input class="field-input" type="text" id="author" name="author" maxlength="255"
               value="<?= h($f['author']) ?>" required>
           </div>
 
-          <div style="margin-bottom: var(--space-5)">
-            <label class="field-label" for="description">Description <span style="color:var(--accent)">*</span></label>
+          <div class="librarian-form-field">
+            <label class="field-label" for="description">Description <span class="field-label__required">*</span></label>
             <textarea class="field-textarea" id="description" name="description" required><?= h($f['description']) ?></textarea>
           </div>
 
-          <div style="display:flex; gap:var(--space-4); margin-bottom:var(--space-5)">
-            <div style="flex:1">
-              <label class="field-label" for="isbn">ISBN <span style="color:var(--accent)">*</span></label>
+          <div class="librarian-form-row">
+            <div class="librarian-form-col">
+              <label class="field-label" for="isbn">ISBN <span class="field-label__required">*</span></label>
               <input class="field-input" type="text" id="isbn" name="isbn" maxlength="20"
                 value="<?= h($f['isbn']) ?>" required>
             </div>
-            <div style="flex:1">
-              <label class="field-label" for="category">Category <span style="color:var(--accent)">*</span></label>
+            <div class="librarian-form-col">
+              <label class="field-label" for="category">Category <span class="field-label__required">*</span></label>
               <input class="field-input" type="text" id="category" name="category" maxlength="100"
                 value="<?= h($f['category']) ?>" required>
             </div>
           </div>
 
-          <div style="display:flex; gap:var(--space-4); margin-bottom:var(--space-5)">
-            <div style="flex:1">
-              <label class="field-label" for="total_copies">Total Copies <span style="color:var(--accent)">*</span></label>
+          <div class="librarian-form-row">
+            <div class="librarian-form-col">
+              <label class="field-label" for="total_copies">Total Copies <span class="field-label__required">*</span></label>
               <input class="field-input" type="number" id="total_copies" name="total_copies" min="0"
                 value="<?= h($f['total_copies']) ?>" required>
             </div>
-            <div style="flex:1">
-              <label class="field-label" for="available_copies">Available Copies <span style="color:var(--accent)">*</span></label>
+            <div class="librarian-form-col">
+              <label class="field-label" for="available_copies">Available Copies <span class="field-label__required">*</span></label>
               <input class="field-input" type="number" id="available_copies" name="available_copies" min="0"
                 value="<?= h($f['available_copies']) ?>" required>
             </div>
           </div>
 
-          <div style="margin-bottom: var(--space-5)">
-            <label class="field-label" for="cover_image">Cover Image <span style="font-weight:400;text-transform:none;color:var(--muted)">(optional — JPEG, PNG, WebP, or GIF, max 2 MB)</span></label>
+          <div class="librarian-form-field">
+            <label class="field-label" for="cover_image">Cover Image <span class="field-label__hint">(optional — JPEG, PNG, WebP, or GIF, max 2 MB)</span></label>
             <input class="field-input" type="file" id="cover_image" name="cover_image" accept="image/jpeg,image/png,image/webp,image/gif">
           </div>
 
-          <div style="display:flex; gap:var(--space-3); margin-top:var(--space-6)">
+          <div class="librarian-form-actions">
             <button type="submit" class="btn-primary">Add Book</button>
             <a href="catalog.php" class="btn-ghost">Cancel</a>
           </div>

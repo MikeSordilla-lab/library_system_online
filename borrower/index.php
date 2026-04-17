@@ -363,22 +363,22 @@ $pageTitle    = 'My Account | Library System';
                   <tbody>
                     <?php foreach ($active_loans as $loan): ?>
                       <tr<?= $loan['status'] === 'overdue' ? ' class="row-overdue"' : '' ?>>
-                        <td><?= (int) $loan['id'] ?></td>
-                        <td><?= htmlspecialchars($loan['title'], ENT_QUOTES, 'UTF-8') ?></td>
-                        <td><?= htmlspecialchars($loan['checkout_date'], ENT_QUOTES, 'UTF-8') ?></td>
-                        <td><?= htmlspecialchars($loan['due_date'], ENT_QUOTES, 'UTF-8') ?></td>
-                        <td>
+                        <td data-label="Loan #"><?= (int) $loan['id'] ?></td>
+                        <td data-label="Book"><?= htmlspecialchars($loan['title'], ENT_QUOTES, 'UTF-8') ?></td>
+                        <td data-label="Checked Out"><?= htmlspecialchars($loan['checkout_date'], ENT_QUOTES, 'UTF-8') ?></td>
+                        <td data-label="Due Date"><?= htmlspecialchars($loan['due_date'], ENT_QUOTES, 'UTF-8') ?></td>
+                        <td data-label="Status">
                           <?php if ($loan['status'] === 'overdue'): ?>
                             <span class="badge badge-amber">Overdue</span>
                           <?php else: ?>
                             <span class="badge badge-blue">Active</span>
                           <?php endif; ?>
                         </td>
-                        <td>
-                          <form method="POST" action="<?= htmlspecialchars(BASE_URL . 'borrower/renew.php', ENT_QUOTES, 'UTF-8') ?>">
+                        <td data-label="Action">
+                          <form method="POST" action="<?= htmlspecialchars(BASE_URL . 'borrower/renew.php', ENT_QUOTES, 'UTF-8') ?>" class="borrower-table-action-form">
                             <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                             <input type="hidden" name="loan_id" value="<?= (int) $loan['id'] ?>">
-                            <button type="submit" class="btn-confirm" style="padding:5px 12px; font-size:.8125rem;">Renew</button>
+                            <button type="submit" class="btn-confirm borrower-table-action-btn">Renew</button>
                           </form>
                         </td>
                         </tr>
@@ -413,10 +413,10 @@ $pageTitle    = 'My Account | Library System';
                   <tbody>
                     <?php foreach ($loan_history as $h): ?>
                       <tr>
-                        <td><?= htmlspecialchars($h['title'], ENT_QUOTES, 'UTF-8') ?></td>
-                        <td><?= htmlspecialchars($h['return_date'] ?? 'N/A', ENT_QUOTES, 'UTF-8') ?></td>
-                        <td><?= htmlspecialchars(number_format((float) $h['fine_amount'], 2), ENT_QUOTES, 'UTF-8') ?></td>
-                        <td>
+                        <td data-label="Book"><?= htmlspecialchars($h['title'], ENT_QUOTES, 'UTF-8') ?></td>
+                        <td data-label="Returned"><?= htmlspecialchars($h['return_date'] ?? 'N/A', ENT_QUOTES, 'UTF-8') ?></td>
+                        <td data-label="Fine"><?= htmlspecialchars(number_format((float) $h['fine_amount'], 2), ENT_QUOTES, 'UTF-8') ?></td>
+                        <td data-label="Fine Paid">
                           <?php if ($h['fine_paid']): ?>
                             <span class="badge badge-green">Yes</span>
                           <?php else: ?>
@@ -458,16 +458,16 @@ $pageTitle    = 'My Account | Library System';
               <tbody>
                 <?php foreach ($pending_reservations as $res): ?>
                   <tr>
-                    <td><?= htmlspecialchars($res['title'], ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= htmlspecialchars($res['reserved_at'], ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= htmlspecialchars($res['expires_at'], ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= (int) $res['queue_position'] ?></td>
-                    <td>
-                      <form method="POST" action="<?= htmlspecialchars(BASE_URL . 'borrower/reserve.php', ENT_QUOTES, 'UTF-8') ?>">
+                    <td data-label="Book"><?= htmlspecialchars($res['title'], ENT_QUOTES, 'UTF-8') ?></td>
+                    <td data-label="Reserved"><?= htmlspecialchars($res['reserved_at'], ENT_QUOTES, 'UTF-8') ?></td>
+                    <td data-label="Expires"><?= htmlspecialchars($res['expires_at'], ENT_QUOTES, 'UTF-8') ?></td>
+                    <td data-label="Queue #"><?= (int) $res['queue_position'] ?></td>
+                    <td data-label="Cancel">
+                      <form method="POST" action="<?= htmlspecialchars(BASE_URL . 'borrower/reserve.php', ENT_QUOTES, 'UTF-8') ?>" class="borrower-table-action-form">
                         <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                         <input type="hidden" name="action" value="cancel">
                         <input type="hidden" name="reservation_id" value="<?= (int) $res['id'] ?>">
-                        <button type="submit" class="btn-accent" style="padding:5px 12px; font-size:.8125rem;">Cancel</button>
+                        <button type="submit" class="btn-accent borrower-table-action-btn">Cancel</button>
                       </form>
                     </td>
                   </tr>

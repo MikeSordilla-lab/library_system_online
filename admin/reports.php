@@ -46,7 +46,7 @@ $pageTitle    = 'Reports | Library System';
 <body>
   <div class="app-shell">
     <?php require_once __DIR__ . '/../includes/sidebar-admin.php'; ?>
-    <main class="main-content">
+    <main class="main-content admin-reports-page">
       <div class="page-header">
         <h1>Reports</h1>
       </div>
@@ -55,20 +55,20 @@ $pageTitle    = 'Reports | Library System';
         <div class="section-card__header">
           <span class="section-card__title">Operational Overview</span>
         </div>
-        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:var(--space-5); padding:var(--space-6)">
+        <div class="admin-reports-grid">
 
-          <div style="background:var(--cream); border-radius:var(--radius); padding:var(--space-6)">
-            <div style="font-size:var(--text-xs); font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:var(--space-3)">Total Fines Collected</div>
-            <div style="font-size:var(--text-4xl); font-weight:700; color:var(--ink); line-height:1.1">
-              <span style="font-size:var(--text-xl); color:var(--muted)">&#8369;</span><?= number_format($total_fines, 2) ?>
+          <div class="admin-reports-metric-card">
+            <div class="admin-reports-metric-label">Total Fines Collected</div>
+            <div class="admin-reports-metric-value">
+              <span class="admin-reports-currency">&#8369;</span><?= number_format($total_fines, 2) ?>
             </div>
-            <div style="font-size:var(--text-xs); color:var(--muted); margin-top:var(--space-2)">Sum of all paid overdue fines</div>
+            <div class="admin-reports-metric-help">Sum of all paid overdue fines</div>
           </div>
 
-          <div style="background:var(--cream); border-radius:var(--radius); padding:var(--space-6)">
-            <div style="font-size:var(--text-xs); font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:var(--space-3)">Active Loans</div>
-            <div style="font-size:var(--text-4xl); font-weight:700; color:var(--ink); line-height:1.1"><?= $active_loans ?></div>
-            <div style="font-size:var(--text-xs); color:var(--muted); margin-top:var(--space-2)">Books currently checked out</div>
+          <div class="admin-reports-metric-card">
+            <div class="admin-reports-metric-label">Active Loans</div>
+            <div class="admin-reports-metric-value"><?= $active_loans ?></div>
+            <div class="admin-reports-metric-help">Books currently checked out</div>
           </div>
 
         </div>
