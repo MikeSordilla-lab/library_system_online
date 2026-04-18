@@ -1,6 +1,6 @@
 <?php
 
-$allowed_roles = ['admin', 'librarian', 'borrower'];
+$allowed_roles = ['librarian', 'borrower'];
 require_once __DIR__ . '/../includes/auth_guard.php';
 require_once __DIR__ . '/../includes/receipts.php';
 require_once __DIR__ . '/../includes/csrf.php';

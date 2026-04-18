@@ -1262,6 +1262,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // GET / render
 $q = trim((string) ($_GET['q'] ?? ''));
+$q = preg_replace('/\s+/u', ' ', $q) ?? $q;
 $role_filter = trim((string) ($_GET['role'] ?? ''));
 $status_filter = trim((string) ($_GET['status'] ?? ''));
 
@@ -1275,19 +1276,17 @@ if ($status_filter !== '' && !in_array($status_filter, $allowed_status_filters, 
   $status_filter = '';
 }
 
-if ($q !== '') {
-  if (strlen($q) < 2) {
-    $flash_error = 'Enter at least 2 characters to search.';
-  } elseif (strlen($q) > 100) {
-    $flash_error = 'Search text is too long (maximum 100 characters).';
-  }
+if ($q !== '' && strlen($q) > 100) {
+  $flash_error = 'Search text is too long (maximum 100 characters).';
 }
 
 $where_parts = [];
 $query_params = [];
 if ($q !== '' && $flash_error === '') {
-  $where_parts[] = '(full_name LIKE :q OR email LIKE :q)';
-  $query_params[':q'] = '%' . $q . '%';
+  $escaped_q = addcslashes($q, '\\%_');
+  $where_parts[] = "(full_name LIKE :q_name ESCAPE '\\\\' OR email LIKE :q_email ESCAPE '\\\\')";
+  $query_params[':q_name'] = '%' . $escaped_q . '%';
+  $query_params[':q_email'] = '%' . $escaped_q . '%';
 }
 if ($role_filter !== '') {
   $where_parts[] = 'role = :role';
@@ -1386,12 +1385,6 @@ $has_feedback = $flash_success !== ''
           </div>
         </div>
 
-      <nav class="admin-subnav page-tabs users-subnav" aria-label="Admin management navigation">
-        <a href="<?= BASE_URL ?>admin/users.php" class="admin-subnav__item page-tabs__item active" aria-current="page">Users</a>
-        <a href="<?= BASE_URL ?>admin/about.php" class="admin-subnav__item page-tabs__item">Profile</a>
-        <a href="<?= BASE_URL ?>admin/change-password.php" class="admin-subnav__item page-tabs__item">Password</a>
-      </nav>
-
       <div id="users-live-announcer" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
       <noscript>
@@ -1459,24 +1452,24 @@ $has_feedback = $flash_success !== ''
               <h2 class="users-toolbar__title">Summary</h2>
               <ul class="users-stat-list" aria-label="User account statistics">
                 <li class="stat-card-tooltip" data-title="Total users in the system">
-                  <span class="stat-card-icon">👥</span>
+                  <span class="stat-card-icon" aria-hidden="true">👥</span>
                   <strong><?= (int) $total_users ?></strong>
-                  <span>Total</span>
+                  <span class="users-stat-label">Total Users</span>
                 </li>
                 <li class="stat-card-tooltip" data-title="Active users who can log in">
-                  <span class="stat-card-icon">✓</span>
+                  <span class="stat-card-icon" aria-hidden="true">✓</span>
                   <strong><?= (int) $active_users ?></strong>
-                  <span>Active</span>
+                  <span class="users-stat-label">Active Accounts</span>
                 </li>
                 <li class="stat-card-tooltip" data-title="Inactive users (archived or suspended)">
-                  <span class="stat-card-icon">⏸</span>
+                  <span class="stat-card-icon" aria-hidden="true">⏸</span>
                   <strong><?= (int) $inactive_users ?></strong>
-                  <span>Inactive</span>
+                  <span class="users-stat-label">Inactive Accounts</span>
                 </li>
                 <li class="stat-card-tooltip" data-title="Users with admin privileges">
-                  <span class="stat-card-icon">👑</span>
+                  <span class="stat-card-icon" aria-hidden="true">👑</span>
                   <strong><?= (int) $admin_users ?></strong>
-                  <span>Admins</span>
+                  <span class="users-stat-label">Admin Accounts</span>
                 </li>
               </ul>
              </div>
@@ -1640,7 +1633,7 @@ $has_feedback = $flash_success !== ''
                           <input id="user-select-<?= $uid ?>" type="checkbox" value="<?= $uid ?>" class="users-select-row" data-verified="<?= $verified ? '1' : '0' ?>" aria-label="Select <?= $safe_name ?>">
                         </label>
                       <?php else: ?>
-                        <span class="users-select-disabled">Protected</span>
+                        <span class="sr-only">Protected account cannot be selected</span>
                       <?php endif; ?>
                     </td>
 
@@ -1683,9 +1676,6 @@ $has_feedback = $flash_success !== ''
                           <span class="badge badge-red users-state users-state--warn">Deactivated</span>
                         <?php else: ?>
                           <span class="badge badge-green users-state users-state--ok">Active</span>
-                        <?php endif; ?>
-                        <?php if ($is_superadmin_row): ?>
-                          <span class="badge users-state users-state--protected">Protected</span>
                         <?php endif; ?>
                       </div>
                     </td>
