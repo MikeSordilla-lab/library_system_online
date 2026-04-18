@@ -10321,6 +10321,25 @@ img.book-thumb {
   border-bottom-color: var(--users-v2-border);
 }
 
+.admin-users-page.users-v2 .users-directory-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.admin-users-page.users-v2 .users-directory-header__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.admin-users-page.users-v2 .users-directory-header__add-btn {
+  min-height: 40px;
+  white-space: nowrap;
+}
+
 .admin-users-page.users-v2 .users-bulk-toolbar {
   border-color: var(--users-v2-border-strong);
   background: linear-gradient(
@@ -10549,8 +10568,22 @@ img.book-thumb {
 }
 
 .admin-users-page.users-v2 .users-protected-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 38px;
-  min-width: 122px;
+  min-width: 132px;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--users-v2-border));
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--accent) 8%, var(--paper));
+  color: color-mix(in srgb, var(--accent-dark) 78%, var(--ink));
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .admin-users-page.users-v2 .users-actions-fallback {
@@ -10772,6 +10805,19 @@ img.book-thumb {
 }
 
 @media (max-width: 760px) {
+  .admin-users-page.users-v2 .users-directory-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .admin-users-page.users-v2 .users-directory-header__actions {
+    width: 100%;
+  }
+
+  .admin-users-page.users-v2 .users-directory-header__add-btn {
+    width: 100%;
+  }
+
   .admin-users-page.users-v2 .users-table,
   .admin-users-page.users-v2 .users-table thead,
   .admin-users-page.users-v2 .users-table tbody,

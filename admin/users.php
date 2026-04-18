@@ -1383,11 +1383,8 @@ $has_feedback = $flash_success !== ''
          <div>
            <h1>User Accounts</h1>
            <p>Add accounts and manage who can access the library.</p>
-         </div>
-         <div class="page-header__actions">
-           <button type="button" class="btn-primary" id="create-user-trigger" aria-label="Add new user account">Add User</button>
-         </div>
-       </div>
+          </div>
+        </div>
 
       <nav class="admin-subnav page-tabs users-subnav" aria-label="Admin management navigation">
         <a href="<?= BASE_URL ?>admin/users.php" class="admin-subnav__item page-tabs__item active" aria-current="page">Users</a>
@@ -1491,6 +1488,9 @@ $has_feedback = $flash_success !== ''
             <div class="users-directory-header__content">
               <span class="section-card__title">Users</span>
               <p class="users-directory-header__meta">Showing <?= (int) $page_range_start ?>–<?= (int) $page_range_end ?> of <?= (int) $total_users ?> user(s)</p>
+            </div>
+            <div class="users-directory-header__actions">
+              <button type="button" class="btn-primary users-directory-header__add-btn" id="create-user-trigger" aria-label="Add new user account">Add User</button>
             </div>
           </div>
 
@@ -1669,9 +1669,6 @@ $has_feedback = $flash_success !== ''
                             <span class="badge badge-red users-policy-chip">Needs verification</span>
                           <?php endif; ?>
                         </div>
-                        <?php if ($role_description !== ''): ?>
-                          <p class="users-role-hint"><?= htmlspecialchars($role_description, ENT_QUOTES, 'UTF-8') ?></p>
-                        <?php endif; ?>
                       </div>
                     </td>
 
@@ -1695,7 +1692,7 @@ $has_feedback = $flash_success !== ''
 
                     <td data-label="Operations" class="users-cell users-actions-cell">
                       <?php if ($is_superadmin_row): ?>
-                        <span class="empty-icon users-protected-label">Protected account</span>
+                        <span class="users-protected-label">Protected account</span>
                       <?php else: ?>
                         <div class="users-ops">
                           <?php if ($suspended): ?>
@@ -3272,6 +3269,11 @@ $has_feedback = $flash_success !== ''
         window.setTimeout(function() {
           targetRow.classList.remove('users-row--focus-pulse');
         }, 2600);
+
+        window.setTimeout(function() {
+          targetRow.classList.remove('users-row--focus-target');
+          usersLayout.setAttribute('data-focus-user-id', '0');
+        }, 2800);
       }
 
       function wireBulkSelection() {
