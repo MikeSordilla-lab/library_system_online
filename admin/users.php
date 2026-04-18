@@ -63,6 +63,32 @@ if (!in_array($create_user_old['role'], ['admin', 'librarian', 'borrower'], true
   $create_user_old['role'] = '';
 }
 
+$role_meta = [
+  'admin' => [
+    'label' => 'Admin',
+    'description' => 'Manage users and system settings.',
+    'requires_verified' => true,
+  ],
+  'librarian' => [
+    'label' => 'Librarian',
+    'description' => 'Manage catalog, borrowing, and circulation tasks.',
+    'requires_verified' => true,
+  ],
+  'borrower' => [
+    'label' => 'Borrower',
+    'description' => 'Search catalog, borrow books, and manage reservations.',
+    'requires_verified' => false,
+  ],
+];
+
+$role_requires_verification = static function (string $role) use ($role_meta): bool {
+  return !empty($role_meta[$role]['requires_verified']);
+};
+
+if ($create_user_old['role'] !== '' && $role_requires_verification($create_user_old['role'])) {
+  $create_user_old['is_verified'] = 1;
+}
+
 $persist_create_user_state = static function (string $error_message, array $old_input): void {
   $_SESSION['users_create_error'] = $error_message;
   $_SESSION['users_create_old'] = [
@@ -86,12 +112,26 @@ if (!empty($_SESSION['users_undo']) && is_array($_SESSION['users_undo'])) {
 $show_deactivate_warning = false;
 $warn_user = null;
 $warn_loan_count = 0;
+$focus_user_id = 0;
+
+if (!empty($_SESSION['users_focus_user_id'])) {
+  $focus_candidate = (int) $_SESSION['users_focus_user_id'];
+  if ($focus_candidate > 0) {
+    $focus_user_id = $focus_candidate;
+  }
+  unset($_SESSION['users_focus_user_id']);
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   csrf_verify();
 
   $post_action = $_POST['action'] ?? '';
   $allowed_roles_list = ['admin', 'librarian', 'borrower'];
+
+  $posted_focus_user_id = (int) ($_POST['user_id'] ?? 0);
+  if ($posted_focus_user_id > 0) {
+    $_SESSION['users_focus_user_id'] = $posted_focus_user_id;
+  }
 
   // -------------------------------------------------------------------------
   // Undo Last Change
@@ -121,7 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
       $pdo->beginTransaction();
 
-      $stmt = $pdo->prepare('SELECT id, role, is_suspended, is_superadmin FROM Users WHERE id = ? FOR UPDATE');
+      $stmt = $pdo->prepare('SELECT id, role, is_verified, is_suspended, is_superadmin FROM Users WHERE id = ? FOR UPDATE');
       $stmt->execute([$undo_user_id]);
       $target = $stmt->fetch();
 
@@ -261,7 +301,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       $placeholders = implode(',', array_fill(0, count($selected_ids), '?'));
       $stmt = $pdo->prepare(
-        "SELECT id, role, is_suspended, is_superadmin
+        "SELECT id, role, is_verified, is_suspended, is_superadmin
            FROM Users
           WHERE id IN ($placeholders)
           FOR UPDATE"
@@ -278,6 +318,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $skipped_protected = 0;
       $skipped_noop = 0;
       $skipped_missing = 0;
+      $skipped_role_validation = 0;
       $active_admin_count = count_active_admins($pdo);
 
       foreach ($selected_ids as $target_id) {
@@ -325,10 +366,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($bulk_new_role !== null) {
           $current_role = (string) $target['role'];
+          $is_verified_target = (int) ($target['is_verified'] ?? 0) === 1;
           $is_suspended = (int) $target['is_suspended'] === 1;
 
           if ($current_role === $bulk_new_role) {
             $skipped_noop++;
+            continue;
+          }
+
+          if ($role_requires_verification($bulk_new_role) && !$is_verified_target) {
+            $skipped_role_validation++;
             continue;
           }
 
@@ -368,6 +415,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
       if ($skipped_missing > 0) {
         $segments[] = $skipped_missing . ' not found';
+      }
+      if ($skipped_role_validation > 0) {
+        $segments[] = $skipped_role_validation . ' blocked by role verification rules';
       }
 
       $_SESSION['flash_success'] = 'Bulk update complete: ' . implode(', ', $segments) . '.';
@@ -412,6 +462,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if (!in_array($role, $allowed_roles_list, true)) {
       $persist_create_user_state('Select a valid role.', $old_create_user_input);
+      header('Location: ' . $self_url);
+      exit;
+    }
+    if ($role_requires_verification($role) && $is_verified !== 1) {
+      $persist_create_user_state('Admin and Librarian accounts must start as verified.', $old_create_user_input);
       header('Location: ' . $self_url);
       exit;
     }
@@ -712,6 +767,142 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 
   // -------------------------------------------------------------------------
+  // Update User Verification
+  // -------------------------------------------------------------------------
+  if ($post_action === 'update_user_verification') {
+    $user_id = (int) ($_POST['user_id'] ?? 0);
+    $requested_verified = (string) ($_POST['is_verified'] ?? '');
+
+    if ($user_id <= 0 || !in_array($requested_verified, ['0', '1'], true)) {
+      try {
+        $pdo->beginTransaction();
+        log_admin_action($pdo, [
+          'actor_id' => $actor_id,
+          'actor_role' => 'admin',
+          'action_type' => 'user_verification_update',
+          'target_entity' => 'Users',
+          'target_id' => $user_id > 0 ? $user_id : null,
+          'outcome' => 'failure:validation',
+        ]);
+        $pdo->commit();
+      } catch (PDOException $e) {
+        if ($pdo->inTransaction()) {
+          $pdo->rollBack();
+        }
+        error_log('[admin/users.php] update_user_verification validation log error: ' . $e->getMessage());
+      }
+
+      $_SESSION['flash_error_msg'] = 'Choose a valid verification status before saving.';
+      header('Location: ' . $self_url);
+      exit;
+    }
+
+    $new_verified = (int) $requested_verified;
+
+    try {
+      $pdo->beginTransaction();
+
+      $stmt = $pdo->prepare('SELECT id, role, is_verified, is_superadmin FROM Users WHERE id = ? FOR UPDATE');
+      $stmt->execute([$user_id]);
+      $target = $stmt->fetch();
+
+      if (!$target) {
+        $pdo->rollBack();
+        $pdo->beginTransaction();
+        log_admin_action($pdo, [
+          'actor_id' => $actor_id,
+          'actor_role' => 'admin',
+          'action_type' => 'user_verification_update',
+          'target_entity' => 'Users',
+          'target_id' => $user_id,
+          'outcome' => 'failure:user_not_found',
+        ]);
+        $pdo->commit();
+        $_SESSION['flash_error_msg'] = 'That user account was not found.';
+        header('Location: ' . $self_url);
+        exit;
+      }
+
+      if (is_superadmin_user($target)) {
+        $pdo->rollBack();
+        $pdo->beginTransaction();
+        log_admin_action($pdo, [
+          'actor_id' => $actor_id,
+          'actor_role' => 'admin',
+          'action_type' => 'user_verification_update',
+          'target_entity' => 'Users',
+          'target_id' => $user_id,
+          'outcome' => 'failure:protected_superadmin',
+        ]);
+        $pdo->commit();
+        $_SESSION['flash_error_msg'] = 'You cannot change verification for the Superadmin account.';
+        header('Location: ' . $self_url);
+        exit;
+      }
+
+      $current_role = (string) ($target['role'] ?? '');
+      $current_verified = (int) ($target['is_verified'] ?? 0);
+
+      if ($new_verified === $current_verified) {
+        $pdo->rollBack();
+        $_SESSION['flash_success'] = 'Verification status is already up to date.';
+        header('Location: ' . $self_url);
+        exit;
+      }
+
+      if ($new_verified === 0 && $role_requires_verification($current_role)) {
+        $pdo->rollBack();
+        $pdo->beginTransaction();
+        log_admin_action($pdo, [
+          'actor_id' => $actor_id,
+          'actor_role' => 'admin',
+          'action_type' => 'user_verification_update',
+          'target_entity' => 'Users',
+          'target_id' => $user_id,
+          'outcome' => 'failure:role_requires_verified',
+        ]);
+        $pdo->commit();
+        $_SESSION['flash_error_msg'] = 'Admin and Librarian accounts must remain verified.';
+        header('Location: ' . $self_url);
+        exit;
+      }
+
+      $upd = $pdo->prepare(
+        'UPDATE Users
+            SET is_verified = ?,
+                verified_at = CASE WHEN ? = 1 THEN COALESCE(verified_at, NOW()) ELSE NULL END,
+                updated_at = NOW()
+          WHERE id = ?
+          LIMIT 1'
+      );
+      $upd->execute([$new_verified, $new_verified, $user_id]);
+
+      log_admin_action($pdo, [
+        'actor_id' => $actor_id,
+        'actor_role' => 'admin',
+        'action_type' => 'user_verification_update',
+        'target_entity' => 'Users',
+        'target_id' => $user_id,
+        'outcome' => 'success',
+      ]);
+
+      $pdo->commit();
+      $_SESSION['flash_success'] = $new_verified === 1
+        ? 'User marked as verified.'
+        : 'User marked as not verified.';
+    } catch (PDOException $e) {
+      if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+      }
+      error_log('[admin/users.php] update_user_verification DB error: ' . $e->getMessage());
+      $_SESSION['flash_error_msg'] = 'We could not update verification status right now. Please try again.';
+    }
+
+    header('Location: ' . $self_url);
+    exit;
+  }
+
+  // -------------------------------------------------------------------------
   // Role Change
   // -------------------------------------------------------------------------
   if ($post_action === 'role_change') {
@@ -727,13 +918,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
       $pdo->beginTransaction();
 
-      $stmt = $pdo->prepare('SELECT id, role, is_suspended, is_superadmin FROM Users WHERE id = ? FOR UPDATE');
+      $stmt = $pdo->prepare('SELECT id, role, is_verified, is_suspended, is_superadmin FROM Users WHERE id = ? FOR UPDATE');
       $stmt->execute([$user_id]);
       $target = $stmt->fetch();
 
       if (!$target) {
         $pdo->rollBack();
         $_SESSION['flash_error_msg'] = 'That user account was not found.';
+        header('Location: ' . $self_url);
+        exit;
+      }
+
+      $target_verified = (int) ($target['is_verified'] ?? 0) === 1;
+      if ($role_requires_verification($new_role) && !$target_verified) {
+        $pdo->rollBack();
+        $pdo->beginTransaction();
+        log_admin_action($pdo, [
+          'actor_id' => $actor_id,
+          'actor_role' => 'admin',
+          'action_type' => 'role_change',
+          'target_entity' => 'Users',
+          'target_id' => $user_id,
+          'outcome' => 'failure:target_not_verified',
+        ]);
+        $pdo->commit();
+        $_SESSION['flash_error_msg'] = 'Admin and Librarian roles require a verified account first.';
         header('Location: ' . $self_url);
         exit;
       }
@@ -1168,8 +1377,8 @@ $has_feedback = $flash_success !== ''
 <body>
   <div class="app-shell">
     <?php require_once __DIR__ . '/../includes/sidebar-admin.php'; ?>
-    <main class="main-content admin-users-page">
-      <div class="users-layout">
+    <main class="main-content admin-users-page users-v2">
+      <div class="users-layout" data-focus-user-id="<?= (int) $focus_user_id ?>">
       <div class="page-header users-page-header">
          <div>
            <h1>User Accounts</h1>
@@ -1187,6 +1396,13 @@ $has_feedback = $flash_success !== ''
       </nav>
 
       <div id="users-live-announcer" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+
+      <noscript>
+        <style>
+          .users-nojs-only { display: block !important; }
+          .users-manage-trigger { display: none !important; }
+        </style>
+      </noscript>
 
       <!-- Onboarding banner for first-time admins -->
       <div class="users-onboarding-banner" id="users-onboarding-banner" style="display: none;">
@@ -1366,30 +1582,26 @@ $has_feedback = $flash_success !== ''
           </form>
 
           <div class="tbl-wrapper users-table-shell">
-             <table class="tbl users-table" aria-describedby="users-result-meta">
-               <colgroup>
-                 <col class="users-table__col users-table__col--select">
-                 <col class="users-table__col users-table__col--user">
-                 <col class="users-table__col users-table__col--joined">
-                 <col class="users-table__col users-table__col--role">
-                 <col class="users-table__col users-table__col--verified">
-                 <col class="users-table__col users-table__col--status">
-                 <col class="users-table__col users-table__col--actions">
-               </colgroup>
-              <caption class="sr-only">User directory with role, status, verification, and account actions</caption>
-               <thead>
-                 <tr>
-                   <th scope="col" class="users-table__th--select">
-                     <span class="sr-only">Selection</span>
-                   </th>
-                   <th scope="col" class="users-table__th--user">User</th>
-                   <th scope="col" class="users-table__th--joined">Joined</th>
-                   <th scope="col" class="users-table__th--role">Role</th>
-                   <th scope="col" class="users-table__th--verified">Verified</th>
-                   <th scope="col" class="users-table__th--status">Status</th>
-                   <th scope="col" class="users-table__th--actions">Actions</th>
-                 </tr>
-               </thead>
+            <table class="tbl users-table" aria-describedby="users-result-meta">
+              <colgroup>
+                <col class="users-table__col users-table__col--select">
+                <col class="users-table__col users-table__col--identity">
+                <col class="users-table__col users-table__col--access">
+                <col class="users-table__col users-table__col--trust">
+                <col class="users-table__col users-table__col--operations">
+              </colgroup>
+              <caption class="sr-only">User directory with identity, access policy, trust state, and operations</caption>
+              <thead>
+                <tr>
+                  <th scope="col" class="users-table__th--select">
+                    <span class="sr-only">Selection</span>
+                  </th>
+                  <th scope="col" class="users-table__th--identity">Identity</th>
+                  <th scope="col" class="users-table__th--access">Access</th>
+                  <th scope="col" class="users-table__th--trust">Trust</th>
+                  <th scope="col" class="users-table__th--operations">Operations</th>
+                </tr>
+              </thead>
               <tbody>
                 <?php foreach ($users as $u): ?>
                   <?php
@@ -1397,6 +1609,9 @@ $has_feedback = $flash_success !== ''
                   $safe_name = htmlspecialchars((string) $u['full_name'], ENT_QUOTES, 'UTF-8');
                   $safe_email = htmlspecialchars((string) $u['email'], ENT_QUOTES, 'UTF-8');
                   $role = (string) $u['role'];
+                  $role_label = (string) ($role_meta[$role]['label'] ?? ucfirst($role));
+                  $role_description = (string) ($role_meta[$role]['description'] ?? '');
+                  $role_requires_verified_flag = $role_requires_verification($role);
                   $verified = (int) ($u['is_verified'] ?? 0) === 1;
                   $suspended = (int) ($u['is_suspended'] ?? 0) === 1;
                   $is_superadmin_row = (int) ($u['is_superadmin'] ?? 0) === 1;
@@ -1404,61 +1619,87 @@ $has_feedback = $flash_success !== ''
                   $created_at_stamp = $created_at_raw !== '' ? strtotime($created_at_raw) : false;
                   $created_at_text = $created_at_stamp ? date('M j, Y', $created_at_stamp) : 'Unknown date';
                   ?>
-                  <tr class="users-row">
-                    <td data-label="Selection">
+                  <tr
+                    class="users-row<?= $focus_user_id === $uid ? ' users-row--focus-target' : '' ?><?= !$verified ? ' users-row--needs-verification' : '' ?><?= $is_superadmin_row ? ' users-row--protected' : '' ?>"
+                    id="user-row-<?= $uid ?>"
+                    data-user-id="<?= $uid ?>"
+                    data-user-name="<?= $safe_name ?>"
+                    data-user-email="<?= $safe_email ?>"
+                    data-user-role="<?= htmlspecialchars($role, ENT_QUOTES, 'UTF-8') ?>"
+                    data-user-role-label="<?= htmlspecialchars($role_label, ENT_QUOTES, 'UTF-8') ?>"
+                    data-user-role-description="<?= htmlspecialchars($role_description, ENT_QUOTES, 'UTF-8') ?>"
+                    data-user-role-requires-verified="<?= $role_requires_verified_flag ? '1' : '0' ?>"
+                    data-user-verified="<?= $verified ? '1' : '0' ?>"
+                    data-user-suspended="<?= $suspended ? '1' : '0' ?>"
+                    data-user-protected="<?= $is_superadmin_row ? '1' : '0' ?>"
+                    data-user-created="<?= htmlspecialchars($created_at_text, ENT_QUOTES, 'UTF-8') ?>">
+                    <td data-label="Selection" class="users-cell users-cell--select">
                       <?php if (!$is_superadmin_row): ?>
                         <label class="users-select-touch" for="user-select-<?= $uid ?>">
                           <span class="sr-only">Select <?= $safe_name ?></span>
-                          <input id="user-select-<?= $uid ?>" type="checkbox" value="<?= $uid ?>" class="users-select-row" aria-label="Select <?= $safe_name ?>">
+                          <input id="user-select-<?= $uid ?>" type="checkbox" value="<?= $uid ?>" class="users-select-row" data-verified="<?= $verified ? '1' : '0' ?>" aria-label="Select <?= $safe_name ?>">
                         </label>
                       <?php else: ?>
                         <span class="users-select-disabled">Protected</span>
                       <?php endif; ?>
                     </td>
-                    <td data-label="User">
-                       <div class="users-identity">
-                         <p class="users-identity__name"><?= $safe_name ?></p>
-                         <p class="users-identity__email"><?= $safe_email ?></p>
-                       </div>
-                     </td>
-                     <td data-label="Joined" class="users-cell users-cell--joined">
-                       <span class="users-joined"><?= htmlspecialchars($created_at_text, ENT_QUOTES, 'UTF-8') ?></span>
-                     </td>
-                     <td data-label="Role" class="users-cell users-cell--role">
-                      <div class="users-access">
-                        <?php if ($role === 'admin'): ?>
-                          <span class="badge badge-blue">Admin</span>
-                        <?php elseif ($role === 'librarian'): ?>
-                          <span class="badge badge-amber">Librarian</span>
-                        <?php else: ?>
-                          <span class="badge"><?= htmlspecialchars(ucfirst($role), ENT_QUOTES, 'UTF-8') ?></span>
-                        <?php endif; ?>
-                        <?php if ($is_superadmin_row): ?>
-                          <span class="badge badge-red">Superadmin</span>
+
+                    <td data-label="Identity" class="users-cell users-cell--identity">
+                      <div class="users-identity">
+                        <p class="users-identity__name"><?= $safe_name ?></p>
+                        <p class="users-identity__email"><?= $safe_email ?></p>
+                        <p class="users-identity__meta">Joined <?= htmlspecialchars($created_at_text, ENT_QUOTES, 'UTF-8') ?><?= $uid === $actor_id ? ' • You' : '' ?></p>
+                      </div>
+                    </td>
+
+                    <td data-label="Access" class="users-cell users-cell--access">
+                      <div class="users-access-block">
+                        <div class="users-access">
+                          <?php if ($role === 'admin'): ?>
+                            <span class="badge badge-blue">Admin</span>
+                          <?php elseif ($role === 'librarian'): ?>
+                            <span class="badge badge-amber">Librarian</span>
+                          <?php else: ?>
+                            <span class="badge"><?= htmlspecialchars($role_label, ENT_QUOTES, 'UTF-8') ?></span>
+                          <?php endif; ?>
+                          <?php if ($is_superadmin_row): ?>
+                            <span class="badge badge-red">Superadmin</span>
+                          <?php endif; ?>
+                          <?php if ($role_requires_verified_flag && !$verified): ?>
+                            <span class="badge badge-red users-policy-chip">Needs verification</span>
+                          <?php endif; ?>
+                        </div>
+                        <?php if ($role_description !== ''): ?>
+                          <p class="users-role-hint"><?= htmlspecialchars($role_description, ENT_QUOTES, 'UTF-8') ?></p>
                         <?php endif; ?>
                       </div>
                     </td>
-                    <td data-label="Verified" class="users-cell users-cell--verified">
-                      <?php if ($verified): ?>
-                        <span class="badge badge-green users-state users-state--ok">Verified</span>
-                      <?php else: ?>
-                        <span class="badge badge-red users-state users-state--warn">Not verified</span>
-                      <?php endif; ?>
+
+                    <td data-label="Trust" class="users-cell users-cell--trust">
+                      <div class="users-trust">
+                        <?php if ($verified): ?>
+                          <span class="badge badge-green users-state users-state--ok">Verified</span>
+                        <?php else: ?>
+                          <span class="badge badge-red users-state users-state--warn">Not verified</span>
+                        <?php endif; ?>
+                        <?php if ($suspended): ?>
+                          <span class="badge badge-red users-state users-state--warn">Deactivated</span>
+                        <?php else: ?>
+                          <span class="badge badge-green users-state users-state--ok">Active</span>
+                        <?php endif; ?>
+                        <?php if ($is_superadmin_row): ?>
+                          <span class="badge users-state users-state--protected">Protected</span>
+                        <?php endif; ?>
+                      </div>
                     </td>
-                    <td data-label="Status" class="users-cell users-cell--status">
-                      <?php if ($suspended): ?>
-                        <span class="badge badge-red users-state users-state--warn">Deactivated</span>
-                      <?php else: ?>
-                        <span class="badge badge-green users-state users-state--ok">Active</span>
-                      <?php endif; ?>
-                    </td>
-                    <td data-label="Actions" class="users-actions-cell">
+
+                    <td data-label="Operations" class="users-cell users-actions-cell">
                       <?php if ($is_superadmin_row): ?>
-                        <span class="empty-icon">Protected account</span>
+                        <span class="empty-icon users-protected-label">Protected account</span>
                       <?php else: ?>
-                        <div class="users-actions">
+                        <div class="users-ops">
                           <?php if ($suspended): ?>
-                            <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>">
+                            <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" class="users-quick-form" data-user-name="<?= $safe_name ?>" data-quick-action="activate">
                               <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                               <input type="hidden" name="action" value="activate">
                               <input type="hidden" name="user_id" value="<?= $uid ?>">
@@ -1466,7 +1707,7 @@ $has_feedback = $flash_success !== ''
                               <button type="submit" class="btn-confirm users-row-action-btn">Reactivate</button>
                             </form>
                           <?php else: ?>
-                            <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>">
+                            <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" class="users-quick-form" data-user-name="<?= $safe_name ?>" data-quick-action="deactivate">
                               <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                               <input type="hidden" name="action" value="deactivate">
                               <input type="hidden" name="user_id" value="<?= $uid ?>">
@@ -1475,56 +1716,67 @@ $has_feedback = $flash_success !== ''
                             </form>
                           <?php endif; ?>
 
-                          <details class="users-actions__more">
-                            <summary>Role &amp; delete</summary>
-                            <div class="users-actions__panel">
-                              <p class="users-actions__label">Credentials</p>
-                              <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" class="users-credentials-form" data-user-name="<?= $safe_name ?>" data-current-name="<?= $safe_name ?>" data-current-email="<?= $safe_email ?>">
+                          <button type="button" class="btn-ghost users-manage-trigger" data-user-id="<?= $uid ?>" aria-haspopup="dialog" aria-controls="users-manage-panel">Manage</button>
+
+                          <details class="users-actions-fallback users-nojs-only">
+                            <summary>Manage (no JS)</summary>
+                            <div class="users-actions-fallback__panel">
+                              <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" class="users-fallback-form">
                                 <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                                 <input type="hidden" name="action" value="update_user_credentials">
                                 <input type="hidden" name="user_id" value="<?= $uid ?>">
-                                <label class="sr-only" for="credentials-full-name-<?= $uid ?>">Full name for <?= $safe_name ?></label>
-                                <input id="credentials-full-name-<?= $uid ?>" type="text" name="full_name" class="field-input" value="<?= $safe_name ?>" required>
-                                <label class="sr-only" for="credentials-email-<?= $uid ?>">Email for <?= $safe_name ?></label>
-                                <input id="credentials-email-<?= $uid ?>" type="email" name="email" class="field-input" value="<?= $safe_email ?>" required>
+                                <label class="sr-only" for="fallback-name-<?= $uid ?>">Full name</label>
+                                <input id="fallback-name-<?= $uid ?>" type="text" name="full_name" class="field-input" value="<?= $safe_name ?>" required>
+                                <label class="sr-only" for="fallback-email-<?= $uid ?>">Email</label>
+                                <input id="fallback-email-<?= $uid ?>" type="email" name="email" class="field-input" value="<?= $safe_email ?>" required>
                                 <button type="submit" class="btn-ghost">Save credentials</button>
                               </form>
 
-                              <p class="users-actions__label">Password reset</p>
-                              <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" class="users-password-reset-form" data-user-name="<?= $safe_name ?>">
+                              <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" class="users-fallback-form">
                                 <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-                                <input type="hidden" name="action" value="admin_reset_user_password">
+                                <input type="hidden" name="action" value="update_user_verification">
                                 <input type="hidden" name="user_id" value="<?= $uid ?>">
-                                <label class="sr-only" for="password-new-<?= $uid ?>">New password for <?= $safe_name ?></label>
-                                <input id="password-new-<?= $uid ?>" type="password" name="new_password" class="field-input" minlength="8" placeholder="New password (8+ chars)" required autocomplete="new-password">
-                                <label class="sr-only" for="password-confirm-<?= $uid ?>">Confirm password for <?= $safe_name ?></label>
-                                <input id="password-confirm-<?= $uid ?>" type="password" name="confirm_password" class="field-input" minlength="8" placeholder="Confirm password" required autocomplete="new-password">
-                                <button type="submit" class="btn-ghost">Update password</button>
+                                <label class="sr-only" for="fallback-verification-<?= $uid ?>">Verification</label>
+                                <select id="fallback-verification-<?= $uid ?>" name="is_verified" class="field-select">
+                                  <option value="1" <?= $verified ? 'selected' : '' ?>>Verified</option>
+                                  <option value="0" <?= !$verified ? 'selected' : '' ?> <?= $role_requires_verified_flag ? 'disabled' : '' ?>>Not verified</option>
+                                </select>
+                                <button type="submit" class="btn-ghost">Save verification</button>
                               </form>
 
-                              <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" class="users-role-form" data-user-name="<?= $safe_name ?>" data-current-role="<?= htmlspecialchars($role, ENT_QUOTES, 'UTF-8') ?>">
+                              <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" class="users-fallback-form">
                                 <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                                 <input type="hidden" name="action" value="role_change">
                                 <input type="hidden" name="user_id" value="<?= $uid ?>">
-                                <select name="new_role" class="field-select users-role-form__select">
-                                  <option value="admin" <?= $role === 'admin' ? 'selected' : '' ?>>Admin</option>
-                                  <option value="librarian" <?= $role === 'librarian' ? 'selected' : '' ?>>Librarian</option>
+                                <label class="sr-only" for="fallback-role-<?= $uid ?>">Role</label>
+                                <select id="fallback-role-<?= $uid ?>" name="new_role" class="field-select">
+                                  <option value="admin" <?= $role === 'admin' ? 'selected' : '' ?> <?= !$verified && $role !== 'admin' ? 'disabled' : '' ?>>Admin</option>
+                                  <option value="librarian" <?= $role === 'librarian' ? 'selected' : '' ?> <?= !$verified && $role !== 'librarian' ? 'disabled' : '' ?>>Librarian</option>
                                   <option value="borrower" <?= $role === 'borrower' ? 'selected' : '' ?>>Borrower</option>
                                 </select>
                                 <button type="submit" class="btn-ghost">Save role</button>
                               </form>
 
-                              <p class="users-actions__label users-actions__label--danger">Permanent action</p>
-                              <p class="users-actions__note">Delete only if this account should be removed permanently.</p>
-                              <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" class="users-delete-form" data-user-name="<?= $safe_name ?>">
+                              <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" class="users-fallback-form">
+                                <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                                <input type="hidden" name="action" value="admin_reset_user_password">
+                                <input type="hidden" name="user_id" value="<?= $uid ?>">
+                                <label class="sr-only" for="fallback-password-new-<?= $uid ?>">New password</label>
+                                <input id="fallback-password-new-<?= $uid ?>" type="password" name="new_password" class="field-input" minlength="8" placeholder="New password (8+ chars)" required autocomplete="new-password">
+                                <label class="sr-only" for="fallback-password-confirm-<?= $uid ?>">Confirm password</label>
+                                <input id="fallback-password-confirm-<?= $uid ?>" type="password" name="confirm_password" class="field-input" minlength="8" placeholder="Confirm password" required autocomplete="new-password">
+                                <button type="submit" class="btn-ghost">Update password</button>
+                              </form>
+
+                              <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" class="users-fallback-form users-fallback-form--danger">
                                 <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                                 <input type="hidden" name="action" value="delete_user">
                                 <input type="hidden" name="user_id" value="<?= $uid ?>">
                                 <label class="users-delete-form__confirm">
                                   <input type="checkbox" name="delete_confirm" value="1" required>
-                                  Confirm permanent deletion.
+                                  Confirm permanent deletion
                                 </label>
-                                <button type="submit" class="btn-ghost users-actions__delete">Delete Account</button>
+                                <button type="submit" class="btn-ghost users-actions__delete">Delete account</button>
                               </form>
                             </div>
                           </details>
@@ -1536,6 +1788,126 @@ $has_feedback = $flash_success !== ''
               </tbody>
             </table>
           </div>
+
+          <div class="users-manage-overlay" id="users-manage-overlay" hidden></div>
+          <aside class="users-manage-panel" id="users-manage-panel" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="users-manage-title" hidden>
+            <span class="users-manage-focus-guard" data-focus-guard="start" tabindex="0"></span>
+            <header class="users-manage-panel__header">
+              <div>
+                <h2 id="users-manage-title" class="users-manage-panel__title">Manage User</h2>
+                <p class="users-manage-panel__subtitle">Update identity, access, verification, and account controls from one panel.</p>
+              </div>
+              <button type="button" class="users-manage-panel__close" id="users-manage-close" aria-label="Close manage panel">×</button>
+            </header>
+
+            <div class="users-manage-panel__body">
+              <section class="users-manage-summary" aria-live="polite" aria-atomic="true">
+                <p class="users-manage-summary__name" id="users-manage-name">User account</p>
+                <p class="users-manage-summary__email" id="users-manage-email"></p>
+                <div class="users-manage-summary__chips">
+                  <span class="badge" id="users-manage-role-chip"></span>
+                  <span class="badge users-state" id="users-manage-verified-chip"></span>
+                  <span class="badge users-state" id="users-manage-status-chip"></span>
+                </div>
+                <p class="users-manage-summary__joined" id="users-manage-joined"></p>
+              </section>
+
+              <section class="users-manage-section">
+                <h3 class="users-manage-section__title">Credentials</h3>
+                <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" id="users-manage-credentials-form" class="users-manage-form users-credentials-form">
+                  <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                  <input type="hidden" name="action" value="update_user_credentials">
+                  <input type="hidden" name="user_id" value="">
+                  <label class="sr-only" for="users-manage-full-name">Full name</label>
+                  <input id="users-manage-full-name" type="text" name="full_name" class="field-input" required>
+                  <label class="sr-only" for="users-manage-email-input">Email address</label>
+                  <input id="users-manage-email-input" type="email" name="email" class="field-input" required>
+                  <button type="submit" class="btn-ghost">Save credentials</button>
+                </form>
+              </section>
+
+              <section class="users-manage-section">
+                <h3 class="users-manage-section__title">Access Policy</h3>
+                <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" id="users-manage-verification-form" class="users-manage-form users-verification-form">
+                  <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                  <input type="hidden" name="action" value="update_user_verification">
+                  <input type="hidden" name="user_id" value="">
+                  <label class="sr-only" for="users-manage-verification">Verification status</label>
+                  <select id="users-manage-verification" name="is_verified" class="field-select users-verification-form__select">
+                    <option value="1">Verified</option>
+                    <option value="0">Not verified</option>
+                  </select>
+                  <p class="users-field-help users-verification-help" id="users-manage-verification-help"></p>
+                  <button type="submit" class="btn-ghost">Save verification</button>
+                </form>
+
+                <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" id="users-manage-role-form" class="users-manage-form users-role-form">
+                  <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                  <input type="hidden" name="action" value="role_change">
+                  <input type="hidden" name="user_id" value="">
+                  <label class="sr-only" for="users-manage-role">Role</label>
+                  <select id="users-manage-role" name="new_role" class="field-select users-role-form__select">
+                    <option value="admin" data-role-label="Admin" data-requires-verified="1" data-role-description="<?= htmlspecialchars($role_meta['admin']['description'], ENT_QUOTES, 'UTF-8') ?>">Admin</option>
+                    <option value="librarian" data-role-label="Librarian" data-requires-verified="1" data-role-description="<?= htmlspecialchars($role_meta['librarian']['description'], ENT_QUOTES, 'UTF-8') ?>">Librarian</option>
+                    <option value="borrower" data-role-label="Borrower" data-requires-verified="0" data-role-description="<?= htmlspecialchars($role_meta['borrower']['description'], ENT_QUOTES, 'UTF-8') ?>">Borrower</option>
+                  </select>
+                  <p class="users-field-help users-role-help" id="users-manage-role-help"></p>
+                  <button type="submit" class="btn-ghost">Save role</button>
+                </form>
+              </section>
+
+              <section class="users-manage-section">
+                <h3 class="users-manage-section__title">Password Reset</h3>
+                <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" id="users-manage-password-form" class="users-manage-form users-password-reset-form">
+                  <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                  <input type="hidden" name="action" value="admin_reset_user_password">
+                  <input type="hidden" name="user_id" value="">
+                  <label class="sr-only" for="users-manage-password-new">New password</label>
+                  <input id="users-manage-password-new" type="password" name="new_password" class="field-input" minlength="8" placeholder="New password (8+ chars)" required autocomplete="new-password">
+                  <label class="sr-only" for="users-manage-password-confirm">Confirm password</label>
+                  <input id="users-manage-password-confirm" type="password" name="confirm_password" class="field-input" minlength="8" placeholder="Confirm password" required autocomplete="new-password">
+                  <button type="submit" class="btn-ghost">Update password</button>
+                </form>
+              </section>
+
+              <section class="users-manage-section">
+                <h3 class="users-manage-section__title">Account Status</h3>
+                <div class="users-manage-status-actions">
+                  <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" id="users-manage-activate-form" class="users-manage-form users-quick-form" data-quick-action="activate" hidden>
+                    <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                    <input type="hidden" name="action" value="activate">
+                    <input type="hidden" name="user_id" value="">
+                    <input type="hidden" name="user_name" value="">
+                    <button type="submit" class="btn-confirm">Reactivate account</button>
+                  </form>
+
+                  <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" id="users-manage-deactivate-form" class="users-manage-form users-quick-form" data-quick-action="deactivate" hidden>
+                    <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                    <input type="hidden" name="action" value="deactivate">
+                    <input type="hidden" name="user_id" value="">
+                    <input type="hidden" name="user_name" value="">
+                    <button type="submit" class="btn-accent">Deactivate account</button>
+                  </form>
+                </div>
+              </section>
+
+              <section class="users-manage-section users-manage-section--danger">
+                <h3 class="users-manage-section__title users-manage-section__title--danger">Permanent Delete</h3>
+                <p class="users-actions__note">Delete only when this account should be permanently removed.</p>
+                <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" id="users-manage-delete-form" class="users-manage-form users-delete-form" data-user-role="">
+                  <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                  <input type="hidden" name="action" value="delete_user">
+                  <input type="hidden" name="user_id" value="">
+                  <label class="users-delete-form__confirm">
+                    <input type="checkbox" id="users-manage-delete-confirm" name="delete_confirm" value="1" required>
+                    Confirm permanent deletion.
+                  </label>
+                  <button type="submit" class="btn-ghost users-actions__delete">Delete account</button>
+                </form>
+              </section>
+            </div>
+            <span class="users-manage-focus-guard" data-focus-guard="end" tabindex="0"></span>
+          </aside>
 
            <?php if ($total_pages > 1): ?>
              <nav class="pagination users-pagination" aria-label="User directory pagination">
@@ -1637,10 +2009,11 @@ $has_feedback = $flash_success !== ''
                 aria-required="true"
                 aria-describedby="role-error role-help">
                 <option value="">Choose an account type</option>
-                <option value="borrower" <?= $create_user_old['role'] === 'borrower' ? 'selected' : '' ?>>Borrower — Check out books, manage loans</option>
-                <option value="librarian" <?= $create_user_old['role'] === 'librarian' ? 'selected' : '' ?>>Librarian — Manage catalog and circulation</option>
-                <option value="admin" <?= $create_user_old['role'] === 'admin' ? 'selected' : '' ?>>Admin — Manage users and system settings</option>
+                <option value="borrower" data-requires-verified="0" <?= $create_user_old['role'] === 'borrower' ? 'selected' : '' ?>>Borrower — Check out books, manage loans</option>
+                <option value="librarian" data-requires-verified="1" <?= $create_user_old['role'] === 'librarian' ? 'selected' : '' ?>>Librarian — Manage catalog and circulation</option>
+                <option value="admin" data-requires-verified="1" <?= $create_user_old['role'] === 'admin' ? 'selected' : '' ?>>Admin — Manage users and system settings</option>
               </select>
+              <small id="role-help" class="field-help">Admin and Librarian accounts must be verified before access is granted.</small>
               <span id="role-error" class="field-error" role="alert"></span>
             </div>
 
@@ -1673,23 +2046,80 @@ $has_feedback = $flash_success !== ''
 
   <script>
     (function() {
-      const forms = document.querySelectorAll('.users-actions form, .users-create-form, .users-bulk-form, .users-undo__form, .users-warning__actions');
-      const deactivateForms = document.querySelectorAll('form input[name="action"][value="deactivate"], form input[name="action"][value="activate"]');
+      'use strict';
+
+      const usersLayout = document.querySelector('.users-layout[data-focus-user-id]');
+      const liveAnnouncer = document.getElementById('users-live-announcer');
+      const searchInput = document.getElementById('users-search-input');
+      const createUserTrigger = document.getElementById('create-user-trigger');
+      const createUserEmptyState = document.getElementById('create-user-empty-state');
+
       const bulkForm = document.getElementById('users-bulk-form');
       const selectAll = document.getElementById('users-select-all');
-      const rowChecks = document.querySelectorAll('.users-select-row');
+      const rowChecks = Array.from(document.querySelectorAll('.users-select-row'));
       const selectedCount = document.getElementById('users-selected-count');
       const bulkStatus = document.getElementById('users-bulk-status');
       const bulkToolbar = document.getElementById('users-bulk-toolbar');
       const bulkAction = document.getElementById('bulk_action');
       const bulkApply = document.getElementById('apply-bulk-action');
       const bulkSelectedContainer = document.getElementById('users-bulk-selected-container');
-      const liveAnnouncer = document.getElementById('users-live-announcer');
-      const roleForms = document.querySelectorAll('.users-role-form');
-      const deleteForms = document.querySelectorAll('.users-delete-form');
-      const credentialsForms = document.querySelectorAll('.users-credentials-form');
-      const passwordResetForms = document.querySelectorAll('.users-password-reset-form');
+
+      const managePanel = document.getElementById('users-manage-panel');
+      const manageOverlay = document.getElementById('users-manage-overlay');
+      const manageCloseBtn = document.getElementById('users-manage-close');
+      const manageTriggers = Array.from(document.querySelectorAll('.users-manage-trigger'));
+      const manageName = document.getElementById('users-manage-name');
+      const manageEmail = document.getElementById('users-manage-email');
+      const manageRoleChip = document.getElementById('users-manage-role-chip');
+      const manageVerifiedChip = document.getElementById('users-manage-verified-chip');
+      const manageStatusChip = document.getElementById('users-manage-status-chip');
+      const manageJoined = document.getElementById('users-manage-joined');
+
+      const credentialsForm = document.getElementById('users-manage-credentials-form');
+      const verificationForm = document.getElementById('users-manage-verification-form');
+      const roleForm = document.getElementById('users-manage-role-form');
+      const passwordForm = document.getElementById('users-manage-password-form');
+      const deleteForm = document.getElementById('users-manage-delete-form');
+      const activateForm = document.getElementById('users-manage-activate-form');
+      const deactivateForm = document.getElementById('users-manage-deactivate-form');
+      const roleHelp = document.getElementById('users-manage-role-help');
+      const verificationHelp = document.getElementById('users-manage-verification-help');
+      const roleSelect = document.getElementById('users-manage-role');
+      const verificationSelect = document.getElementById('users-manage-verification');
+
+      const createModalOverlay = document.getElementById('create-user-modal-overlay');
+      const createModal = document.getElementById('create-user-modal');
+      const createModalClose = document.getElementById('create-user-modal-close');
+      const createModalCancel = document.getElementById('modal-cancel-btn');
+      const createForm = document.getElementById('create-user-form');
+      const createSubmitBtn = document.getElementById('modal-submit-btn');
+      const createFormError = document.getElementById('modal-form-error');
+      const createRoleSelect = document.getElementById('modal-role');
+      const createVerifiedCheckbox = document.getElementById('modal-is_verified');
+
+      const ONBOARDING_KEY = 'libris_users_onboarding_dismissed';
+      const onboardingBanner = document.getElementById('users-onboarding-banner');
+      const onboardingDismiss = document.getElementById('dismiss-onboarding');
+
+      const panelState = {
+        isOpen: false,
+        row: null,
+        trigger: null,
+      };
+
       let hasInitializedBulkState = false;
+      let scrollLocks = 0;
+
+      function getSweetAlertUtils() {
+        return (typeof window !== 'undefined' && window.sweetAlertUtils) ? window.sweetAlertUtils : null;
+      }
+
+      function escapeHtml(text) {
+        return String(text || '').replace(/[&<>"']/g, function(char) {
+          const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+          return map[char] || char;
+        });
+      }
 
       function announce(message) {
         if (!liveAnnouncer || !message) {
@@ -1699,6 +2129,78 @@ $has_feedback = $flash_success !== ''
         window.setTimeout(function() {
           liveAnnouncer.textContent = message;
         }, 40);
+      }
+
+      function lockBodyScroll() {
+        scrollLocks += 1;
+        document.body.style.overflow = 'hidden';
+      }
+
+      function unlockBodyScroll() {
+        scrollLocks = Math.max(0, scrollLocks - 1);
+        if (scrollLocks === 0) {
+          document.body.style.overflow = '';
+        }
+      }
+
+      function setSubmitPending(form, pendingText) {
+        if (!form) {
+          return;
+        }
+        const submit = form.querySelector('button[type="submit"]');
+        if (!submit) {
+          return;
+        }
+        submit.disabled = true;
+        if (!submit.dataset.originalText) {
+          submit.dataset.originalText = submit.textContent;
+        }
+        submit.textContent = pendingText || 'Working...';
+      }
+
+      function resetSubmitState(form) {
+        if (!form) {
+          return;
+        }
+        const submit = form.querySelector('button[type="submit"]');
+        if (!submit) {
+          return;
+        }
+        submit.disabled = false;
+        if (submit.dataset.originalText) {
+          submit.textContent = submit.dataset.originalText;
+        }
+      }
+
+      function roleRequiresVerification(role) {
+        return role === 'admin' || role === 'librarian';
+      }
+
+      function roleDisplayLabel(role) {
+        if (role === 'admin') {
+          return 'Admin';
+        }
+        if (role === 'librarian') {
+          return 'Librarian';
+        }
+        return 'Borrower';
+      }
+
+      function isRoleAction(actionValue) {
+        return actionValue === 'role_admin' || actionValue === 'role_librarian' || actionValue === 'role_borrower';
+      }
+
+      function selectedRoleFromAction(actionValue) {
+        if (actionValue === 'role_admin') {
+          return 'admin';
+        }
+        if (actionValue === 'role_librarian') {
+          return 'librarian';
+        }
+        if (actionValue === 'role_borrower') {
+          return 'borrower';
+        }
+        return '';
       }
 
       function formatBulkActionLabel(actionValue, selected) {
@@ -1720,278 +2222,764 @@ $has_feedback = $flash_success !== ''
         return 'Apply action';
       }
 
-      forms.forEach((form) => {
-        if (!(form instanceof HTMLFormElement)) {
-          return;
-        }
-        form.addEventListener('submit', function() {
-          const submit = form.querySelector('button[type="submit"]');
-          if (!submit) {
-            return;
-          }
-          submit.disabled = true;
-          submit.dataset.originalText = submit.textContent;
-          submit.textContent = 'Working...';
-        });
-      });
-
-      deactivateForms.forEach((input) => {
-        const parentForm = input.closest('form');
-        if (!parentForm) {
-          return;
-        }
-        const isDeactivate = input.value === 'deactivate';
-        parentForm.addEventListener('submit', function(e) {
-          if (typeof sweetAlertUtils !== 'undefined') return; // Handled by SweetAlert handler below
-          
-          const hiddenName = parentForm.querySelector('input[name="user_name"]');
-          const userName = hiddenName ? hiddenName.value : 'this account';
-          const message = isDeactivate
-            ? 'Deactivate "' + userName + '" now? They will immediately lose sign-in access.'
-            : 'Reactivate "' + userName + '" now?';
-          if (!window.confirm(message)) {
-            e.preventDefault();
-            const submit = parentForm.querySelector('button[type="submit"]');
-            if (submit) {
-              submit.disabled = false;
-              if (submit.dataset.originalText) {
-                submit.textContent = submit.dataset.originalText;
-              }
+      function resolveSelectedUsers(roleValue) {
+        return rowChecks
+          .filter(function(box) {
+            return box.checked;
+          })
+          .map(function(box) {
+            return {
+              id: box.value,
+              verified: box.getAttribute('data-verified') === '1',
+              element: box,
+            };
+          })
+          .filter(function(user) {
+            if (!roleValue || !roleRequiresVerification(roleValue)) {
+              return true;
             }
-          }
-        });
-      });
-
-      roleForms.forEach((form) => {
-        form.addEventListener('submit', function(e) {
-          if (typeof sweetAlertUtils !== 'undefined') return; // Handled by SweetAlert handler below
-          
-          const select = form.querySelector('select[name="new_role"]');
-          if (!select) {
-            return;
-          }
-          const nextRole = select.value;
-          const userName = form.dataset.userName || 'this user';
-          const currentRole = form.dataset.currentRole || '';
-          if (currentRole === nextRole) {
-            e.preventDefault();
-            window.alert('No change detected. Choose a different role for ' + userName + '.');
-            const submit = form.querySelector('button[type="submit"]');
-            if (submit) {
-              submit.disabled = false;
-              if (submit.dataset.originalText) {
-                submit.textContent = submit.dataset.originalText;
-              }
-            }
-            return;
-          }
-          const message = 'Change role for "' + userName + '" from ' + currentRole + ' to ' + nextRole + '?';
-          if (!window.confirm(message)) {
-            e.preventDefault();
-            const submit = form.querySelector('button[type="submit"]');
-            if (submit) {
-              submit.disabled = false;
-              if (submit.dataset.originalText) {
-                submit.textContent = submit.dataset.originalText;
-              }
-            }
-          }
-        });
-      });
-
-      deleteForms.forEach((form) => {
-        form.addEventListener('submit', function(e) {
-          if (typeof sweetAlertUtils !== 'undefined') return; // Handled by SweetAlert handler below
-          
-          const userName = form.dataset.userName || 'this account';
-          const message = 'Delete "' + userName + '" permanently? This cannot be undone.';
-          if (!window.confirm(message)) {
-            e.preventDefault();
-            const submit = form.querySelector('button[type="submit"]');
-            if (submit) {
-              submit.disabled = false;
-              if (submit.dataset.originalText) {
-                submit.textContent = submit.dataset.originalText;
-              }
-            }
-          }
-        });
-      });
-
-      credentialsForms.forEach((form) => {
-        form.addEventListener('submit', function(e) {
-          if (typeof sweetAlertUtils !== 'undefined') return; // Handled by SweetAlert handler below
-
-          const userName = form.dataset.userName || 'this user';
-          const currentName = form.dataset.currentName || '';
-          const currentEmail = form.dataset.currentEmail || '';
-          const fullNameInput = form.querySelector('input[name="full_name"]');
-          const emailInput = form.querySelector('input[name="email"]');
-          const nextName = fullNameInput ? fullNameInput.value.trim() : '';
-          const nextEmail = emailInput ? emailInput.value.trim() : '';
-
-          if (!nextName || !nextEmail) {
-            e.preventDefault();
-            window.alert('Full name and email are required.');
-            const submit = form.querySelector('button[type="submit"]');
-            if (submit) {
-              submit.disabled = false;
-              if (submit.dataset.originalText) {
-                submit.textContent = submit.dataset.originalText;
-              }
-            }
-            return;
-          }
-
-          if (nextName === currentName && nextEmail.toLowerCase() === currentEmail.toLowerCase()) {
-            e.preventDefault();
-            window.alert('No credential changes detected for ' + userName + '.');
-            const submit = form.querySelector('button[type="submit"]');
-            if (submit) {
-              submit.disabled = false;
-              if (submit.dataset.originalText) {
-                submit.textContent = submit.dataset.originalText;
-              }
-            }
-            return;
-          }
-
-          const message = 'Save credential updates for "' + userName + '" now?';
-          if (!window.confirm(message)) {
-            e.preventDefault();
-            const submit = form.querySelector('button[type="submit"]');
-            if (submit) {
-              submit.disabled = false;
-              if (submit.dataset.originalText) {
-                submit.textContent = submit.dataset.originalText;
-              }
-            }
-          }
-        });
-      });
-
-      passwordResetForms.forEach((form) => {
-        form.addEventListener('submit', function(e) {
-          if (typeof sweetAlertUtils !== 'undefined') return; // Handled by SweetAlert handler below
-
-          const userName = form.dataset.userName || 'this user';
-          const newPasswordInput = form.querySelector('input[name="new_password"]');
-          const confirmPasswordInput = form.querySelector('input[name="confirm_password"]');
-          const newPassword = newPasswordInput ? newPasswordInput.value : '';
-          const confirmPassword = confirmPasswordInput ? confirmPasswordInput.value : '';
-
-          if (newPassword.length < 8) {
-            e.preventDefault();
-            window.alert('Password must be at least 8 characters.');
-            const submit = form.querySelector('button[type="submit"]');
-            if (submit) {
-              submit.disabled = false;
-              if (submit.dataset.originalText) {
-                submit.textContent = submit.dataset.originalText;
-              }
-            }
-            return;
-          }
-
-          if (newPassword !== confirmPassword) {
-            e.preventDefault();
-            window.alert('Password confirmation does not match.');
-            const submit = form.querySelector('button[type="submit"]');
-            if (submit) {
-              submit.disabled = false;
-              if (submit.dataset.originalText) {
-                submit.textContent = submit.dataset.originalText;
-              }
-            }
-            return;
-          }
-
-          const message = 'Reset password for "' + userName + '" now?';
-          if (!window.confirm(message)) {
-            e.preventDefault();
-            const submit = form.querySelector('button[type="submit"]');
-            if (submit) {
-              submit.disabled = false;
-              if (submit.dataset.originalText) {
-                submit.textContent = submit.dataset.originalText;
-              }
-            }
-          }
-        });
-      });
+            return user.verified;
+          });
+      }
 
       function updateBulkState() {
-        if (!selectedCount || !bulkApply || !bulkAction) {
+        if (!selectedCount || !bulkAction || !bulkApply) {
           return;
         }
-        const selected = Array.from(rowChecks).filter((box) => box.checked).length;
-         selectedCount.textContent = selected + ' user' + (selected === 1 ? '' : 's') + ' selected';
-         const hasAction = bulkAction.value !== '';
-         bulkApply.disabled = !(selected > 0 && hasAction);
-         bulkApply.textContent = formatBulkActionLabel(bulkAction.value, selected);
-         rowChecks.forEach((box) => {
-           const row = box.closest('tr');
-           if (!row) {
-             return;
-           }
-           row.classList.toggle('users-row--selected', box.checked);
-           row.setAttribute('aria-selected', box.checked ? 'true' : 'false');
-         });
-         if (bulkStatus) {
-           if (selected === 0) {
-             bulkStatus.textContent = 'Select users to begin.';
-           } else if (!hasAction) {
-             bulkStatus.textContent = selected + ' user' + (selected === 1 ? '' : 's') + ' selected. Choose an action.';
-           } else {
-             bulkStatus.textContent = 'Ready: ' + formatBulkActionLabel(bulkAction.value, selected) + '.';
-           }
-         }
-        if (hasInitializedBulkState) {
-          announce(selected + ' users selected.');
+
+        const selected = rowChecks.filter(function(box) { return box.checked; }).length;
+        const hasAction = bulkAction.value !== '';
+        const targetRole = selectedRoleFromAction(bulkAction.value);
+        const isRoleBulk = isRoleAction(bulkAction.value);
+        const eligibleCount = isRoleBulk ? resolveSelectedUsers(targetRole).length : selected;
+        const blockedCount = isRoleBulk ? Math.max(0, selected - eligibleCount) : 0;
+        const canSubmit = selected > 0 && hasAction && (!isRoleBulk || eligibleCount > 0);
+
+        selectedCount.textContent = selected === 0
+          ? 'No users selected'
+          : selected + ' user' + (selected === 1 ? '' : 's') + ' selected';
+
+        bulkApply.disabled = !canSubmit;
+        bulkApply.textContent = formatBulkActionLabel(bulkAction.value, isRoleBulk ? eligibleCount : selected);
+
+        rowChecks.forEach(function(box) {
+          const row = box.closest('tr.users-row');
+          if (!row) {
+            return;
+          }
+          const isIneligible = isRoleBulk && box.checked && box.getAttribute('data-verified') !== '1';
+          row.classList.toggle('users-row--selected', box.checked);
+          row.classList.toggle('users-row--ineligible', isIneligible);
+          row.setAttribute('aria-selected', box.checked ? 'true' : 'false');
+        });
+
+        if (bulkToolbar) {
+          bulkToolbar.classList.toggle('users-bulk-toolbar--has-selection', selected > 0);
         }
+
+        if (bulkStatus) {
+          if (selected === 0) {
+            bulkStatus.textContent = 'Select users to begin.';
+          } else if (!hasAction) {
+            bulkStatus.textContent = selected + ' user' + (selected === 1 ? '' : 's') + ' selected. Choose an action.';
+          } else if (isRoleBulk && blockedCount > 0) {
+            bulkStatus.textContent = eligibleCount + ' eligible, ' + blockedCount + ' not verified and will be skipped.';
+          } else {
+            bulkStatus.textContent = 'Ready: ' + formatBulkActionLabel(bulkAction.value, isRoleBulk ? eligibleCount : selected) + '.';
+          }
+        }
+
         if (selectAll) {
           const total = rowChecks.length;
           selectAll.checked = total > 0 && selected === total;
           selectAll.indeterminate = selected > 0 && selected < total;
         }
+
+        if (hasInitializedBulkState) {
+          announce(selected + ' users selected.');
+        }
         hasInitializedBulkState = true;
       }
 
-      if (selectAll) {
-        selectAll.addEventListener('change', function() {
-          rowChecks.forEach((box) => {
-            box.checked = selectAll.checked;
-          });
-          updateBulkState();
+      function getFocusable(container) {
+        if (!container) {
+          return [];
+        }
+        return Array.from(
+          container.querySelectorAll(
+            'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          )
+        ).filter(function(el) {
+          return !el.hasAttribute('hidden') && el.getAttribute('aria-hidden') !== 'true';
         });
       }
 
-      rowChecks.forEach((box) => {
-        box.addEventListener('change', updateBulkState);
-      });
+      function trapFocus(e, container) {
+        if (e.key !== 'Tab') {
+          return;
+        }
+        const focusables = getFocusable(container);
+        if (focusables.length === 0) {
+          e.preventDefault();
+          return;
+        }
 
-      if (bulkAction) {
-        bulkAction.addEventListener('change', updateBulkState);
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        const active = document.activeElement;
+
+        if (e.shiftKey && active === first) {
+          e.preventDefault();
+          last.focus();
+          return;
+        }
+
+        if (!e.shiftKey && active === last) {
+          e.preventDefault();
+          first.focus();
+        }
       }
 
-      if (bulkForm) {
-        bulkForm.addEventListener('submit', function(e) {
-          const selected = Array.from(rowChecks).filter((box) => box.checked).length;
+      function readRowData(row) {
+        return {
+          id: row.getAttribute('data-user-id') || '',
+          name: row.getAttribute('data-user-name') || '',
+          email: row.getAttribute('data-user-email') || '',
+          role: row.getAttribute('data-user-role') || 'borrower',
+          roleLabel: row.getAttribute('data-user-role-label') || roleDisplayLabel(row.getAttribute('data-user-role') || 'borrower'),
+          roleDescription: row.getAttribute('data-user-role-description') || '',
+          roleRequiresVerified: row.getAttribute('data-user-role-requires-verified') === '1',
+          verified: row.getAttribute('data-user-verified') === '1',
+          suspended: row.getAttribute('data-user-suspended') === '1',
+          protected: row.getAttribute('data-user-protected') === '1',
+          createdText: row.getAttribute('data-user-created') || 'Unknown date',
+        };
+      }
+
+      function updateManageRoleHelp() {
+        if (!roleForm || !roleSelect || !roleHelp) {
+          return;
+        }
+        const selectedOption = roleSelect.options[roleSelect.selectedIndex];
+        const roleDescription = selectedOption ? (selectedOption.getAttribute('data-role-description') || '') : '';
+        const roleLabel = selectedOption ? (selectedOption.getAttribute('data-role-label') || roleSelect.value) : roleSelect.value;
+        const requiresVerified = selectedOption ? selectedOption.getAttribute('data-requires-verified') === '1' : false;
+        const currentVerified = roleForm.getAttribute('data-current-verified') === '1';
+
+        let text = roleDescription;
+        if (requiresVerified) {
+          text += (text ? ' ' : '') + (currentVerified ? 'Verification is required for this role.' : roleLabel + ' requires verification first.');
+        }
+        roleHelp.textContent = text || 'Role permissions update immediately after saving.';
+      }
+
+      function updateManageRoleOptionPolicy() {
+        if (!roleForm || !roleSelect) {
+          return;
+        }
+        const currentVerified = roleForm.getAttribute('data-current-verified') === '1';
+        const currentRole = roleForm.getAttribute('data-current-role') || '';
+
+        Array.from(roleSelect.options).forEach(function(option) {
+          const requiresVerified = option.getAttribute('data-requires-verified') === '1';
+          option.disabled = requiresVerified && !currentVerified && option.value !== currentRole;
+        });
+      }
+
+      function updateManageVerificationState() {
+        if (!verificationForm || !verificationSelect || !verificationHelp) {
+          return;
+        }
+        const currentRole = verificationForm.getAttribute('data-role') || (roleForm ? (roleForm.getAttribute('data-current-role') || 'borrower') : 'borrower');
+        const roleLabel = verificationForm.getAttribute('data-role-label') || roleDisplayLabel(currentRole);
+        const requiresVerified = verificationForm.getAttribute('data-role-requires-verified') === '1' || roleRequiresVerification(currentRole);
+        const notVerifiedOption = verificationSelect.querySelector('option[value="0"]');
+        if (notVerifiedOption) {
+          notVerifiedOption.disabled = requiresVerified;
+          if (requiresVerified && verificationSelect.value === '0') {
+            verificationSelect.value = '1';
+          }
+        }
+        verificationHelp.textContent = requiresVerified
+          ? roleLabel + ' accounts must remain verified.'
+          : 'Borrower accounts may be verified later.';
+      }
+
+      function hydrateManagePanel(row) {
+        if (!row || !credentialsForm || !verificationForm || !roleForm || !passwordForm || !deleteForm || !activateForm || !deactivateForm) {
+          return;
+        }
+
+        const data = readRowData(row);
+
+        manageName.textContent = data.name || 'User account';
+        manageEmail.textContent = data.email || '';
+        manageRoleChip.textContent = data.roleLabel;
+        manageJoined.textContent = 'Joined ' + data.createdText;
+
+        manageRoleChip.className = 'badge';
+        if (data.role === 'admin') {
+          manageRoleChip.classList.add('badge-blue');
+        } else if (data.role === 'librarian') {
+          manageRoleChip.classList.add('badge-amber');
+        }
+
+        manageVerifiedChip.className = 'badge users-state';
+        manageVerifiedChip.textContent = data.verified ? 'Verified' : 'Not verified';
+        manageVerifiedChip.classList.add(data.verified ? 'badge-green' : 'badge-red', data.verified ? 'users-state--ok' : 'users-state--warn');
+
+        manageStatusChip.className = 'badge users-state';
+        manageStatusChip.textContent = data.suspended ? 'Deactivated' : 'Active';
+        manageStatusChip.classList.add(data.suspended ? 'badge-red' : 'badge-green', data.suspended ? 'users-state--warn' : 'users-state--ok');
+
+        credentialsForm.querySelector('input[name="user_id"]').value = data.id;
+        credentialsForm.querySelector('input[name="full_name"]').value = data.name;
+        credentialsForm.querySelector('input[name="email"]').value = data.email;
+        credentialsForm.setAttribute('data-user-name', data.name);
+        credentialsForm.setAttribute('data-current-name', data.name);
+        credentialsForm.setAttribute('data-current-email', data.email);
+
+        verificationForm.querySelector('input[name="user_id"]').value = data.id;
+        verificationSelect.value = data.verified ? '1' : '0';
+        verificationForm.setAttribute('data-user-name', data.name);
+        verificationForm.setAttribute('data-role', data.role);
+        verificationForm.setAttribute('data-role-label', data.roleLabel);
+        verificationForm.setAttribute('data-role-requires-verified', data.roleRequiresVerified ? '1' : '0');
+        verificationForm.setAttribute('data-current-verified', data.verified ? '1' : '0');
+
+        roleForm.querySelector('input[name="user_id"]').value = data.id;
+        roleSelect.value = data.role;
+        roleForm.setAttribute('data-user-name', data.name);
+        roleForm.setAttribute('data-current-role', data.role);
+        roleForm.setAttribute('data-current-verified', data.verified ? '1' : '0');
+
+        passwordForm.querySelector('input[name="user_id"]').value = data.id;
+        passwordForm.querySelector('input[name="new_password"]').value = '';
+        passwordForm.querySelector('input[name="confirm_password"]').value = '';
+        passwordForm.setAttribute('data-user-name', data.name);
+
+        deleteForm.querySelector('input[name="user_id"]').value = data.id;
+        const deleteConfirm = deleteForm.querySelector('input[name="delete_confirm"]');
+        if (deleteConfirm) {
+          deleteConfirm.checked = false;
+        }
+        deleteForm.setAttribute('data-user-name', data.name);
+        deleteForm.setAttribute('data-user-role', data.roleLabel);
+
+        activateForm.querySelector('input[name="user_id"]').value = data.id;
+        activateForm.querySelector('input[name="user_name"]').value = data.name;
+        deactivateForm.querySelector('input[name="user_id"]').value = data.id;
+        deactivateForm.querySelector('input[name="user_name"]').value = data.name;
+
+        activateForm.hidden = !data.suspended;
+        deactivateForm.hidden = data.suspended;
+
+        const controls = managePanel.querySelectorAll('input, select, button');
+        controls.forEach(function(control) {
+          if (control === manageCloseBtn) {
+            return;
+          }
+          if (control.closest('.users-manage-focus-guard')) {
+            return;
+          }
+          control.disabled = data.protected;
+        });
+        managePanel.classList.toggle('users-manage-panel--protected', data.protected);
+
+        updateManageRoleOptionPolicy();
+        updateManageVerificationState();
+        updateManageRoleHelp();
+      }
+
+      function openManagePanel(row, trigger) {
+        if (!managePanel || !manageOverlay || !row) {
+          return;
+        }
+
+        if (panelState.isOpen && panelState.row === row) {
+          return;
+        }
+
+        if (panelState.isOpen) {
+          panelState.row = row;
+          panelState.trigger = trigger || panelState.trigger;
+          hydrateManagePanel(row);
+          const first = getFocusable(managePanel)[0];
+          if (first) {
+            first.focus();
+          }
+          return;
+        }
+
+        if (createModalOverlay && createModalOverlay.classList.contains('active')) {
+          closeCreateModal();
+        }
+
+        const data = readRowData(row);
+        if (data.protected) {
+          announce('Protected account cannot be modified from this panel.');
+          return;
+        }
+
+        panelState.row = row;
+        panelState.trigger = trigger || null;
+        panelState.isOpen = true;
+
+        hydrateManagePanel(row);
+
+        manageOverlay.hidden = false;
+        managePanel.hidden = false;
+        managePanel.setAttribute('aria-hidden', 'false');
+        managePanel.classList.add('is-open');
+        lockBodyScroll();
+
+        window.setTimeout(function() {
+          const first = getFocusable(managePanel).find(function(el) {
+            return el.id === 'users-manage-full-name' || el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'BUTTON';
+          });
+          if (first) {
+            first.focus();
+          }
+        }, 60);
+      }
+
+      function closeManagePanel(restoreFocus) {
+        if (!managePanel || !manageOverlay || !panelState.isOpen) {
+          return;
+        }
+
+        panelState.isOpen = false;
+        managePanel.classList.remove('is-open');
+        managePanel.setAttribute('aria-hidden', 'true');
+        managePanel.hidden = true;
+        manageOverlay.hidden = true;
+        unlockBodyScroll();
+
+        if (restoreFocus !== false && panelState.trigger && typeof panelState.trigger.focus === 'function') {
+          panelState.trigger.focus();
+        }
+      }
+
+      function maybeShowInfo(title, message) {
+        const swal = getSweetAlertUtils();
+        if (swal) {
+          return swal.showInfo(title, message);
+        }
+        window.alert(message);
+        return Promise.resolve();
+      }
+
+      function maybeShowError(title, message) {
+        const swal = getSweetAlertUtils();
+        if (swal) {
+          return swal.showError(title, message);
+        }
+        window.alert(message);
+        return Promise.resolve();
+      }
+
+      function maybeConfirmAction(title, html, confirmText, cancelText) {
+        const swal = getSweetAlertUtils();
+        if (swal) {
+          return swal.confirmAction(title, html, confirmText, cancelText);
+        }
+        return Promise.resolve({ isConfirmed: window.confirm(title + ': ' + html.replace(/<[^>]+>/g, ' ')) });
+      }
+
+      function maybeConfirmDelete(userName, userRole) {
+        const swal = getSweetAlertUtils();
+        if (swal) {
+          return swal.confirmDeleteUser(userName, userRole);
+        }
+        return Promise.resolve({ isConfirmed: window.confirm('Delete "' + userName + '" permanently?') });
+      }
+
+      function maybeConfirmQuickAction(action, userName) {
+        const swal = getSweetAlertUtils();
+        if (swal) {
+          if (action === 'deactivate') {
+            return swal.confirmSuspendUser(userName, 'Account will be deactivated');
+          }
+          return swal.confirmAction(
+            'Reactivate Account?',
+            '<p>This account will be reactivated and the user can log in again.</p><p><strong>' + escapeHtml(userName) + '</strong></p>',
+            'Reactivate',
+            'Cancel'
+          );
+        }
+        const fallback = action === 'deactivate'
+          ? 'Deactivate "' + userName + '" now? They will immediately lose sign-in access.'
+          : 'Reactivate "' + userName + '" now?';
+        return Promise.resolve({ isConfirmed: window.confirm(fallback) });
+      }
+
+      async function handleQuickFormSubmit(e) {
+        const form = e.currentTarget;
+        const action = form.getAttribute('data-quick-action') || '';
+        const userNameInput = form.querySelector('input[name="user_name"]');
+        const userName = userNameInput ? userNameInput.value : 'this account';
+
+        e.preventDefault();
+        const result = await maybeConfirmQuickAction(action, userName);
+        if (result && result.isConfirmed) {
+          setSubmitPending(form, action === 'deactivate' ? 'Deactivating...' : 'Reactivating...');
+          form.submit();
+          return;
+        }
+        resetSubmitState(form);
+      }
+
+      async function handleCredentialsSubmit(e) {
+        const form = e.currentTarget;
+        const userName = form.getAttribute('data-user-name') || 'this user';
+        const currentName = form.getAttribute('data-current-name') || '';
+        const currentEmail = (form.getAttribute('data-current-email') || '').toLowerCase();
+        const fullNameInput = form.querySelector('input[name="full_name"]');
+        const emailInput = form.querySelector('input[name="email"]');
+        const nextName = fullNameInput ? fullNameInput.value.trim() : '';
+        const nextEmail = emailInput ? emailInput.value.trim().toLowerCase() : '';
+
+        e.preventDefault();
+
+        if (!nextName || !nextEmail) {
+          await maybeShowError('Missing Required Fields', 'Full name and email are required.');
+          resetSubmitState(form);
+          return;
+        }
+
+        if (nextName === currentName && nextEmail === currentEmail) {
+          await maybeShowInfo('No Changes', 'No credential changes were detected for this account.');
+          resetSubmitState(form);
+          return;
+        }
+
+        const result = await maybeConfirmAction(
+          'Save Credential Changes?',
+          '<p><strong>' + escapeHtml(userName) + '</strong></p><p style="margin-top: 10px; font-size: 0.9rem;">Updates to full name and email will take effect immediately.</p>',
+          'Save Credentials',
+          'Cancel'
+        );
+
+        if (result && result.isConfirmed) {
+          setSubmitPending(form, 'Saving...');
+          form.submit();
+          return;
+        }
+        resetSubmitState(form);
+      }
+
+      async function handleVerificationSubmit(e) {
+        const form = e.currentTarget;
+        const userName = form.getAttribute('data-user-name') || 'this user';
+        const roleLabel = form.getAttribute('data-role-label') || 'Current role';
+        const roleRequiresVerified = form.getAttribute('data-role-requires-verified') === '1';
+        const currentVerified = form.getAttribute('data-current-verified') === '1';
+        const select = form.querySelector('select[name="is_verified"]');
+        const nextVerified = select ? select.value === '1' : currentVerified;
+
+        e.preventDefault();
+
+        if (nextVerified === currentVerified) {
+          await maybeShowInfo('No Change', 'Verification status is already up to date.');
+          resetSubmitState(form);
+          return;
+        }
+
+        if (!nextVerified && roleRequiresVerified) {
+          await maybeShowError('Policy Restricted', roleLabel + ' accounts must remain verified. Change role first if needed.');
+          resetSubmitState(form);
+          return;
+        }
+
+        const result = await maybeConfirmAction(
+          'Save Verification Status?',
+          '<p><strong>' + escapeHtml(userName) + '</strong></p><p style="margin-top: 10px; font-size: 0.9rem;">The account will be marked as ' + (nextVerified ? '<strong>Verified</strong>' : '<strong>Not verified</strong>') + ' immediately.</p>',
+          'Save Verification',
+          'Cancel'
+        );
+
+        if (result && result.isConfirmed) {
+          setSubmitPending(form, 'Saving...');
+          form.submit();
+          return;
+        }
+        resetSubmitState(form);
+      }
+
+      async function handleRoleSubmit(e) {
+        const form = e.currentTarget;
+        const userName = form.getAttribute('data-user-name') || 'this user';
+        const currentRole = form.getAttribute('data-current-role') || '';
+        const currentVerified = form.getAttribute('data-current-verified') === '1';
+        const select = form.querySelector('select[name="new_role"]');
+        const newRole = select ? select.value : currentRole;
+
+        e.preventDefault();
+
+        if (!select) {
+          return;
+        }
+
+        if (newRole === currentRole) {
+          await maybeShowInfo('No Change', 'The new role is the same as the current role.');
+          resetSubmitState(form);
+          return;
+        }
+
+        if (roleRequiresVerification(newRole) && !currentVerified) {
+          await maybeShowError('Verification Required', 'Mark this account as verified before assigning Admin or Librarian access.');
+          resetSubmitState(form);
+          return;
+        }
+
+        const swal = getSweetAlertUtils();
+        const result = swal
+          ? await swal.confirmChangeRole(userName, currentRole, newRole)
+          : await maybeConfirmAction('Change User Role', 'Change role for "' + escapeHtml(userName) + '" from ' + escapeHtml(currentRole) + ' to ' + escapeHtml(newRole) + '?', 'Change Role', 'Cancel');
+
+        if (result && result.isConfirmed) {
+          setSubmitPending(form, 'Saving...');
+          form.submit();
+          return;
+        }
+        resetSubmitState(form);
+      }
+
+      async function handlePasswordSubmit(e) {
+        const form = e.currentTarget;
+        const userName = form.getAttribute('data-user-name') || 'this user';
+        const newPasswordInput = form.querySelector('input[name="new_password"]');
+        const confirmPasswordInput = form.querySelector('input[name="confirm_password"]');
+        const newPassword = newPasswordInput ? newPasswordInput.value : '';
+        const confirmPassword = confirmPasswordInput ? confirmPasswordInput.value : '';
+
+        e.preventDefault();
+
+        if (newPassword.length < 8) {
+          await maybeShowError('Invalid Password', 'Password must be at least 8 characters.');
+          resetSubmitState(form);
+          return;
+        }
+
+        if (newPassword !== confirmPassword) {
+          await maybeShowError('Password Mismatch', 'New password and confirmation must match.');
+          resetSubmitState(form);
+          return;
+        }
+
+        const result = await maybeConfirmAction(
+          'Reset User Password?',
+          '<p><strong>' + escapeHtml(userName) + '</strong></p><p style="margin-top: 10px; font-size: 0.9rem;">This will replace the user\'s current password immediately.</p>',
+          'Update Password',
+          'Cancel'
+        );
+
+        if (result && result.isConfirmed) {
+          setSubmitPending(form, 'Updating...');
+          form.submit();
+          return;
+        }
+        resetSubmitState(form);
+      }
+
+      async function handleDeleteSubmit(e) {
+        const form = e.currentTarget;
+        const userName = form.getAttribute('data-user-name') || 'this user';
+        const userRole = form.getAttribute('data-user-role') || 'User';
+        const confirmCheckbox = form.querySelector('input[name="delete_confirm"]');
+
+        e.preventDefault();
+        const result = await maybeConfirmDelete(userName, userRole);
+        if (result && result.isConfirmed) {
+          if (confirmCheckbox) {
+            confirmCheckbox.checked = true;
+          }
+          setSubmitPending(form, 'Deleting...');
+          form.submit();
+          return;
+        }
+        resetSubmitState(form);
+      }
+
+      function updateCreateRolePolicy() {
+        if (!createRoleSelect || !createVerifiedCheckbox) {
+          return;
+        }
+        const mustBeVerified = roleRequiresVerification(createRoleSelect.value);
+        if (mustBeVerified) {
+          createVerifiedCheckbox.checked = true;
+          createVerifiedCheckbox.disabled = true;
+          createVerifiedCheckbox.setAttribute('aria-disabled', 'true');
+        } else {
+          createVerifiedCheckbox.disabled = false;
+          createVerifiedCheckbox.removeAttribute('aria-disabled');
+        }
+      }
+
+      function clearCreateModalErrors() {
+        document.querySelectorAll('#create-user-modal .field-error').forEach(function(el) {
+          el.textContent = '';
+        });
+      }
+
+      function validateCreateModal() {
+        if (!createForm) {
+          return false;
+        }
+        clearCreateModalErrors();
+
+        const fullName = createForm.querySelector('input[name="full_name"]').value.trim();
+        const email = createForm.querySelector('input[name="email"]').value.trim();
+        const password = createForm.querySelector('input[name="password"]').value;
+        const role = createForm.querySelector('select[name="role"]').value;
+        let isValid = true;
+
+        if (!fullName) {
+          document.getElementById('full_name-error').textContent = 'Enter the person\'s full name.';
+          isValid = false;
+        }
+        if (!email) {
+          document.getElementById('email-error').textContent = 'Enter an email address.';
+          isValid = false;
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          document.getElementById('email-error').textContent = 'Email must be valid (e.g., jane@example.com).';
+          isValid = false;
+        }
+        if (!password) {
+          document.getElementById('password-error').textContent = 'Enter a password.';
+          isValid = false;
+        } else if (password.length < 8) {
+          document.getElementById('password-error').textContent = 'Password must be at least 8 characters.';
+          isValid = false;
+        }
+        if (!role) {
+          document.getElementById('role-error').textContent = 'Choose an account type.';
+          isValid = false;
+        }
+
+        return isValid;
+      }
+
+      function openCreateModal() {
+        if (!createModalOverlay || !createModal || !createForm) {
+          return;
+        }
+
+        if (createModalOverlay.classList.contains('active')) {
+          return;
+        }
+
+        closeManagePanel(false);
+        createModalOverlay.classList.add('active');
+        createModalOverlay.setAttribute('aria-hidden', 'false');
+        lockBodyScroll();
+        updateCreateRolePolicy();
+
+        window.setTimeout(function() {
+          const firstInput = createForm.querySelector('input[type="text"], input[type="email"]');
+          if (firstInput) {
+            firstInput.focus();
+          }
+        }, 80);
+      }
+
+      function closeCreateModal() {
+        if (!createModalOverlay || !createForm) {
+          return;
+        }
+        createModalOverlay.classList.remove('active');
+        createModalOverlay.setAttribute('aria-hidden', 'true');
+        unlockBodyScroll();
+        clearCreateModalErrors();
+        createForm.reset();
+        updateCreateRolePolicy();
+        if (createFormError) {
+          createFormError.style.display = 'none';
+        }
+        if (createUserTrigger) {
+          createUserTrigger.focus();
+        }
+      }
+
+      function wireAutoDisableForms() {
+        const managedSelectors = [
+          '.users-quick-form',
+          '.users-credentials-form',
+          '.users-verification-form',
+          '.users-role-form',
+          '.users-password-reset-form',
+          '.users-delete-form',
+          '#users-bulk-form',
+          '#create-user-form'
+        ];
+
+        const allForms = Array.from(document.querySelectorAll('form'));
+        allForms.forEach(function(form) {
+          const managed = managedSelectors.some(function(selector) {
+            return form.matches(selector);
+          });
+          if (managed || form.classList.contains('users-nojs-only')) {
+            return;
+          }
+          form.addEventListener('submit', function() {
+            setSubmitPending(form, 'Working...');
+          });
+        });
+      }
+
+      function wireBulkForm() {
+        if (!bulkForm) {
+          return;
+        }
+
+        bulkForm.addEventListener('submit', async function(e) {
+          e.preventDefault();
+          const selected = rowChecks.filter(function(box) { return box.checked; }).length;
           if (selected === 0) {
-            e.preventDefault();
-            window.alert('Select at least one user before applying a bulk action.');
+            await maybeShowError('No Users Selected', 'Select at least one user before applying a bulk action.');
             return;
           }
           if (!bulkAction || bulkAction.value === '') {
-            e.preventDefault();
-            window.alert('Choose a bulk action before applying.');
+            await maybeShowError('No Action Selected', 'Choose a bulk action before applying.');
             return;
+          }
+
+          if (isRoleAction(bulkAction.value)) {
+            const targetRole = selectedRoleFromAction(bulkAction.value);
+            const eligibleUsers = resolveSelectedUsers(targetRole);
+            if (eligibleUsers.length === 0) {
+              await maybeShowError('No Eligible Users', 'No selected users are eligible for that role. Admin and Librarian roles require verified accounts.');
+              resetSubmitState(bulkForm);
+              return;
+            }
+
+            const blocked = selected - eligibleUsers.length;
+            if (blocked > 0) {
+              const blockedResult = await maybeConfirmAction(
+                'Continue With Eligible Users?',
+                '<p>' + blocked + ' selected user(s) are not verified and will be skipped.</p><p style="margin-top: 10px;">Continue with ' + eligibleUsers.length + ' eligible user(s)?</p>',
+                'Continue',
+                'Cancel'
+              );
+              if (!blockedResult || !blockedResult.isConfirmed) {
+                resetSubmitState(bulkForm);
+                return;
+              }
+            }
           }
 
           if (bulkSelectedContainer) {
             bulkSelectedContainer.innerHTML = '';
-            rowChecks.forEach((box) => {
+            const targetRole = selectedRoleFromAction(bulkAction.value);
+            const eligibleIds = isRoleAction(bulkAction.value)
+              ? new Set(resolveSelectedUsers(targetRole).map(function(user) { return user.id; }))
+              : null;
+
+            rowChecks.forEach(function(box) {
               if (!box.checked) {
+                return;
+              }
+              if (eligibleIds && !eligibleIds.has(box.value)) {
                 return;
               }
               const hidden = document.createElement('input');
@@ -2002,540 +2990,323 @@ $has_feedback = $flash_success !== ''
             });
           }
 
-          const label = bulkAction.options[bulkAction.selectedIndex]?.text || 'this action';
-          announce('Preparing to apply ' + label + ' to ' + selected + ' users.');
-          if (!window.confirm('Apply "' + label + '" to ' + selected + ' selected user(s)?')) {
-            e.preventDefault();
-            if (bulkApply) {
-              bulkApply.disabled = false;
-              if (bulkApply.dataset.originalText) {
-                bulkApply.textContent = bulkApply.dataset.originalText;
-              }
-            }
+          const label = bulkAction.options[bulkAction.selectedIndex] ? bulkAction.options[bulkAction.selectedIndex].text : 'this action';
+          const selectedForSubmission = bulkSelectedContainer
+            ? bulkSelectedContainer.querySelectorAll('input[name="selected_users[]"]').length
+            : selected;
+
+          const confirmResult = await maybeConfirmAction(
+            'Apply Bulk Action?',
+            '<p>Apply <strong>' + escapeHtml(label) + '</strong> to ' + selectedForSubmission + ' selected user(s)?</p>',
+            'Apply',
+            'Cancel'
+          );
+
+          if (!confirmResult || !confirmResult.isConfirmed) {
+            resetSubmitState(bulkForm);
+            return;
           }
+
+          announce('Preparing to apply ' + label + ' to ' + selectedForSubmission + ' users.');
+          setSubmitPending(bulkForm, 'Applying...');
+          bulkForm.submit();
         });
       }
 
-      updateBulkState();
-
-      // Modal functionality
-      (function() {
-        const modalOverlay = document.getElementById('create-user-modal-overlay');
-        const modalDialog = document.getElementById('create-user-modal');
-        const modalTrigger = document.getElementById('create-user-trigger');
-        const modalCloseBtn = document.getElementById('create-user-modal-close');
-        const modalCancelBtn = document.getElementById('modal-cancel-btn');
-        const createUserForm = document.getElementById('create-user-form');
-        const modalSubmitBtn = document.getElementById('modal-submit-btn');
-        const formErrorDiv = document.getElementById('modal-form-error');
-
-        if (!modalOverlay || !modalDialog || !modalTrigger) {
+      function wireManagePanel() {
+        if (!managePanel || !manageOverlay) {
           return;
         }
 
-        // Get all focusable elements in modal
-        function getFocusableElements() {
-          const focusableSelectors = [
-            'a[href]',
-            'button:not([disabled])',
-            'input:not([disabled])',
-            'select:not([disabled])',
-            'textarea:not([disabled])',
-            '[tabindex]:not([tabindex="-1"])'
-          ].join(', ');
-          return Array.from(modalDialog.querySelectorAll(focusableSelectors));
-        }
-
-        // Show modal
-        function showModal() {
-          modalOverlay.classList.add('active');
-          modalOverlay.setAttribute('aria-hidden', 'false');
-          document.body.style.overflow = 'hidden';
-          
-          // Focus on first input field
-          setTimeout(function() {
-            const firstInput = createUserForm.querySelector('input[type="text"], input[type="email"]');
-            if (firstInput) {
-              firstInput.focus();
+        manageTriggers.forEach(function(trigger) {
+          trigger.addEventListener('click', function() {
+            const userId = trigger.getAttribute('data-user-id');
+            if (!userId) {
+              return;
             }
-          }, 100);
-        }
+            const row = document.getElementById('user-row-' + userId);
+            if (!row) {
+              return;
+            }
+            openManagePanel(row, trigger);
+          });
+        });
 
-        // Hide modal
-        function hideModal() {
-          modalOverlay.classList.remove('active');
-          modalOverlay.setAttribute('aria-hidden', 'true');
-          document.body.style.overflow = '';
-          clearFormErrors();
-          createUserForm.reset();
-          formErrorDiv.style.display = 'none';
-          modalTrigger.focus();
-        }
-
-        // Clear form errors
-        function clearFormErrors() {
-          document.querySelectorAll('.field-error').forEach(function(el) {
-            el.textContent = '';
+        if (manageCloseBtn) {
+          manageCloseBtn.addEventListener('click', function() {
+            closeManagePanel(true);
           });
         }
 
-        // Focus trap
-        function handleKeyDown(e) {
-          if (e.key !== 'Tab') {
-            return;
-          }
+        manageOverlay.addEventListener('click', function() {
+          closeManagePanel(true);
+        });
 
-          const focusableElements = getFocusableElements();
-          if (focusableElements.length === 0) {
-            return;
-          }
-
-          const firstElement = focusableElements[0];
-          const lastElement = focusableElements[focusableElements.length - 1];
-          const activeElement = document.activeElement;
-
-          if (e.shiftKey) {
-            if (activeElement === firstElement) {
-              e.preventDefault();
-              lastElement.focus();
-            }
-          } else {
-            if (activeElement === lastElement) {
-              e.preventDefault();
-              firstElement.focus();
-            }
-          }
-        }
-
-        // Handle escape key
-        function handleEscapeKey(e) {
+        managePanel.addEventListener('keydown', function(e) {
           if (e.key === 'Escape') {
-            hideModal();
+            e.preventDefault();
+            closeManagePanel(true);
+            return;
           }
+          trapFocus(e, managePanel);
+        });
+
+        managePanel.querySelectorAll('.users-manage-focus-guard').forEach(function(guard) {
+          guard.addEventListener('focus', function() {
+            const focusables = getFocusable(managePanel);
+            if (focusables.length === 0) {
+              return;
+            }
+            if (guard.getAttribute('data-focus-guard') === 'start') {
+              focusables[focusables.length - 1].focus();
+            } else {
+              focusables[0].focus();
+            }
+          });
+        });
+
+        if (roleSelect) {
+          roleSelect.addEventListener('change', function() {
+            updateManageRoleHelp();
+          });
+        }
+      }
+
+      function wireCreateModal() {
+        if (!createModalOverlay || !createModal || !createForm || !createUserTrigger) {
+          return;
         }
 
-        // Handle click outside modal
-        function handleClickOutside(e) {
-          if (e.target === modalOverlay) {
-            hideModal();
-          }
+        createUserTrigger.addEventListener('click', openCreateModal);
+        if (createUserEmptyState) {
+          createUserEmptyState.addEventListener('click', openCreateModal);
         }
 
-        // Validate form fields
-        function validateForm() {
-          clearFormErrors();
-          const fullName = createUserForm.querySelector('input[name="full_name"]').value.trim();
-          const email = createUserForm.querySelector('input[name="email"]').value.trim();
-          const password = createUserForm.querySelector('input[name="password"]').value;
-          const role = createUserForm.querySelector('select[name="role"]').value;
-          let isValid = true;
-
-          if (!fullName) {
-            document.getElementById('full_name-error').textContent = 'Enter the person\'s full name.';
-            isValid = false;
-          }
-
-          if (!email) {
-            document.getElementById('email-error').textContent = 'Enter an email address.';
-            isValid = false;
-          } else if (!isValidEmail(email)) {
-            document.getElementById('email-error').textContent = 'Email must be valid (e.g., jane@example.com).';
-            isValid = false;
-          }
-
-          if (!password) {
-            document.getElementById('password-error').textContent = 'Enter a password.';
-            isValid = false;
-          } else if (password.length < 8) {
-            document.getElementById('password-error').textContent = 'Password must be at least 8 characters.';
-            isValid = false;
-          }
-
-          if (!role) {
-            document.getElementById('role-error').textContent = 'Choose an account type.';
-            isValid = false;
-          }
-
-          return isValid;
+        if (createModalClose) {
+          createModalClose.addEventListener('click', closeCreateModal);
+        }
+        if (createModalCancel) {
+          createModalCancel.addEventListener('click', closeCreateModal);
         }
 
-        // Email validation helper
-        function isValidEmail(email) {
-          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-          return emailRegex.test(email);
+        createModalOverlay.addEventListener('click', function(e) {
+          if (e.target === createModalOverlay) {
+            closeCreateModal();
+          }
+        });
+
+        createModalOverlay.addEventListener('keydown', function(e) {
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            closeCreateModal();
+            return;
+          }
+          trapFocus(e, createModal);
+        });
+
+        if (createRoleSelect) {
+          createRoleSelect.addEventListener('change', updateCreateRolePolicy);
         }
 
-        // Handle form submission
-        function handleSubmit(e) {
+        createForm.addEventListener('submit', function(e) {
           e.preventDefault();
-
-          if (!validateForm()) {
-            formErrorDiv.textContent = 'Fix the errors above, then try again.';
-            formErrorDiv.style.display = 'block';
-            announce('Please fix the errors.');
+          if (!validateCreateModal()) {
+            if (createFormError) {
+              createFormError.textContent = 'Fix the errors above, then try again.';
+              createFormError.style.display = 'block';
+            }
+            announce('Please fix the add user form errors.');
             return;
           }
 
-          formErrorDiv.style.display = 'none';
-          modalSubmitBtn.disabled = true;
-          modalSubmitBtn.dataset.originalText = modalSubmitBtn.textContent;
-          modalSubmitBtn.textContent = 'Adding user...';
-
-          // Submit normally so the server PRG flow sets flash messages correctly.
-          // Success and error SweetAlert notices are displayed after redirect.
+          if (createFormError) {
+            createFormError.style.display = 'none';
+          }
+          if (createSubmitBtn) {
+            createSubmitBtn.disabled = true;
+            if (!createSubmitBtn.dataset.originalText) {
+              createSubmitBtn.dataset.originalText = createSubmitBtn.textContent;
+            }
+            createSubmitBtn.textContent = 'Adding user...';
+          }
           announce('Submitting new user account.');
-          createUserForm.submit();
-        }
+          createForm.submit();
+        });
 
-        // Event listeners
-        modalTrigger.addEventListener('click', showModal);
-        modalCloseBtn.addEventListener('click', hideModal);
-        modalCancelBtn.addEventListener('click', hideModal);
-        modalOverlay.addEventListener('keydown', handleKeyDown);
-        modalOverlay.addEventListener('keydown', handleEscapeKey);
-        modalOverlay.addEventListener('click', handleClickOutside);
-        createUserForm.addEventListener('submit', handleSubmit);
-
-        if (modalOverlay.getAttribute('data-open-on-load') === '1') {
-          showModal();
-          if (formErrorDiv && formErrorDiv.textContent.trim() !== '') {
-            formErrorDiv.style.display = 'block';
+        if (createModalOverlay.getAttribute('data-open-on-load') === '1') {
+          openCreateModal();
+          if (createFormError && createFormError.textContent.trim() !== '') {
+            createFormError.style.display = 'block';
             announce('Add user form has errors.');
           }
         }
-       })();
-    })();
-
-    // ── ENHANCED FEATURES: Onboarding, Keyboard Shortcuts, Empty State ──
-    (function() {
-      'use strict';
-
-      // Check if user has dismissed onboarding banner (localStorage)
-      const ONBOARDING_KEY = 'libris_users_onboarding_dismissed';
-      const onboardingBanner = document.getElementById('users-onboarding-banner');
-      const dismissBtn = document.getElementById('dismiss-onboarding');
-      const searchInput = document.getElementById('users-search-input');
-      const createUserTrigger = document.getElementById('create-user-trigger');
-      const createUserEmptyState = document.getElementById('create-user-empty-state');
-      const bulkToolbar = document.getElementById('users-bulk-toolbar');
-      const bulkForm = document.getElementById('users-bulk-form');
-      const selectAllCheckbox = document.getElementById('users-select-all');
-
-      // ── Show onboarding banner if not dismissed ──
-      if (onboardingBanner) {
-        const isDismissed = localStorage.getItem(ONBOARDING_KEY);
-        if (!isDismissed) {
-          onboardingBanner.style.display = 'grid';
-        }
-        
-        if (dismissBtn) {
-          dismissBtn.addEventListener('click', function() {
-            localStorage.setItem(ONBOARDING_KEY, 'true');
-            onboardingBanner.style.display = 'none';
-          });
-        }
       }
 
-      // ── Auto-focus search input on page load ──
-      if (searchInput) {
-        // Small delay to ensure DOM is fully ready
-        setTimeout(function() {
-          searchInput.focus();
-        }, 100);
-      }
+      function wireKeyboardAndOnboarding() {
+        if (onboardingBanner) {
+          try {
+            const dismissed = localStorage.getItem(ONBOARDING_KEY);
+            if (!dismissed) {
+              onboardingBanner.style.display = 'grid';
+            }
+          } catch (error) {
+            onboardingBanner.style.display = 'grid';
+          }
 
-      // ── Keyboard shortcuts ──
-      document.addEventListener('keydown', function(e) {
-        if (e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+          if (onboardingDismiss) {
+            onboardingDismiss.addEventListener('click', function() {
+              try {
+                localStorage.setItem(ONBOARDING_KEY, 'true');
+              } catch (error) {
+                // ignore storage failures
+              }
+              onboardingBanner.style.display = 'none';
+            });
+          }
+        }
+
+        if (searchInput) {
+          window.setTimeout(function() {
+            const createModalOpen = createModalOverlay && createModalOverlay.classList.contains('active');
+            if (createModalOpen || panelState.isOpen) {
+              return;
+            }
+            searchInput.focus();
+          }, 100);
+        }
+
+        document.addEventListener('keydown', function(e) {
+          const createModalOpen = createModalOverlay && createModalOverlay.classList.contains('active');
+          if (createModalOpen || panelState.isOpen) {
+            return;
+          }
+
           const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
           const isTypingContext = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select' || (document.activeElement && document.activeElement.isContentEditable);
-          if (!isTypingContext && searchInput) {
+
+          if (e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey && !isTypingContext && searchInput) {
             e.preventDefault();
             searchInput.focus();
             searchInput.select();
           }
-        }
 
-        // Cmd+K / Ctrl+K to focus search
-        if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-          e.preventDefault();
-          if (searchInput) {
+          if ((e.metaKey || e.ctrlKey) && e.key === 'k' && searchInput) {
+            e.preventDefault();
             searchInput.focus();
             searchInput.select();
           }
-        }
 
-        // Cmd+N / Ctrl+N to open "Add User" modal
-        if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
-          e.preventDefault();
-          if (createUserTrigger) {
-            createUserTrigger.click();
-          }
-        }
-      });
-
-      // ── Handle "Add User" from empty state ──
-      if (createUserEmptyState) {
-        createUserEmptyState.addEventListener('click', function() {
-          if (createUserTrigger) {
-            createUserTrigger.click();
+          if ((e.metaKey || e.ctrlKey) && e.key === 'n' && createUserTrigger) {
+            e.preventDefault();
+            openCreateModal();
           }
         });
       }
 
-       // ── Update bulk toolbar visibility based on selection ──
-       function updateBulkToolbarVisibility() {
-         if (!bulkToolbar) return;
+      function wireActionForms() {
+        document.querySelectorAll('.users-quick-form').forEach(function(form) {
+          form.addEventListener('submit', handleQuickFormSubmit);
+        });
 
-         const selectedCheckboxes = document.querySelectorAll(
-           '.users-select-row:checked'
-         );
-         const hasSelection = selectedCheckboxes.length > 0;
-
-         if (hasSelection) {
-           bulkToolbar.classList.add('users-bulk-toolbar--has-selection');
-         } else {
-           bulkToolbar.classList.remove('users-bulk-toolbar--has-selection');
-         }
-       }
-
-      // ── Listen to checkbox changes ──
-      if (selectAllCheckbox) {
-        selectAllCheckbox.addEventListener('change', updateBulkToolbarVisibility);
-      }
-
-      const userCheckboxes = document.querySelectorAll(
-        '.users-select-row'
-      );
-      userCheckboxes.forEach(function(checkbox) {
-        checkbox.addEventListener('change', updateBulkToolbarVisibility);
-      });
-
-      // Initial visibility update
-      updateBulkToolbarVisibility();
-
-      // ── Enhanced error recovery ──
-      const flashError = document.querySelector('.flash.flash-error');
-      if (flashError) {
-        const errorText = flashError.textContent;
-        
-        // Add helpful guidance for common errors
-        if (errorText.includes('active loan') || errorText.includes('loan')) {
-          const suggestion = document.createElement('p');
-          suggestion.style.marginTop = 'var(--space-2)';
-          suggestion.style.fontSize = 'var(--text-xs)';
-          suggestion.style.color = 'var(--muted)';
-          suggestion.innerHTML = '<strong>Tip:</strong> Return the user\'s items first, or archive the account instead of deleting it.';
-          flashError.appendChild(suggestion);
+        if (credentialsForm) {
+          credentialsForm.addEventListener('submit', handleCredentialsSubmit);
+        }
+        if (verificationForm) {
+          verificationForm.addEventListener('submit', handleVerificationSubmit);
+        }
+        if (roleForm) {
+          roleForm.addEventListener('submit', handleRoleSubmit);
+        }
+        if (passwordForm) {
+          passwordForm.addEventListener('submit', handlePasswordSubmit);
+        }
+        if (deleteForm) {
+          deleteForm.addEventListener('submit', handleDeleteSubmit);
         }
       }
 
-     })();
+      function showFlashMessages() {
+        const swal = getSweetAlertUtils();
+        if (!swal) {
+          return;
+        }
 
-     // ── SWEETALERT2 INTEGRATION: Individual User Actions ──
-     document.addEventListener('DOMContentLoaded', function() {
-       'use strict';
-       
-       if (typeof sweetAlertUtils === 'undefined') {
-         return; // Fail gracefully if SweetAlert is not loaded
-       }
+        const flashSuccess = document.getElementById('users-flash-success');
+        const flashError = document.getElementById('users-flash-error');
 
-       // Handle role change forms
-       const roleChangeForms = document.querySelectorAll('.users-role-form');
-       roleChangeForms.forEach(function(form) {
-         form.addEventListener('submit', async function(e) {
-           e.preventDefault();
+        if (flashSuccess) {
+          const message = flashSuccess.getAttribute('data-message');
+          if (message) {
+            window.setTimeout(function() {
+              swal.showSuccess('Success', message, 3000);
+            }, 280);
+          }
+        }
 
-           const userName = form.getAttribute('data-user-name');
-           const currentRole = form.getAttribute('data-current-role');
-           const newRoleSelect = form.querySelector('select[name="new_role"]');
-           const newRole = newRoleSelect.value;
+        if (flashError) {
+          const message = flashError.getAttribute('data-message');
+          if (message) {
+            window.setTimeout(function() {
+              swal.showError('Error', message);
+            }, 280);
+          }
+        }
+      }
 
-           if (newRole === currentRole) {
-             await sweetAlertUtils.showInfo('No Change', 'The new role is the same as the current role.');
-             return;
-           }
+      function highlightFocusedRow() {
+        if (!usersLayout) {
+          return;
+        }
+        const focusUserId = parseInt(usersLayout.getAttribute('data-focus-user-id') || '0', 10);
+        if (focusUserId <= 0) {
+          return;
+        }
+        const targetRow = document.getElementById('user-row-' + focusUserId);
+        if (!targetRow) {
+          return;
+        }
+        targetRow.classList.add('users-row--focus-pulse');
+        window.setTimeout(function() {
+          targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 120);
+        window.setTimeout(function() {
+          targetRow.classList.remove('users-row--focus-pulse');
+        }, 2600);
+      }
 
-           const result = await sweetAlertUtils.confirmChangeRole(
-             'Change User Role',
-             userName,
-             currentRole,
-             newRole
-           );
+      function wireBulkSelection() {
+        if (selectAll) {
+          selectAll.addEventListener('change', function() {
+            rowChecks.forEach(function(box) {
+              box.checked = selectAll.checked;
+            });
+            updateBulkState();
+          });
+        }
 
-           if (result.isConfirmed) {
-             form.submit();
-           }
-         });
-       });
+        rowChecks.forEach(function(box) {
+          box.addEventListener('change', updateBulkState);
+        });
 
-       // Handle delete forms
-       const deleteUserForms = document.querySelectorAll('.users-delete-form');
-       deleteUserForms.forEach(function(form) {
-         form.addEventListener('submit', async function(e) {
-           e.preventDefault();
+        if (bulkAction) {
+          bulkAction.addEventListener('change', updateBulkState);
+        }
 
-           const userName = form.getAttribute('data-user-name');
-           const confirmCheckbox = form.querySelector('input[name="delete_confirm"]');
+        updateBulkState();
+      }
 
-           const result = await sweetAlertUtils.confirmDeleteUser(userName, 'Account will be permanently deleted');
-
-           if (result.isConfirmed) {
-             // Set the checkbox to confirm deletion
-             confirmCheckbox.checked = true;
-             form.submit();
-           }
-         });
-       });
-
-       // Handle credentials update forms
-       const credentialsUpdateForms = document.querySelectorAll('.users-credentials-form');
-       credentialsUpdateForms.forEach(function(form) {
-         form.addEventListener('submit', async function(e) {
-           e.preventDefault();
-
-           const userName = form.getAttribute('data-user-name') || 'this user';
-           const currentName = form.getAttribute('data-current-name') || '';
-           const currentEmail = form.getAttribute('data-current-email') || '';
-           const fullNameInput = form.querySelector('input[name="full_name"]');
-           const emailInput = form.querySelector('input[name="email"]');
-           const nextName = fullNameInput ? fullNameInput.value.trim() : '';
-           const nextEmail = emailInput ? emailInput.value.trim() : '';
-
-           if (!nextName || !nextEmail) {
-             await sweetAlertUtils.showError('Missing Required Fields', 'Full name and email are required.');
-             return;
-           }
-
-           if (nextName === currentName && nextEmail.toLowerCase() === currentEmail.toLowerCase()) {
-             await sweetAlertUtils.showInfo('No Changes', 'No credential changes were detected for this account.');
-             return;
-           }
-
-           const result = await sweetAlertUtils.confirmAction(
-             'Save Credential Changes?',
-             '<p><strong>' + escapeHtml(userName) + '</strong></p><p style="margin-top: 10px; font-size: 0.9rem;">Updates to full name and email will take effect immediately.</p>',
-             'Save Credentials',
-             'Cancel'
-           );
-
-           if (result.isConfirmed) {
-             form.submit();
-           }
-         });
-       });
-
-       // Handle password reset forms
-       const passwordResetForms = document.querySelectorAll('.users-password-reset-form');
-       passwordResetForms.forEach(function(form) {
-         form.addEventListener('submit', async function(e) {
-           e.preventDefault();
-
-           const userName = form.getAttribute('data-user-name') || 'this user';
-           const newPasswordInput = form.querySelector('input[name="new_password"]');
-           const confirmPasswordInput = form.querySelector('input[name="confirm_password"]');
-           const newPassword = newPasswordInput ? newPasswordInput.value : '';
-           const confirmPassword = confirmPasswordInput ? confirmPasswordInput.value : '';
-
-           if (newPassword.length < 8) {
-             await sweetAlertUtils.showError('Invalid Password', 'Password must be at least 8 characters.');
-             return;
-           }
-
-           if (newPassword !== confirmPassword) {
-             await sweetAlertUtils.showError('Password Mismatch', 'New password and confirmation must match.');
-             return;
-           }
-
-           const result = await sweetAlertUtils.confirmAction(
-             'Reset User Password?',
-             '<p><strong>' + escapeHtml(userName) + '</strong></p><p style="margin-top: 10px; font-size: 0.9rem;">This will replace the user\'s current password immediately.</p>',
-             'Update Password',
-             'Cancel'
-           );
-
-           if (result.isConfirmed) {
-             form.submit();
-           }
-         });
-       });
-
-       // Handle deactivate forms
-       const deactivateForms = document.querySelectorAll('form[action*="users.php"] input[name="action"][value="deactivate"]');
-       deactivateForms.forEach(function(input) {
-         const form = input.closest('form');
-         if (form) {
-           form.addEventListener('submit', async function(e) {
-             e.preventDefault();
-
-             const userName = form.querySelector('input[name="user_name"]').value;
-             const result = await sweetAlertUtils.confirmSuspendUser(userName, 'Account will be deactivated');
-
-             if (result.isConfirmed) {
-               form.submit();
-             }
-           });
-         }
-       });
-
-       // Handle activation forms
-       const activateForms = document.querySelectorAll('form[action*="users.php"] input[name="action"][value="activate"]');
-       activateForms.forEach(function(input) {
-         const form = input.closest('form');
-         if (form) {
-           form.addEventListener('submit', async function(e) {
-             e.preventDefault();
-
-             const userName = form.querySelector('input[name="user_name"]').value;
-             const result = await sweetAlertUtils.confirmAction(
-               'Reactivate Account?',
-               '<p>This account will be reactivated and the user can log in again.</p><p><strong>' + escapeHtml(userName) + '</strong></p>',
-               'Reactivate',
-               'Cancel'
-             );
-
-             if (result.isConfirmed) {
-               form.submit();
-             }
-           });
-         }
-       });
-
-       // Helper function to escape HTML
-       function escapeHtml(text) {
-         const map = {
-           '&': '&amp;',
-           '<': '&lt;',
-           '>': '&gt;',
-           '"': '&quot;',
-           "'": '&#039;'
-         };
-         return text.replace(/[&<>"']/g, (char) => map[char]);
-       }
-
-       // Handle flash messages
-       const flashSuccess = document.getElementById('users-flash-success');
-       const flashError = document.getElementById('users-flash-error');
-
-       if (flashSuccess) {
-         const message = flashSuccess.getAttribute('data-message');
-         if (message) {
-           setTimeout(async function() {
-             await sweetAlertUtils.showSuccess('Success', message, 3000);
-           }, 300);
-         }
-       }
-
-       if (flashError) {
-         const message = flashError.getAttribute('data-message');
-         if (message) {
-           setTimeout(async function() {
-             await sweetAlertUtils.showError('Error', message);
-           }, 300);
-         }
-       }
-     });
-   </script>
+      wireBulkSelection();
+      wireBulkForm();
+      wireManagePanel();
+      wireCreateModal();
+      wireKeyboardAndOnboarding();
+      wireActionForms();
+      wireAutoDisableForms();
+      updateCreateRolePolicy();
+      showFlashMessages();
+      highlightFocusedRow();
+    })();
+  </script>
  </body>
 
 
