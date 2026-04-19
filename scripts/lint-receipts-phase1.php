@@ -4,6 +4,7 @@ $root = dirname(__DIR__);
 
 $files = [
   'includes/receipts.php',
+  'includes/receipt_pdf.php',
   'receipt/view.php',
   'receipt/kiosk.php',
   'receipt/index.php',

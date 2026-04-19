@@ -896,10 +896,19 @@ function receipt_pdf_meta(array $receipt): array
 {
   $base = (defined('BASE_URL') ? (string) constant('BASE_URL') : '/') . 'api/receipts/pdf.php?';
   $no = rawurlencode((string) ($receipt['receipt_no'] ?? ''));
+  $receiptNo = (string) ($receipt['receipt_no'] ?? '');
+  $safeNo = preg_replace('/[^A-Za-z0-9_-]+/', '_', trim($receiptNo));
+  $safeNo = trim((string) $safeNo, '_-');
+  if ($safeNo === '') {
+    $safeNo = 'unknown';
+  }
+
   return [
-    'pdf_available' => false,
+    'pdf_available' => true,
+    'filename' => 'receipt_' . substr($safeNo, 0, 96) . '.pdf',
+    'download_url' => $base . 'no=' . $no,
     'html_url' => receipt_view_url($receipt),
     'download_html_url' => $base . 'no=' . $no . '&mode=download_html',
-    'message' => 'PDF library is not installed; HTML fallback is provided.',
+    'message' => 'PDF download is available.',
   ];
 }
