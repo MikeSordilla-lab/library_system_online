@@ -9,8 +9,8 @@
  * Usage:
  *   php runner.php                    - Show available migrations
  *   php runner.php all               - Run all migrations
- *   php runner.php password-reset    - Run specific migration
- *   php runner.php performance-indexes - Run performance optimization indexes
+ *   php runner.php receipts-phase1   - Run specific migration
+ *   php runner.php reservations      - Run specific migration (alias)
  *
  * Exit codes:
  *   0 = Success
@@ -32,26 +32,6 @@ $migrations = [
         'file' => 'database/migration-receipts-phase1-safe.sql',
         'description' => 'Idempotent receipt phase 1 column-extension script',
         'aliases' => ['receipts-safe', 'ticket-safe']
-    ],
-    'avatar-support' => [
-        'file' => 'database/migration-avatar-support.sql',
-        'description' => 'Add avatar support (avatar_url column and index)',
-        'aliases' => ['avatar']
-    ],
-    'password-reset' => [
-        'file' => 'database/migration-password-reset.sql',
-        'description' => 'Add password reset functionality (reset tokens and expires)',
-        'aliases' => ['password', 'reset']
-    ],
-    'email-verification' => [
-        'file' => 'database/migration-email-verification.sql',
-        'description' => 'Add email verification with OTP (verification tokens and OTP)',
-        'aliases' => ['email', 'otp', 'verification']
-    ],
-    'performance-indexes' => [
-        'file' => 'database/migration-add-performance-indexes.sql',
-        'description' => 'Add 20 performance indexes for query optimization',
-        'aliases' => ['performance', 'indexes', 'optimize']
     ],
     'reservations-approval-phase1' => [
         'file' => 'database/migration-reservations-approval-phase1.sql',
@@ -228,19 +208,14 @@ COMMANDS:
 AVAILABLE MIGRATIONS:
   receipts-phase1        - Add receipt/ticket tables (aliases: receipts, ticket, tickets)
   receipts-phase1-safe   - Safe re-run receipt extension (aliases: receipts-safe, ticket-safe)
-  avatar-support         - Add avatar support (aliases: avatar)
-  password-reset         - Add password reset (aliases: password, reset)
-  email-verification     - Add email verification (aliases: email, otp, verification)
-  performance-indexes    - Add performance indexes (aliases: performance, indexes, optimize)
   reservations-approval-phase1 - Add reservation approval columns/indexes (aliases: reservations-approval, reservations, reservation-approval)
 
 EXAMPLES:
   php runner.php                    # Show this help
   php runner.php list               # List all migrations
   php runner.php all                # Run all migrations
-  php runner.php password-reset     # Run password reset migration
-  php runner.php avatar             # Run avatar support migration (short alias)
-  php runner.php performance-indexes # Run performance optimization
+  php runner.php receipts-phase1    # Run receipts migration
+  php runner.php reservations       # Run reservations approval migration (alias)
 
 EXIT CODES:
   0 = Success

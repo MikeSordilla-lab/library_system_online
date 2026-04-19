@@ -6,8 +6,8 @@ Options -Indexes
     Require all denied
 </Files>
 
-# Block direct access to environment files
-<FilesMatch "^\.env(\.production)?$">
+# Block direct access to all environment files (.env, .env.local, .env.production, etc.)
+<FilesMatch "^\.env($|\..*)">
     Require all denied
 </FilesMatch>
 

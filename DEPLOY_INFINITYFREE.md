@@ -16,7 +16,7 @@ This creates:
 
 - `deploy/library-system-deploy.zip`
 
-The script excludes non-deployment folders such as `.git`, `.github`, `.vscode`, `docs`, and local test folders.
+The script excludes non-deployment folders such as `.git`, `.github`, `.vscode`, `docs`, and local test folders, plus sensitive files like `.env*` and `ADMIN-CREDENTIALS.md`.
 Upload this generated zip instead of a manual full-folder zip.
 
 ## 1) File upload target
@@ -26,15 +26,20 @@ Upload this generated zip instead of a manual full-folder zip.
 
 ## 2) Required configuration
 
-1. Copy `.env.sample` to `.env`.
-2. Update these values from InfinityFree panel:
+1. Keep your real environment values in `.env.production` (this repo already includes a placeholder template).
+2. Update these values from InfinityFree panel/mail provider:
    - `DB_HOST` (usually `sqlXXX.infinityfree.com`)
    - `DB_PORT` (`3306`)
    - `DB_NAME`
    - `DB_USER`
    - `DB_PASS`
-3. Set `BASE_URL` to your live URL with trailing slash.
-4. Set `DEBUG_MODE=false`.
+   - `BASE_URL` (live URL with trailing slash)
+   - `SUPERADMIN_EMAIL`
+   - `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME`
+   - `DEBUG_MODE=false`
+   - `DEVELOPER_*` metadata values you want shown in the admin About Me page
+3. Ensure `.env.mode` is set to `production` on the deployed server.
+4. Do not upload any local `.env` variants in your deploy artifact.
 
 Notes:
 
@@ -44,13 +49,18 @@ Notes:
 ## 3) Database import
 
 - Create your MySQL database in InfinityFree panel.
-- Import `database/schema.sql` via phpMyAdmin.
+- Import the SQL files from `database/` that exist in this repository, via phpMyAdmin, in this order:
+  1. `database/migration-receipts-phase1.sql`
+  2. `database/migration-receipts-phase1-safe.sql`
+  3. `database/migration-reservations-approval-phase1.sql`
+- If you run CLI on a compatible environment, use `php admin/migrations/runner.php list` to view currently registered migrations.
 
 ## 4) Security files to keep on server
 
-- `.htaccess` in root (blocks direct `config.php` access).
+- `.htaccess` in root (blocks direct `config.php` and all `.env*` file access).
 - `.user.ini` in root (keeps errors hidden from visitors).
 - `includes/.htaccess` and `database/.htaccess` (deny direct access).
+- Keep `database/.htaccess` after upload/extract; do not delete it.
 
 ## 5) Files not needed in deployment
 

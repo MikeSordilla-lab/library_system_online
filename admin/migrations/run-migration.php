@@ -1,33 +1,40 @@
 <?php
 
 /**
- * Quick migration runner for password reset functionality
+ * admin/migrations/run-migration.php
+ *
+ * Legacy compatibility wrapper that delegates to runner.php.
+ *
+ * Examples:
+ *   php run-migration.php list
+ *   php run-migration.php all
+ *   php run-migration.php receipts-phase1
  */
 
-require_once __DIR__ . '/includes/db.php';
-
-try {
-  $pdo = get_db();
-
-  // Read migration file
-  $migration_sql = file_get_contents(__DIR__ . '/database/migration-password-reset.sql');
-
-  // Split by semicolon and execute each statement
-  $statements = array_filter(
-    array_map('trim', explode(';', $migration_sql)),
-    fn($stmt) => !empty($stmt) && !str_starts_with($stmt, '--')
-  );
-
-  foreach ($statements as $statement) {
-    echo "Executing: " . substr($statement, 0, 50) . "...\n";
-    $pdo->exec($statement);
-  }
-
-  echo "\n✓ Migration completed successfully!\n";
-  echo "✓ Added password_reset_token column\n";
-  echo "✓ Added password_reset_expires column\n";
-  echo "✓ Created index on password_reset_token\n";
-} catch (PDOException $e) {
-  echo "✗ Migration failed: " . $e->getMessage() . "\n";
-  exit(1);
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit('This script can only be run from CLI.');
 }
+
+$runner = __DIR__ . '/runner.php';
+if (!file_exists($runner)) {
+    fwrite(STDERR, "Migration runner not found: {$runner}\n");
+    exit(1);
+}
+
+$args = $argv ?? [];
+array_shift($args);
+if ($args === []) {
+    $args = ['help'];
+}
+
+fwrite(STDERR, "[deprecated] run-migration.php delegates to runner.php\n");
+
+$command = escapeshellarg((string) PHP_BINARY) . ' ' . escapeshellarg($runner);
+foreach ($args as $arg) {
+    $command .= ' ' . escapeshellarg((string) $arg);
+}
+
+$exitCode = 0;
+passthru($command, $exitCode);
+exit($exitCode);

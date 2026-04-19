@@ -22,6 +22,9 @@ $excludedDirs = @(
 
 $excludedFiles = @(
   "*.zip",
+  ".env",
+  ".env.*",
+  "ADMIN-CREDENTIALS.md",
   "Thumbs.db",
   "desktop.ini"
 )
