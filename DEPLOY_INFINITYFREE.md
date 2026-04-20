@@ -16,7 +16,7 @@ This creates:
 
 - `deploy/library-system-deploy.zip`
 
-The script excludes non-deployment folders such as `.git`, `.github`, `.vscode`, `docs`, and local test folders, plus sensitive files like `.env*` and `ADMIN-CREDENTIALS.md`.
+The script excludes non-deployment folders such as `.git`, `.github`, `.kilo`, `.agents`, `.claude`, `.vscode`, `docs`, and local test folders. It removes local env files (`.env`, `.env.local`) but keeps `.env.production`, and forces `.env.mode=production` in the zip.
 Upload this generated zip instead of a manual full-folder zip.
 
 ## 1) File upload target
@@ -39,7 +39,7 @@ Upload this generated zip instead of a manual full-folder zip.
    - `DEBUG_MODE=false`
    - `DEVELOPER_*` metadata values you want shown in the admin About Me page
 3. Ensure `.env.mode` is set to `production` on the deployed server.
-4. Do not upload any local `.env` variants in your deploy artifact.
+4. Do not upload any local `.env` variants (`.env`, `.env.local`) in your deploy artifact.
 
 Notes:
 

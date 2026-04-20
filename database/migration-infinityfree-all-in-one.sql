@@ -119,24 +119,45 @@ ALTER TABLE IF EXISTS `Reservations`
 ALTER TABLE IF EXISTS `Reservations`
   ADD COLUMN IF NOT EXISTS `approved_by` INT NULL;
 
+ALTER TABLE IF EXISTS `reservations`
+  ADD COLUMN IF NOT EXISTS `approved_at` DATETIME NULL;
+
+ALTER TABLE IF EXISTS `reservations`
+  ADD COLUMN IF NOT EXISTS `approved_by` INT NULL;
+
 ALTER TABLE IF EXISTS `Reservations`
+  ADD COLUMN IF NOT EXISTS `rejected_at` DATETIME NULL;
+
+ALTER TABLE IF EXISTS `reservations`
   ADD COLUMN IF NOT EXISTS `rejected_at` DATETIME NULL;
 
 ALTER TABLE IF EXISTS `Reservations`
   ADD COLUMN IF NOT EXISTS `rejected_by` INT NULL;
 
+ALTER TABLE IF EXISTS `reservations`
+  ADD COLUMN IF NOT EXISTS `rejected_by` INT NULL;
+
 ALTER TABLE IF EXISTS `Reservations`
+  ADD COLUMN IF NOT EXISTS `rejection_reason` VARCHAR(255) NULL;
+
+ALTER TABLE IF EXISTS `reservations`
   ADD COLUMN IF NOT EXISTS `rejection_reason` VARCHAR(255) NULL;
 
 /* -------------------------------------------------------------------------- */
 /* Reservations indexes (idempotent where IF NOT EXISTS is supported)         */
 /* -------------------------------------------------------------------------- */
 
-CREATE INDEX IF NOT EXISTS `idx_reservations_book_status_reserved_at`
-  ON `Reservations` (`book_id`, `status`, `reserved_at`);
+ALTER TABLE IF EXISTS `Reservations`
+  ADD INDEX IF NOT EXISTS `idx_reservations_book_status_reserved_at` (`book_id`, `status`, `reserved_at`);
 
-CREATE INDEX IF NOT EXISTS `idx_reservations_user_status`
-  ON `Reservations` (`user_id`, `status`);
+ALTER TABLE IF EXISTS `reservations`
+  ADD INDEX IF NOT EXISTS `idx_reservations_book_status_reserved_at` (`book_id`, `status`, `reserved_at`);
+
+ALTER TABLE IF EXISTS `Reservations`
+  ADD INDEX IF NOT EXISTS `idx_reservations_user_status` (`user_id`, `status`);
+
+ALTER TABLE IF EXISTS `reservations`
+  ADD INDEX IF NOT EXISTS `idx_reservations_user_status` (`user_id`, `status`);
 
 -- If your server rejects CREATE INDEX IF NOT EXISTS syntax, use these once:
 -- ALTER TABLE `Reservations`
