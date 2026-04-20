@@ -44,8 +44,7 @@ CREATE TABLE IF NOT EXISTS `Receipt_Ticket_Logs` (
   PRIMARY KEY (`id`),
   KEY `idx_receipt_ticket_logs_receipt` (`receipt_id`, `created_at`),
   KEY `idx_receipt_ticket_logs_actor` (`actor_user_id`, `created_at`),
-  CONSTRAINT `fk_receipt_ticket_logs_receipt`
-    FOREIGN KEY (`receipt_id`) REFERENCES `Receipt_Tickets` (`id`)
+  FOREIGN KEY (`receipt_id`) REFERENCES `Receipt_Tickets` (`id`)
     ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -63,8 +62,7 @@ CREATE TABLE IF NOT EXISTS `Receipt_Print_Jobs` (
   PRIMARY KEY (`id`),
   KEY `idx_receipt_print_jobs_receipt` (`receipt_id`, `created_at`),
   KEY `idx_receipt_print_jobs_actor` (`actor_user_id`, `created_at`),
-  CONSTRAINT `fk_receipt_print_jobs_receipt`
-    FOREIGN KEY (`receipt_id`) REFERENCES `Receipt_Tickets` (`id`)
+  FOREIGN KEY (`receipt_id`) REFERENCES `Receipt_Tickets` (`id`)
     ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
