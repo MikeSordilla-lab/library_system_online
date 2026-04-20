@@ -1,3 +1,14 @@
+# InfinityFree full import
+
+Use this for a fresh InfinityFree deployment with the full schema and seed data.
+
+1. Open InfinityFree phpMyAdmin.
+2. Select your database, then choose the **Import** tab.
+3. Import `database/infinityfree-import.sql`.
+4. Verify these tables exist: `Users`, `Books`, `Reservations`, `System_Logs`.
+5. Log in with `admin@library.local` / `admin123`.
+6. Change the admin password immediately.
+
 # Database migrations
 
 ## Phase 1 receipt/ticket migration

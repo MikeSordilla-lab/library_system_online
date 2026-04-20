@@ -52,7 +52,9 @@ Notes:
 - Import the SQL files from `database/` that exist in this repository, via phpMyAdmin, in this order:
   1. `database/migration-receipts-phase1.sql`
   2. `database/migration-receipts-phase1-safe.sql`
-  3. `database/migration-reservations-approval-phase1.sql`
+  3. `database/migration-reservations-table-create.sql`
+  4. `database/migration-reservations-fk-safe.sql`
+  5. `database/migration-reservations-approval-phase1.sql`
 - If you run CLI on a compatible environment, use `php admin/migrations/runner.php list` to view currently registered migrations.
 
 ## 4) Security files to keep on server
