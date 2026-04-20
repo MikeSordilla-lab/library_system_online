@@ -113,19 +113,19 @@ ALTER TABLE `Receipt_Ticket_Logs`
 /* Reservations approval columns                                               */
 /* -------------------------------------------------------------------------- */
 
-ALTER TABLE `Reservations`
+ALTER TABLE IF EXISTS `Reservations`
   ADD COLUMN IF NOT EXISTS `approved_at` DATETIME NULL;
 
-ALTER TABLE `Reservations`
+ALTER TABLE IF EXISTS `Reservations`
   ADD COLUMN IF NOT EXISTS `approved_by` INT NULL;
 
-ALTER TABLE `Reservations`
+ALTER TABLE IF EXISTS `Reservations`
   ADD COLUMN IF NOT EXISTS `rejected_at` DATETIME NULL;
 
-ALTER TABLE `Reservations`
+ALTER TABLE IF EXISTS `Reservations`
   ADD COLUMN IF NOT EXISTS `rejected_by` INT NULL;
 
-ALTER TABLE `Reservations`
+ALTER TABLE IF EXISTS `Reservations`
   ADD COLUMN IF NOT EXISTS `rejection_reason` VARCHAR(255) NULL;
 
 /* -------------------------------------------------------------------------- */
