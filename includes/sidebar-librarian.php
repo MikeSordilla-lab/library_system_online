@@ -56,8 +56,8 @@ $key === ($current_page ?? '') ? 'sidebar-item active' : 'sidebar-item';
     <a href="<?= BASE_URL ?>receipt/index.php" class="<?= $_sb_nav('receipt.index') ?>">
       Receipts
     </a>
-    <a href="<?= BASE_URL ?>librarian/visitor-pass.php" class="<?= $_sb_nav('librarian.visitor-pass') ?>">
-      Visitor Pass
+    <a href="<?= BASE_URL ?>librarian/records.php" class="<?= $_sb_nav('librarian.records') ?>">
+      Generate Records
     </a>
   </div>
 

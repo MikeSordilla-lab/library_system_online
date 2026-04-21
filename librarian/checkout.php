@@ -344,8 +344,7 @@ $pageTitle    = 'Check Out | Library System';
                 class="btn-confirm"
                 href="<?= htmlspecialchars($flash_print_url, ENT_QUOTES, 'UTF-8') ?>"
                 target="_blank"
-                rel="noopener noreferrer"
-              ><?= htmlspecialchars($flash_print_label, ENT_QUOTES, 'UTF-8') ?></a>
+                rel="noopener noreferrer"><?= htmlspecialchars($flash_print_label, ENT_QUOTES, 'UTF-8') ?></a>
             </div>
           <?php endif; ?>
         </div>
@@ -374,7 +373,7 @@ $pageTitle    = 'Check Out | Library System';
 
               <div style="margin-bottom: var(--space-5)">
                 <label class="field-label" for="user_id">Borrower</label>
-                <select class="field-select" id="user_id" name="user_id" required>
+                <select class="field-select select2-borrower" id="user_id" name="user_id" required>
                   <option value="">&mdash; Select a Borrower &mdash;</option>
                   <?php foreach ($borrowers as $b): ?>
                     <option value="<?= (int) $b['id'] ?>">
@@ -386,7 +385,7 @@ $pageTitle    = 'Check Out | Library System';
 
               <div style="margin-bottom: var(--space-5)">
                 <label class="field-label" for="book_id">Book (Available only)</label>
-                <select class="field-select" id="book_id" name="book_id" required>
+                <select class="field-select select2-book" id="book_id" name="book_id" required>
                   <option value="">&mdash; Select a Book &mdash;</option>
                   <?php foreach ($books as $bk): ?>
                     <option value="<?= (int) $bk['id'] ?>">
@@ -413,14 +412,14 @@ $pageTitle    = 'Check Out | Library System';
           <?php else: ?>
             <form method="POST" action="<?= htmlspecialchars(BASE_URL . 'librarian/pay-fine.php', ENT_QUOTES, 'UTF-8') ?>">
               <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-              
+
               <div style="margin-bottom: var(--space-5)">
                 <label class="field-label" for="fine_user_id">Select Borrower to Clear Fines</label>
-                <select class="field-select" id="fine_user_id" name="user_id" required>
+                <select class="field-select select2-fines" id="fine_user_id" name="user_id" required>
                   <option value="">&mdash; Select a Borrower &mdash;</option>
                   <?php foreach ($users_with_fines as $u): ?>
                     <option value="<?= (int) $u['id'] ?>">
-                      <?= htmlspecialchars($u['full_name'], ENT_QUOTES, 'UTF-8') ?> — $<?= number_format((float) $u['total_fines'], 2) ?>
+                      <?= htmlspecialchars($u['full_name'], ENT_QUOTES, 'UTF-8') ?> — ₱<?= number_format((float) $u['total_fines'], 2) ?>
                     </option>
                   <?php endforeach; ?>
                 </select>
@@ -433,10 +432,96 @@ $pageTitle    = 'Check Out | Library System';
       </div>
     </main>
   </div>
+
+  <!-- Select2 — live searchable dropdowns -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  <style>
+    /* Match Select2 to the system's existing field style */
+    .select2-container {
+      width: 100% !important;
+    }
+
+    .select2-container--default .select2-selection--single {
+      height: auto;
+      min-height: 42px;
+      border: 1px solid var(--border, #d1c9be);
+      border-radius: var(--radius, 6px);
+      background: #fff;
+      padding: 8px 36px 8px 12px;
+      font-size: var(--text-base, 14px);
+      color: var(--ink, #1a1a1a);
+      display: flex;
+      align-items: center;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+      padding: 0;
+      line-height: 1.4;
+      color: var(--ink, #1a1a1a);
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+      height: 100%;
+      top: 0;
+      right: 10px;
+    }
+
+    .select2-container--default.select2-container--focus .select2-selection--single,
+    .select2-container--default.select2-container--open .select2-selection--single {
+      border-color: var(--accent, #8b6f47);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(139, 111, 71, .15);
+    }
+
+    .select2-dropdown {
+      border: 1px solid var(--border, #d1c9be);
+      border-radius: var(--radius, 6px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, .08);
+      font-size: var(--text-base, 14px);
+    }
+
+    .select2-search--dropdown .select2-search__field {
+      border: 1px solid var(--border, #d1c9be);
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-size: 14px;
+    }
+
+    .select2-search--dropdown .select2-search__field:focus {
+      outline: none;
+      border-color: var(--accent, #8b6f47);
+    }
+
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+      background-color: var(--accent, #8b6f47);
+      color: #fff;
+    }
+
+    .select2-results__option {
+      padding: 8px 12px;
+    }
+  </style>
+  <script>
+    $(function() {
+      $('.select2-borrower').select2({
+        placeholder: '— Type to search borrower —',
+        allowClear: true,
+        width: '100%'
+      });
+      $('.select2-book').select2({
+        placeholder: '— Type to search book title —',
+        allowClear: true,
+        width: '100%'
+      });
+      $('.select2-fines').select2({
+        placeholder: '— Type to search borrower —',
+        allowClear: true,
+        width: '100%'
+      });
+    });
+  </script>
 </body>
 
 </html>
-
-
-
-
