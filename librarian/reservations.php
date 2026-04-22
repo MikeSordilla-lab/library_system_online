@@ -128,6 +128,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 expire_stale_reservations($pdo);
 $rows = get_pending_reservation_queue($pdo);
 
+// EPIC 1: Also fetch approved reservations so librarians can see what's awaiting pickup
+$approved_rows_stmt = $pdo->prepare(
+  'SELECT r.id, r.user_id, r.book_id, r.reserved_at, r.approved_at, r.expires_at,
+          u.full_name AS borrower_name, u.email AS borrower_email,
+          b.title AS book_title, b.author AS book_author,
+          (SELECT full_name FROM Users WHERE id = r.approved_by LIMIT 1) AS approved_by_name
+     FROM Reservations r
+     JOIN Users u ON r.user_id = u.id
+     JOIN Books b ON r.book_id = b.id
+    WHERE r.status = ?
+    ORDER BY r.expires_at ASC'
+);
+$approved_rows_stmt->execute([RESERVATION_STATUS_APPROVED]);
+$approved_rows = $approved_rows_stmt->fetchAll();
+
 $flashError = (string) ($_SESSION['flash_error'] ?? '');
 $flashSuccess = (string) ($_SESSION['flash_success'] ?? '');
 $flashInfo = (string) ($_SESSION['flash_info'] ?? '');
@@ -215,6 +230,70 @@ $pageTitle = 'Reservations | Library System';
           </div>
         <?php endif; ?>
       </div>
+
+      <!-- ── EPIC 1: Approved Reservations (Awaiting Pickup) ───────────────── -->
+      <div class="section-card" style="margin-top:var(--space-4,1.5rem);">
+        <div class="section-card__header">
+          <span class="section-card__title">Approved — Awaiting Pickup</span>
+          <?php if (!empty($approved_rows)): ?>
+            <span class="badge badge-green"><?= count($approved_rows) ?></span>
+          <?php endif; ?>
+        </div>
+        <p style="padding:0 var(--space-3);color:var(--color-muted);font-size:.88rem;margin:0 0 var(--space-2);">
+          These reservations have been approved. The borrower must collect the book before the expiry date.
+          When they arrive, use <strong>Check-Out</strong> to issue the book — which will automatically mark the reservation as fulfilled.
+        </p>
+
+        <?php if (empty($approved_rows)): ?>
+          <div class="empty-state">
+            <span class="empty-state__icon">&#10003;</span>
+            <p>No approved reservations awaiting pickup.</p>
+          </div>
+        <?php else: ?>
+          <div class="tbl-wrapper">
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th>Borrower</th>
+                  <th>Email</th>
+                  <th>Book</th>
+                  <th>Author</th>
+                  <th>Approved On</th>
+                  <th>Expires</th>
+                  <th>Approved By</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php foreach ($approved_rows as $ar):
+                  $expires_ts   = strtotime($ar['expires_at']);
+                  $hrs_left     = (int)ceil(($expires_ts - time()) / 3600);
+                  $expires_soon = $hrs_left > 0 && $hrs_left <= 24;
+                ?>
+                  <tr<?= $expires_soon ? ' style="background:rgba(201,168,76,.1);"' : '' ?>>
+                    <td data-label="Borrower"><?= htmlspecialchars((string)$ar['borrower_name'], ENT_QUOTES, 'UTF-8') ?></td>
+                    <td data-label="Email"><?= htmlspecialchars((string)$ar['borrower_email'], ENT_QUOTES, 'UTF-8') ?></td>
+                    <td data-label="Book"><?= htmlspecialchars((string)$ar['book_title'], ENT_QUOTES, 'UTF-8') ?></td>
+                    <td data-label="Author"><?= htmlspecialchars((string)($ar['book_author'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
+                    <td data-label="Approved On">
+                      <?= $ar['approved_at'] ? htmlspecialchars(date('d M Y', strtotime($ar['approved_at'])), ENT_QUOTES, 'UTF-8') : '—' ?>
+                    </td>
+                    <td data-label="Expires">
+                      <strong><?= htmlspecialchars(date('d M Y H:i', $expires_ts), ENT_QUOTES, 'UTF-8') ?></strong>
+                      <?php if ($expires_soon): ?>
+                        <span class="badge badge-amber" style="margin-left:4px;">Expiring soon</span>
+                      <?php endif; ?>
+                    </td>
+                    <td data-label="Approved By">
+                      <?= htmlspecialchars((string)($ar['approved_by_name'] ?? '—'), ENT_QUOTES, 'UTF-8') ?>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+        <?php endif; ?>
+      </div>
+
     </main>
   </div>
 </body>
