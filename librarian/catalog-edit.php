@@ -340,9 +340,10 @@ $pageTitle    = 'Edit Book | Library System';
             <label class="field-label" for="cover_image">Cover Image <span class="field-label__hint">(optional — JPEG, PNG, WebP, or GIF, max 2 MB)</span></label>
             <?php if ($has_cover): ?>
               <div class="librarian-cover-preview">
-                <img src="<?= h(BASE_URL . 'book-cover.php?book_id=' . (int)$book['id']) ?>" alt="Current cover"
+                <img src="<?= h(BASE_URL . 'public/book-cover.php?book_id=' . (int)$book['id']) ?>" alt="Current cover"
                   onerror="this.onerror=null;this.src='<?= h(BASE_URL . 'assets/images/placeholder-book.png') ?>';"
                   style="height:80px;width:60px;object-fit:cover;border-radius:4px;border:1px solid var(--border)">
+
                 <p class="librarian-cover-help">Current cover — upload a new file to replace it.</p>
                 <label class="librarian-cover-remove-label">
                   <input type="checkbox" name="remove_cover" value="1"> Remove current cover

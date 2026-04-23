@@ -152,7 +152,7 @@ function buildCatalogUrl(string $q, int $page): string
 									<?php if (!empty($book['has_cover'])): ?>
 										<img
 											class="catalog-book__cover"
-											src="<?= BASE_URL ?>book-cover.php?book_id=<?= (int) $book['id'] ?>"
+											src="<?= BASE_URL ?>public/book-cover.php?book_id=<?= (int) $book['id'] ?>"
 											alt="Cover of <?= htmlspecialchars($book['title'], ENT_QUOTES, 'UTF-8') ?>"
 											width="180"
 											height="280"
