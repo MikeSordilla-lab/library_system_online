@@ -220,11 +220,11 @@ $extraStyles = [
       <?php endif; ?>
 
       <?php if ($due_soon_count > 0): ?>
-        <div class="rd-alert" style="background: linear-gradient(to right, #fffbeb, #fef3c7); border-left-color: var(--rd-warning);">
+        <div class="rd-alert" style="background: rgba(245, 158, 11, 0.1); border-left-color: var(--rd-warning);">
           <div class="rd-alert-icon">⚠️</div>
           <div>
-            <h4 style="margin:0 0 0.25rem 0; color: #92400e; font-size:1.1rem; font-weight:600;">Heads up!</h4>
-            <p style="margin:0; color: #b45309;">
+            <h4 style="margin:0 0 0.25rem 0; color: #f59e0b; font-size:1.1rem; font-weight:600;">Heads up!</h4>
+            <p style="margin:0; color: #fbbf24;">
               <?= $due_soon_count === 1 ? '1 book is' : $due_soon_count . ' books are' ?> due soon
               <?php if ($next_return !== null): ?>
                 — next return: <strong><?= htmlspecialchars(date('d M Y', strtotime($next_return)), ENT_QUOTES, 'UTF-8') ?></strong>
@@ -240,14 +240,14 @@ $extraStyles = [
           <div class="rd-alert-icon">✅</div>
           <div style="width: 100%;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.5rem;">
-              <h4 style="margin:0; color: #166534; font-size:1.1rem; font-weight:600;">Ready for Pickup!</h4>
+              <h4 style="margin:0; color: #34d399; font-size:1.1rem; font-weight:600;">Ready for Pickup!</h4>
               <span class="rd-badge rd-b-green"><?= count($approved_reservations) ?> approved</span>
             </div>
-            <p style="margin:0 0 1rem 0; color: #15803d; font-size: 0.95rem;">
+            <p style="margin:0 0 1rem 0; color: #10b981; font-size: 0.95rem;">
               Your reservation<?= count($approved_reservations) > 1 ? 's have' : ' has' ?> been approved by the librarian.
               Visit the library desk to borrow <?= count($approved_reservations) > 1 ? 'these books' : 'this book' ?> before they expire.
             </p>
-            <div class="rd-card" style="padding:0; background:rgba(255,255,255,0.5); box-shadow:none;">
+            <div class="rd-card" style="padding:0; background:rgba(255,255,255,0.05); box-shadow:none;">
               <table class="rd-table-glass">
                 <thead>
                   <tr><th>Book</th><th>Approved</th><th>Pickup By</th></tr>
@@ -402,13 +402,13 @@ $extraStyles = [
           </div>
           <div class="rd-charts">
             <div class="rd-card">
-              <h4 style="margin-top:0; margin-bottom:1rem;color:var(--rd-text-muted);font-weight:500;">Books by Category</h4>
+              <h4 style="margin-top:0; margin-bottom:1rem;color:var(--rd-primary);font-weight:600;">Books by Category</h4>
               <div class="rd-chart-wrap">
                 <canvas id="categoryChart"></canvas>
               </div>
             </div>
             <div class="rd-card">
-              <h4 style="margin-top:0; margin-bottom:1rem;color:var(--rd-text-muted);font-weight:500;">Monthly Activity</h4>
+              <h4 style="margin-top:0; margin-bottom:1rem;color:var(--rd-primary);font-weight:600;">Monthly Activity</h4>
               <div class="rd-chart-wrap">
                 <canvas id="monthlyChart"></canvas>
               </div>
@@ -490,7 +490,7 @@ $extraStyles = [
                 </table>
               </div>
               <?php if (count($loan_history) > 5): ?>
-                <div style="text-align:center; padding-top:1rem; border-top:1px solid rgba(0,0,0,0.05); margin-top:1rem;">
+                <div style="text-align:center; padding-top:1rem; border-top:1px solid rgba(255,255,255,0.05); margin-top:1rem;">
                   <span style="color:var(--rd-text-muted); font-size:0.85rem;">Showing last 5</span>
                 </div>
               <?php endif; ?>
@@ -510,7 +510,7 @@ $extraStyles = [
       if (typeof Chart === 'undefined') return;
 
       Chart.defaults.font.family = "'Outfit', system-ui, sans-serif";
-      Chart.defaults.color = '#64748b';
+      Chart.defaults.color = '#8a8278';
 
       // Category Chart
       var catCtx = document.getElementById('categoryChart');
@@ -523,7 +523,7 @@ $extraStyles = [
             labels: catLabels,
             datasets: [{
               data: catValues,
-              backgroundColor: ['#4f46e5', '#8f8cf8', '#e7d2fe', '#312e81', '#4338ca', '#10b981', '#34d399'],
+              backgroundColor: ['#c9a84c', '#dfc476', '#b8942d', '#9b7625', '#fef08a', '#10b981', '#34d399'],
               borderWidth: 0,
               hoverOffset: 4
             }]
@@ -546,8 +546,8 @@ $extraStyles = [
         var monthValues = <?= json_encode($month_values, JSON_HEX_TAG | JSON_HEX_AMP) ?>;
         
         let gradient = monthCtx.getContext('2d').createLinearGradient(0, 0, 0, 400);
-        gradient.addColorStop(0, 'rgba(79, 70, 229, 0.8)');
-        gradient.addColorStop(1, 'rgba(79, 70, 229, 0.1)');
+        gradient.addColorStop(0, 'rgba(201, 168, 76, 0.8)');
+        gradient.addColorStop(1, 'rgba(201, 168, 76, 0.1)');
 
         new Chart(monthCtx, {
           type: 'bar',
@@ -565,7 +565,7 @@ $extraStyles = [
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-              y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.03)', drawBorder: false }, ticks: { stepSize: 1 } },
+              y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.03)', drawBorder: false }, ticks: { stepSize: 1 } },
               x: { grid: { display: false, drawBorder: false } }
             },
             plugins: { legend: { display: false } }

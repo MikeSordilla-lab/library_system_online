@@ -11,20 +11,45 @@ require_once __DIR__ . '/../includes/csrf.php';
 $pdo = get_db();
 
 $q = isset($_GET['q']) ? trim((string) $_GET['q']) : '';
+$filter_category = isset($_GET['category']) ? trim((string) $_GET['category']) : '';
+$filter_availability = isset($_GET['availability']) ? trim((string) $_GET['availability']) : '';
+$sort = isset($_GET['sort']) ? trim((string) $_GET['sort']) : '';
 $page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
 $perPage = 12;
 
-$whereSql = '';
+$catStmt = $pdo->query('SELECT DISTINCT category FROM Books WHERE category IS NOT NULL AND category != \'\' ORDER BY category ASC');
+$allCategories = $catStmt->fetchAll(PDO::FETCH_COLUMN);
+
+$conditions = [];
 $params = [];
+
 if ($q !== '') {
 	$like = '%' . $q . '%';
-	$whereSql = ' WHERE b.title LIKE :q1 OR b.author LIKE :q2 OR b.isbn LIKE :q3 OR b.category LIKE :q4';
-	$params = [
-		':q1' => $like,
-		':q2' => $like,
-		':q3' => $like,
-		':q4' => $like,
-	];
+	$conditions[] = '(b.title LIKE :q1 OR b.author LIKE :q2 OR b.isbn LIKE :q3 OR b.category LIKE :q4)';
+	$params[':q1'] = $like;
+	$params[':q2'] = $like;
+	$params[':q3'] = $like;
+	$params[':q4'] = $like;
+}
+
+if ($filter_category !== '') {
+	$conditions[] = 'b.category = :cat';
+	$params[':cat'] = $filter_category;
+}
+
+if ($filter_availability === 'available') {
+	$conditions[] = 'b.available_copies > 0';
+} elseif ($filter_availability === 'not_available') {
+	$conditions[] = 'b.available_copies = 0';
+}
+
+$whereSql = $conditions !== [] ? ' WHERE ' . implode(' AND ', $conditions) : '';
+
+$orderSql = ' ORDER BY b.title ASC';
+if ($sort === 'newest') {
+	$orderSql = ' ORDER BY b.id DESC';
+} elseif ($sort === 'popular') {
+	$orderSql = ' ORDER BY b.total_copies DESC, b.title ASC';
 }
 
 $countStmt = $pdo->prepare('SELECT COUNT(*) FROM Books b' . $whereSql);
@@ -46,7 +71,8 @@ $listSql =
 					EXISTS(SELECT 1 FROM book_covers bc WHERE bc.book_id = b.id) AS has_cover
 	 FROM Books b' .
 	$whereSql .
-	' ORDER BY b.title ASC LIMIT :limit OFFSET :offset';
+	$orderSql .
+	' LIMIT :limit OFFSET :offset';
 
 $stmt = $pdo->prepare($listSql);
 foreach ($params as $key => $value) {
@@ -65,19 +91,22 @@ unset($_SESSION['flash_error'], $_SESSION['flash_success'], $_SESSION['flash_rec
 $qEscaped = htmlspecialchars($q, ENT_QUOTES, 'UTF-8');
 $current_page = 'borrower.catalog';
 $pageTitle = 'Browse Catalog | Library System';
+$extraStyles = [
+	'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap',
+	BASE_URL . 'assets/css/borrower-redesign.css'
+];
 
 $shownStart = $totalBooks > 0 ? $offset + 1 : 0;
 $shownEnd = $totalBooks > 0 ? $offset + count($books) : 0;
 
-function buildCatalogUrl(string $q, int $page): string
-{
+$buildCatalogUrl = function (int $page) use ($q, $filter_category, $filter_availability, $sort): string {
 	$query = ['page' => $page];
-	if ($q !== '') {
-		$query['q'] = $q;
-	}
-
+	if ($q !== '') $query['q'] = $q;
+	if ($filter_category !== '') $query['category'] = $filter_category;
+	if ($filter_availability !== '') $query['availability'] = $filter_availability;
+	if ($sort !== '') $query['sort'] = $sort;
 	return 'catalog.php?' . http_build_query($query);
-}
+};
 
 ?>
 <!DOCTYPE html>
@@ -87,31 +116,59 @@ function buildCatalogUrl(string $q, int $page): string
 	<?php require_once __DIR__ . '/../includes/head.php'; ?>
 </head>
 
-<body>
+<body class="dashboard-redesign borrower-dashboard-new">
 	<div class="app-shell">
 		<?php require_once __DIR__ . '/../includes/sidebar-borrower.php'; ?>
 
 		<main class="main-content borrower-catalog-page">
 			<section class="catalog-layout" aria-labelledby="catalog-title">
-				<section class="borrower-hero borrower-hero--catalog" aria-labelledby="catalog-title">
-					<div class="page-header borrower-hero__content">
+				<div class="rd-header">
+					<div>
 						<h1 id="catalog-title">Browse Catalog</h1>
 						<p>Discover books and reserve in one step.</p>
 					</div>
-					<div class="borrower-hero__actions" aria-label="Catalog quick actions">
-						<a class="btn-ghost" href="<?= htmlspecialchars(BASE_URL . 'borrower/index.php', ENT_QUOTES, 'UTF-8') ?>">Dashboard</a>
-						<a class="btn-ghost is-current" href="<?= htmlspecialchars(BASE_URL . 'borrower/catalog.php', ENT_QUOTES, 'UTF-8') ?>" aria-current="page">Browse Catalog</a>
+					<div>
+						<a class="rd-btn" style="background:var(--rd-surface); border:1px solid var(--rd-border); color:var(--rd-text);" href="<?= htmlspecialchars(BASE_URL . 'borrower/index.php', ENT_QUOTES, 'UTF-8') ?>">Dashboard</a>
 					</div>
-					<section class="catalog-search" aria-label="Search catalog">
-						<form class="catalog-search__form" method="GET" action="">
-							<label class="sr-only" for="catalog-search-input">Search by title, author, ISBN, or category</label>
-							<input id="catalog-search-input" type="text" name="q" placeholder="Search title, author, ISBN, or category" value="<?= $qEscaped ?>">
-							<button type="submit" class="btn-primary">Search</button>
-							<?php if ($q !== ''): ?>
-								<a href="catalog.php" class="btn-ghost">Clear</a>
+				</div>
+
+				<section class="catalog-search" aria-label="Search and filter catalog" style="margin-bottom: 2.5rem;">
+					<form class="catalog-search__form catalog-filters rd-card" method="GET" action="" style="display: flex; flex-direction: column; gap: 1.25rem;">
+						<div class="catalog-filters__primary" style="display: flex; gap: 1rem; width: 100%;">
+							<label class="sr-only" for="catalog-search-input">Search by title, author, ISBN</label>
+							<div style="position:relative; flex:1;">
+								<svg style="position:absolute; left:1rem; top:50%; transform:translateY(-50%); color:var(--rd-text-muted);" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+								<input id="catalog-search-input" type="text" name="q" placeholder="Search title, author, or ISBN" value="<?= $qEscaped ?>" style="width:100%; padding: 0.85rem 1rem 0.85rem 2.75rem; border-radius: 12px; border: 1px solid var(--rd-border); background-color: var(--rd-surface); color: var(--rd-text); font-family: inherit; font-size: 1rem; outline: none; transition: all 0.2s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);">
+							</div>
+							<button type="submit" class="rd-btn rd-btn-primary" style="padding: 0.85rem 1.75rem; font-size: 1rem; border:none; border-radius:12px; cursor:pointer;">Search</button>
+						</div>
+						<div class="catalog-filters__secondary" style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+							<select name="category" aria-label="Filter by category" style="padding: 0.6rem 2.25rem 0.6rem 1.25rem; border-radius: 10px; border: 1px solid var(--rd-border); background-color: var(--rd-surface); color: var(--rd-text); font-family: inherit; font-size: 0.95rem; outline: none; cursor: pointer; appearance: none; background-image: url('data:image/svg+xml;utf8,<svg fill=%22none%22 stroke=%22%238a8278%22 viewBox=%220 0 24 24%22 xmlns=%22http://www.w3.org/2000/svg%22><path stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%222%22 d=%22M19 9l-7 7-7-7%22></path></svg>'); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 16px; transition: all 0.2s;">
+								<option value="">All Categories</option>
+								<?php foreach ($allCategories as $cat): ?>
+									<option value="<?= htmlspecialchars($cat, ENT_QUOTES, 'UTF-8') ?>" <?= $filter_category === $cat ? 'selected' : '' ?>>
+										<?= htmlspecialchars($cat, ENT_QUOTES, 'UTF-8') ?>
+									</option>
+								<?php endforeach; ?>
+							</select>
+
+							<select name="availability" aria-label="Filter by availability" style="padding: 0.6rem 2.25rem 0.6rem 1.25rem; border-radius: 10px; border: 1px solid var(--rd-border); background-color: var(--rd-surface); color: var(--rd-text); font-family: inherit; font-size: 0.95rem; outline: none; cursor: pointer; appearance: none; background-image: url('data:image/svg+xml;utf8,<svg fill=%22none%22 stroke=%22%238a8278%22 viewBox=%220 0 24 24%22 xmlns=%22http://www.w3.org/2000/svg%22><path stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%222%22 d=%22M19 9l-7 7-7-7%22></path></svg>'); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 16px; transition: all 0.2s;">
+								<option value="">Any Availability</option>
+								<option value="available" <?= $filter_availability === 'available' ? 'selected' : '' ?>>Available</option>
+								<option value="not_available" <?= $filter_availability === 'not_available' ? 'selected' : '' ?>>Not Available</option>
+							</select>
+
+							<select name="sort" aria-label="Sort configuration" style="padding: 0.6rem 2.25rem 0.6rem 1.25rem; border-radius: 10px; border: 1px solid var(--rd-border); background-color: var(--rd-surface); color: var(--rd-text); font-family: inherit; font-size: 0.95rem; outline: none; cursor: pointer; appearance: none; background-image: url('data:image/svg+xml;utf8,<svg fill=%22none%22 stroke=%22%238a8278%22 viewBox=%220 0 24 24%22 xmlns=%22http://www.w3.org/2000/svg%22><path stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%222%22 d=%22M19 9l-7 7-7-7%22></path></svg>'); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 16px; transition: all 0.2s;">
+								<option value="">Sort: A-Z</option>
+								<option value="newest" <?= $sort === 'newest' ? 'selected' : '' ?>>Sort: Newest</option>
+								<option value="popular" <?= $sort === 'popular' ? 'selected' : '' ?>>Sort: Popular</option>
+							</select>
+
+							<?php if ($q !== '' || $filter_category !== '' || $filter_availability !== '' || $sort !== ''): ?>
+								<a href="catalog.php" class="rd-btn" style="padding: 0.6rem 1.25rem; font-size: 0.95rem; border: 1px solid var(--rd-border); background: var(--rd-surface); color: var(--rd-text-muted); text-decoration: none;">Clear Filters</a>
 							<?php endif; ?>
-						</form>
-					</section>
+						</div>
+					</form>
 				</section>
 
 				<?php if ($flash_error !== ''): ?>
@@ -209,7 +266,7 @@ function buildCatalogUrl(string $q, int $page): string
 				<?php if ($totalPages > 1): ?>
 					<nav class="catalog-pagination" aria-label="Catalog pagination">
 						<?php if ($page > 1): ?>
-							<a class="btn-ghost" href="<?= htmlspecialchars(buildCatalogUrl($q, $page - 1), ENT_QUOTES, 'UTF-8') ?>" aria-label="Go to previous page">&larr; Previous</a>
+							<a class="btn-ghost" href="<?= htmlspecialchars($buildCatalogUrl($page - 1), ENT_QUOTES, 'UTF-8') ?>" aria-label="Go to previous page">&larr; Previous</a>
 						<?php else: ?>
 							<span class="catalog-pagination__disabled" aria-disabled="true">&larr; Previous</span>
 						<?php endif; ?>
@@ -223,13 +280,13 @@ function buildCatalogUrl(string $q, int $page): string
 								<?php if ($i === $page): ?>
 									<span class="catalog-pagination__current" aria-current="page"><?= (int) $i ?></span>
 								<?php else: ?>
-									<a class="catalog-pagination__link" href="<?= htmlspecialchars(buildCatalogUrl($q, $i), ENT_QUOTES, 'UTF-8') ?>"><?= (int) $i ?></a>
+									<a class="catalog-pagination__link" href="<?= htmlspecialchars($buildCatalogUrl($i), ENT_QUOTES, 'UTF-8') ?>"><?= (int) $i ?></a>
 								<?php endif; ?>
 							<?php endfor; ?>
 						</div>
 
 						<?php if ($page < $totalPages): ?>
-							<a class="btn-ghost" href="<?= htmlspecialchars(buildCatalogUrl($q, $page + 1), ENT_QUOTES, 'UTF-8') ?>" aria-label="Go to next page">Next &rarr;</a>
+							<a class="btn-ghost" href="<?= htmlspecialchars($buildCatalogUrl($page + 1), ENT_QUOTES, 'UTF-8') ?>" aria-label="Go to next page">Next &rarr;</a>
 						<?php else: ?>
 							<span class="catalog-pagination__disabled" aria-disabled="true">Next &rarr;</span>
 						<?php endif; ?>
