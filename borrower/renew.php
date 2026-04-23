@@ -93,16 +93,8 @@ try {
       exit;
     }
 
-    // Check for any overdue books (including the current one we are trying to renew)
-    if (get_overdue_loan_count($pdo, $user_id) > 0) {
-      $pdo->rollBack();
-      $_SESSION['flash_error'] = 'You have overdue books that must be returned. Overdue books cannot be renewed.';
-      header('Location: ' . BASE_URL . 'borrower/index.php');
-      exit;
-    }
-
-    // Check loan status is active (overdue check handled above, but double check status just in case)
-    if ($loan['status'] !== 'active') {
+    // Check if the current loan is active and not overdue
+    if ($loan['status'] !== 'active' || strtotime($loan['due_date']) < time()) {
         $pdo->rollBack();
         $_SESSION['flash_error'] = 'This loan cannot be renewed (either already returned or marked overdue).';
         header('Location: ' . BASE_URL . 'borrower/index.php');
