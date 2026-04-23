@@ -247,12 +247,7 @@ $buildCatalogUrl = function (int $page) use ($q, $filter_category, $filter_avail
 
 									<div class="catalog-book__action">
 										<?php if ((int) $book['available_copies'] > 0): ?>
-											<form method="POST" action="<?= htmlspecialchars(BASE_URL . 'borrower/reserve.php', ENT_QUOTES, 'UTF-8') ?>">
-												<input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-												<input type="hidden" name="action" value="place">
-												<input type="hidden" name="book_id" value="<?= (int) $book['id'] ?>">
-												<button type="submit" class="btn-confirm catalog-book__btn">Reserve This Book</button>
-											</form>
+											<button type="button" class="btn-confirm catalog-book__btn js-reserve-btn" data-book-id="<?= (int) $book['id'] ?>" data-book-title="<?= htmlspecialchars($book['title'], ENT_QUOTES, 'UTF-8') ?>">Reserve This Book</button>
 										<?php else: ?>
 											<button type="button" class="catalog-book__btn catalog-book__btn--disabled" disabled aria-disabled="true">Join Waitlist (Unavailable)</button>
 										<?php endif; ?>
@@ -293,10 +288,76 @@ $buildCatalogUrl = function (int $page) use ($q, $filter_category, $filter_avail
 					</nav>
 				<?php endif; ?>
 			</section>
+
+			<!-- Reservation Confirm Modal -->
+			<div id="reserve-modal" class="rd-modal" style="display: none;" aria-hidden="true">
+				<div class="rd-modal-backdrop" id="reserve-modal-close"></div>
+				<div class="rd-modal-panel rd-card">
+					<h2 style="margin-top:0; color:var(--rd-primary);">Confirm Reservation</h2>
+					<p style="color:var(--rd-text-muted); margin-bottom:1.5rem;">Are you sure you want to reserve <strong id="reserve-modal-title" style="color:var(--rd-text-bold);"></strong>?</p>
+					<form method="POST" action="<?= htmlspecialchars(BASE_URL . 'borrower/reserve.php', ENT_QUOTES, 'UTF-8') ?>" style="display:flex; justify-content:flex-end; gap:0.75rem;">
+						<input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+						<input type="hidden" name="action" value="place">
+						<input type="hidden" name="book_id" id="reserve-modal-book-id" value="">
+						<button type="button" class="rd-btn" style="background:transparent; border:1px solid var(--rd-border); color:var(--rd-text);" id="reserve-modal-cancel">Cancel</button>
+						<button type="submit" class="rd-btn rd-btn-primary">Confirm</button>
+					</form>
+				</div>
+			</div>
 		</main>
 	</div>
 
+	<style>
+		.rd-modal {
+			position: fixed;
+			inset: 0;
+			z-index: 9999;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 1rem;
+		}
+		.rd-modal-backdrop {
+			position: absolute;
+			inset: 0;
+			background: rgba(15, 14, 12, 0.7);
+			backdrop-filter: blur(4px);
+		}
+		.rd-modal-panel {
+			position: relative;
+			width: 100%;
+			max-width: 400px;
+			z-index: 10000;
+		}
+	</style>
+
 	<script>
+		document.addEventListener('DOMContentLoaded', function() {
+			var modal = document.getElementById('reserve-modal');
+			var titleEl = document.getElementById('reserve-modal-title');
+			var idInput = document.getElementById('reserve-modal-book-id');
+			var cancelBtn = document.getElementById('reserve-modal-cancel');
+			var closeBg = document.getElementById('reserve-modal-close');
+
+			document.querySelectorAll('.js-reserve-btn').forEach(function(btn) {
+				btn.addEventListener('click', function() {
+					titleEl.textContent = this.getAttribute('data-book-title');
+					idInput.value = this.getAttribute('data-book-id');
+					modal.style.display = 'flex';
+					modal.setAttribute('aria-hidden', 'false');
+				});
+			});
+
+			function closeModal() {
+				modal.style.display = 'none';
+				modal.setAttribute('aria-hidden', 'true');
+			}
+
+			if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+			if (closeBg) closeBg.addEventListener('click', closeModal);
+		});
+
+
 		document.addEventListener('error', function(event) {
 			var target = event.target;
 			if (!target || target.tagName !== 'IMG') {

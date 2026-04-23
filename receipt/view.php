@@ -149,33 +149,40 @@ $pageTitle = 'Receipt ' . (string) ($model['receipt_no'] ?? '');
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= esc($pageTitle) ?></title>
   <link rel="stylesheet" href="<?= htmlspecialchars($base_url . 'assets/css/libris.css', ENT_QUOTES, 'UTF-8') ?>">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     body {
-      font-family: var(--font-sans, "DM Sans", system-ui, sans-serif);
-      background:
-        radial-gradient(1100px 480px at 8% -8%, rgba(201, 168, 76, 0.14), transparent 65%),
-        radial-gradient(1000px 520px at 92% -12%, rgba(74, 103, 65, 0.12), transparent 70%),
-        var(--paper, #f7f4ee);
-      color: var(--ink, #0f0e0c);
+      font-family: 'Outfit', system-ui, sans-serif;
+      background: #0f0e0c;
+      color: #ecebdf;
       margin: 0;
       min-height: 100vh;
     }
+    body::before {
+      content: ''; position: fixed; top: -50%; left: -50%; width: 200%; height: 200%;
+      background: radial-gradient(circle at 50% 50%, rgba(201, 168, 76, 0.08) 0%, transparent 60%),
+                  radial-gradient(circle at 80% 20%, rgba(201, 168, 76, 0.05) 0%, transparent 40%);
+      z-index: -1; pointer-events: none;
+    }
     .ticket-wrap { max-width: 860px; margin: 30px auto; padding: 0 16px; }
     .ticket {
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, #ffffff 42%);
-      border: 1px solid var(--border, #d5cfc4);
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 14px;
-      box-shadow: 0 14px 36px rgba(16, 14, 10, 0.12);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
       padding: 22px;
       position: relative;
       overflow: hidden;
+      color: #ecebdf;
     }
     .ticket::before {
       content: "";
       position: absolute;
       inset: 0 0 auto 0;
       height: 4px;
-      background: linear-gradient(90deg, var(--accent, #c8401a), var(--gold, #c9a84c), var(--sage, #4a6741));
+      background: linear-gradient(90deg, #c8401a, #c9a84c, #4a6741);
     }
     .ticket.thermal { max-width: 460px; margin: 0 auto; }
     .ticket.a4 { max-width: 820px; margin: 0 auto; }
@@ -183,33 +190,33 @@ $pageTitle = 'Receipt ' . (string) ($model['receipt_no'] ?? '');
       display: flex;
       justify-content: space-between;
       gap: 16px;
-      border-bottom: 1px dashed var(--border, #d5cfc4);
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
       padding-bottom: 12px;
       margin-bottom: 14px;
     }
     .title {
       margin: 0;
-      font-family: var(--font-serif, "Playfair Display", Georgia, serif);
       font-size: 1.45rem;
       line-height: 1.2;
       letter-spacing: 0.01em;
+      color: #c9a84c;
     }
     .sub {
       margin: 4px 0 0 0;
       font-size: 0.86rem;
-      color: var(--muted, #5f5850);
+      color: rgba(255,255,255,0.6);
       letter-spacing: 0.04em;
       text-transform: uppercase;
       font-weight: 600;
     }
-    .meta { text-align: right; font-size: 0.88rem; color: var(--muted, #5f5850); }
+    .meta { text-align: right; font-size: 0.88rem; color: rgba(255,255,255,0.5); }
     .meta div { margin-bottom: 3px; }
-    .meta strong { color: var(--ink, #0f0e0c); font-weight: 600; }
+    .meta strong { color: #ecebdf; font-weight: 600; }
     .section-label {
       margin: 16px 0 8px;
       font-size: 0.78rem;
       letter-spacing: 0.09em;
-      color: var(--muted, #5f5850);
+      color: #c9a84c;
       text-transform: uppercase;
       font-weight: 600;
     }
@@ -217,49 +224,57 @@ $pageTitle = 'Receipt ' . (string) ($model['receipt_no'] ?? '');
     .line-grid td {
       padding: 8px 0;
       vertical-align: top;
-      border-bottom: 1px solid rgba(213, 207, 196, 0.42);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
       font-size: 0.95rem;
     }
-    .line-grid td:first-child { width: 35%; color: var(--muted, #5f5850); }
+    .line-grid td:first-child { width: 35%; color: rgba(255,255,255,0.5); }
     .qr {
       margin-top: 14px;
       padding: 10px;
-      border: 1px dashed #b7ae9c;
+      border: 1px dashed rgba(255,255,255,0.2);
       border-radius: 8px;
-      background: #faf8f2;
+      background: rgba(255,255,255,0.05);
       font-family: var(--font-mono, "DM Mono", "Courier New", monospace);
       font-size: 0.83rem;
-      color: #2a2723;
+      color: #c9a84c;
       word-break: break-all;
     }
     .actions { margin: 14px 0 0; display: flex; gap: 8px; flex-wrap: wrap; }
     .btn {
       display: inline-block;
       text-decoration: none;
-      border: 1px solid #2e2b27;
       padding: 8px 12px;
       border-radius: 8px;
-      background: #2e2b27;
-      color: #f7f4ee;
       font-size: 0.9rem;
       font-weight: 600;
       cursor: pointer;
+      background: rgba(201, 168, 76, 0.1);
+      border: 1px solid rgba(201, 168, 76, 0.3);
+      color: #c9a84c;
+      transition: all 0.2s;
     }
-    .btn.secondary { background: #ffffff; color: #1c1a17; border-color: #c5bcad; }
+    .btn:hover { background: rgba(201, 168, 76, 0.2); }
+    .btn.secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.1);
+      color: #ecebdf;
+    }
+    .btn.secondary:hover { background: rgba(255, 255, 255, 0.1); }
     .flash { border-radius: 8px; margin: 0 0 12px 0; padding: 10px 12px; font-size: 0.9rem; }
-    .flash.error { border: 1px solid var(--error-border, #fca5a5); background: var(--error-bg, #fee2e2); color: var(--error-text, #991b1b); }
-    .flash.success { border: 1px solid var(--success-border, #6ee7b7); background: var(--success-bg, #d1fae5); color: var(--success-text, #065f46); }
+    .flash.error { border: 1px solid rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+    .flash.success { border: 1px solid rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.1); color: #10b981; }
     .reprint-form { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
     .reprint-form input {
       flex: 1;
       min-width: 240px;
-      border: 1px solid #c5bcad;
+      border: 1px solid rgba(255,255,255,0.1);
       border-radius: 8px;
       padding: 8px 10px;
       font-size: 0.9rem;
-      background: #fff;
-      color: #1c1a17;
+      background: rgba(255,255,255,0.05);
+      color: #ecebdf;
     }
+    .reprint-form input:focus { outline: none; border-color: #c9a84c; }
     .ticket.thermal .head { flex-direction: column; }
     .ticket.thermal .meta { text-align: left; }
     .ticket.thermal .line-grid td:first-child { width: 42%; }
@@ -268,11 +283,30 @@ $pageTitle = 'Receipt ' . (string) ($model['receipt_no'] ?? '');
     .section-payment .sub::after { content: " • PAYMENT"; }
     .section-reservation .sub::after { content: " • RESERVATION"; }
     .section-visitor .sub::after { content: " • VISITOR PASS"; }
+    
     @media print {
-      body { background: #fff; }
+      body { background: #fff; color: #000; min-height: auto; }
+      body::before { display: none; }
       .ticket-wrap { margin: 0; padding: 0; max-width: none; }
-      .ticket { border: none; border-radius: 0; }
+      .ticket { 
+        background: #fff; 
+        border: none; 
+        border-radius: 0; 
+        color: #000; 
+        box-shadow: none; 
+        backdrop-filter: none; 
+        -webkit-backdrop-filter: none; 
+      }
       .ticket::before { display: none; }
+      .head { border-bottom: 1px dashed #ccc; }
+      .title { color: #000; }
+      .sub { color: #555; }
+      .meta { color: #555; }
+      .meta strong { color: #000; }
+      .section-label { color: #000; }
+      .line-grid td { border-bottom: 1px solid #ccc; }
+      .line-grid td:first-child { color: #333; }
+      .qr { background: #fff; border: 1px dashed #000; color: #000; }
       .actions { display: none; }
       .reprint-form { display: none; }
       .flash { display: none; }
