@@ -19,8 +19,7 @@ tests/automation/tmp/
 tests/automation/**/*.log
 
 # Uploaded files / user content
-uploads/
-assets/avatars/
+
 
 # IDE & editor
 .vscode/
