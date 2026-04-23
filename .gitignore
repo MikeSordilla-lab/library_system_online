@@ -3,8 +3,7 @@
 # =============================================================================
 
 # Local environment config — NEVER commit these files
-config.php
-config.production.php
+
 
 # PHP error logs & temporary files
 *.log
