@@ -18,83 +18,72 @@ $flash_error   = $_SESSION['flash_error']   ?? '';
 $flash_success = $_SESSION['flash_success'] ?? '';
 unset($_SESSION['flash_error'], $_SESSION['flash_success']);
 
-// ── POST: change password ────────────────────────────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'change_password') {
-  if (!csrf_verify($_POST['csrf_token'] ?? '')) {
-    $_SESSION['flash_error'] = 'Invalid request token. Please try again.';
-    header('Location: ' . BASE_URL . 'borrower/profile.php');
-    exit;
-  }
+// ── Handle POST requests ─────────────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  csrf_verify(); // Exits on failure, rotates token on success
 
-  $current  = $_POST['current_password']  ?? '';
-  $new      = $_POST['new_password']      ?? '';
-  $confirm  = $_POST['confirm_password']  ?? '';
+  $action = $_POST['action'] ?? '';
 
-  if ($current === '' || $new === '' || $confirm === '') {
-    $_SESSION['flash_error'] = 'All password fields are required.';
-  } elseif (strlen($new) < 8) {
-    $_SESSION['flash_error'] = 'New password must be at least 8 characters.';
-  } elseif ($new !== $confirm) {
-    $_SESSION['flash_error'] = 'New password and confirmation do not match.';
-  } else {
-    $stmt = $pdo->prepare('SELECT password_hash FROM Users WHERE id = ? LIMIT 1');
-    $stmt->execute([$user_id]);
-    $row = $stmt->fetch();
-    if (!$row || !password_verify($current, (string)$row['password_hash'])) {
-      $_SESSION['flash_error'] = 'Current password is incorrect.';
-    } elseif (password_verify($new, (string)$row['password_hash'])) {
-      $_SESSION['flash_error'] = 'New password must differ from current password.';
+  // ── POST: change password ──────────────────────────────────────────────────
+  if ($action === 'change_password') {
+    $current  = $_POST['current_password']  ?? '';
+    $new      = $_POST['new_password']      ?? '';
+    $confirm  = $_POST['confirm_password']  ?? '';
+
+    if ($current === '' || $new === '' || $confirm === '') {
+      $_SESSION['flash_error'] = 'All password fields are required.';
+    } elseif (strlen($new) < 8) {
+      $_SESSION['flash_error'] = 'New password must be at least 8 characters.';
+    } elseif ($new !== $confirm) {
+      $_SESSION['flash_error'] = 'New password and confirmation do not match.';
     } else {
-      $hash = password_hash($new, PASSWORD_BCRYPT);
-      $upd  = $pdo->prepare('UPDATE Users SET password_hash = ? WHERE id = ? LIMIT 1');
-      $upd->execute([$hash, $user_id]);
-      $_SESSION['flash_success'] = 'Password updated successfully.';
+      $stmt = $pdo->prepare('SELECT password_hash FROM Users WHERE id = ? LIMIT 1');
+      $stmt->execute([$user_id]);
+      $row = $stmt->fetch();
+      if (!$row || !password_verify($current, (string)$row['password_hash'])) {
+        $_SESSION['flash_error'] = 'Current password is incorrect.';
+      } elseif (password_verify($new, (string)$row['password_hash'])) {
+        $_SESSION['flash_error'] = 'New password must differ from current password.';
+      } else {
+        $hash = password_hash($new, PASSWORD_BCRYPT);
+        $upd  = $pdo->prepare('UPDATE Users SET password_hash = ? WHERE id = ? LIMIT 1');
+        $upd->execute([$hash, $user_id]);
+        $_SESSION['flash_success'] = 'Password updated successfully.';
+      }
     }
-  }
-  header('Location: ' . BASE_URL . 'borrower/profile.php');
-  exit;
-}
+    header('Location: ' . BASE_URL . 'borrower/profile.php');
+    exit;
 
-// ── POST: update name ────────────────────────────────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'update_name') {
-  if (!csrf_verify($_POST['csrf_token'] ?? '')) {
-    $_SESSION['flash_error'] = 'Invalid request token.';
+  // ── POST: update name ──────────────────────────────────────────────────────
+  } elseif ($action === 'update_name') {
+    $new_name = trim($_POST['full_name'] ?? '');
+    if ($new_name === '') {
+      $_SESSION['flash_error'] = 'Name cannot be empty.';
+    } elseif (strlen($new_name) > 120) {
+      $_SESSION['flash_error'] = 'Name is too long (max 120 chars).';
+    } else {
+      $upd = $pdo->prepare('UPDATE Users SET full_name = ? WHERE id = ? LIMIT 1');
+      $upd->execute([$new_name, $user_id]);
+      $_SESSION['full_name']     = $new_name;
+      $_SESSION['flash_success'] = 'Display name updated.';
+    }
+    header('Location: ' . BASE_URL . 'borrower/profile.php');
+    exit;
+
+  // ── POST: avatar upload ────────────────────────────────────────────────────
+  } elseif ($action === 'upload_avatar') {
+    $cur_stmt = $pdo->prepare('SELECT avatar_url FROM Users WHERE id = ? LIMIT 1');
+    $cur_stmt->execute([$user_id]);
+    $cur_row = $cur_stmt->fetch();
+    $result  = process_avatar_upload($user_id, $cur_row['avatar_url'] ?? null, $_FILES['avatar'] ?? null, $pdo);
+    if ($result['success']) {
+      $_SESSION['flash_success'] = 'Profile photo updated.';
+    } else {
+      $_SESSION['flash_error'] = $result['message'];
+    }
     header('Location: ' . BASE_URL . 'borrower/profile.php');
     exit;
   }
-  $new_name = trim($_POST['full_name'] ?? '');
-  if ($new_name === '') {
-    $_SESSION['flash_error'] = 'Name cannot be empty.';
-  } elseif (strlen($new_name) > 120) {
-    $_SESSION['flash_error'] = 'Name is too long (max 120 chars).';
-  } else {
-    $upd = $pdo->prepare('UPDATE Users SET full_name = ? WHERE id = ? LIMIT 1');
-    $upd->execute([$new_name, $user_id]);
-    $_SESSION['full_name']     = $new_name;
-    $_SESSION['flash_success'] = 'Display name updated.';
-  }
-  header('Location: ' . BASE_URL . 'borrower/profile.php');
-  exit;
-}
-
-// ── POST: avatar upload ──────────────────────────────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'upload_avatar') {
-  if (!csrf_verify($_POST['csrf_token'] ?? '')) {
-    $_SESSION['flash_error'] = 'Invalid request token.';
-    header('Location: ' . BASE_URL . 'borrower/profile.php');
-    exit;
-  }
-  $cur_stmt = $pdo->prepare('SELECT avatar_url FROM Users WHERE id = ? LIMIT 1');
-  $cur_stmt->execute([$user_id]);
-  $cur_row = $cur_stmt->fetch();
-  $result  = process_avatar_upload($user_id, $cur_row['avatar_url'] ?? null, $_FILES['avatar'] ?? null, $pdo);
-  if ($result['success']) {
-    $_SESSION['flash_success'] = 'Profile photo updated.';
-  } else {
-    $_SESSION['flash_error'] = $result['message'];
-  }
-  header('Location: ' . BASE_URL . 'borrower/profile.php');
-  exit;
 }
 
 // ── Load user data ───────────────────────────────────────────────────────────
