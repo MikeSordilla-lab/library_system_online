@@ -1,0 +1,40 @@
+# ─── Graphify Output & Tooling ─────────────────────────────────
+graphify-out/
+.agents/
+
+# ─── Git & GitHub Config ────────────────────────────────────────
+.git/
+.github/
+
+# ─── Environment & Config Files ─────────────────────────────────
+.env
+.env.local
+.env.mode
+.env.production
+.user.ini
+config.sample.php
+
+# ─── Documentation & Markdown ───────────────────────────────────
+*.md
+ADMIN-CREDENTIALS.md
+DEPLOY_INFINITYFREE.md
+
+# ─── Database Dumps & Seed Scripts ──────────────────────────────
+*.sql
+full-base-and-data.sql
+seed-books.php
+entities.json
+skills-lock.json
+
+# ─── Binary & Media Assets ──────────────────────────────────────
+assets/images/
+assets/fonts/
+assets/avatars/
+
+# ─── Public / Upload Directories ────────────────────────────────
+public/
+
+# ─── Miscellaneous Non-Code Files ───────────────────────────────
+.gitignore
+.htaccess
+verify.php

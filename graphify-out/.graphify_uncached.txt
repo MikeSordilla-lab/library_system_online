@@ -1,0 +1,14 @@
+DEPLOY_INFINITYFREE.md
+database\README.md
+assets\avatars\avatar_25_1774872394.jpg
+assets\avatars\avatar_57_1774787914.jpg
+assets\images\admin-avatar-default.svg
+assets\images\favicon.svg
+assets\images\library_logo.png
+assets\images\library_logo_cropped.png
+assets\images\logo-mark.svg
+assets\images\logo.svg
+assets\images\my_profile.jpg
+assets\images\pexels-mikhail-nilov-6980999.jpg
+assets\images\placeholder-book.png
+assets\images\covers\cover_69ae717331b630.21907251.jpg
