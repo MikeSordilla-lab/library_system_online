@@ -1,0 +1,36 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - link [ref=e4] [cursor=pointer]:
+      - /url: index.php
+      - img [ref=e5]
+      - generic [ref=e6]: Library System
+    - separator [ref=e7]
+    - paragraph [ref=e8]: Your personal library portal
+    - list [ref=e9]:
+      - listitem [ref=e10]: Access your loans and due dates
+      - listitem [ref=e11]: Reserve books online
+      - listitem [ref=e12]: Browse thousands of titles
+      - listitem [ref=e13]: Track your reading history
+  - generic [ref=e15]:
+    - heading "Welcome back" [level=1] [ref=e16]
+    - paragraph [ref=e17]: Sign in to your library account.
+    - generic [ref=e18]:
+      - generic [ref=e19]:
+        - generic [ref=e20]: Email or Username
+        - textbox "Email or Username" [active] [ref=e21]
+      - generic [ref=e22]:
+        - generic [ref=e23]: Password
+        - textbox "Password" [ref=e24]
+      - button "Sign In" [ref=e25] [cursor=pointer]
+    - generic [ref=e26]:
+      - link "Join Our Community" [ref=e27] [cursor=pointer]:
+        - /url: http://localhost/library_system_online/register.php
+      - generic [ref=e28]:
+        - link "Explore Without Signing In" [ref=e29] [cursor=pointer]:
+          - /url: http://localhost/library_system_online/catalog.php
+          - img [ref=e30]
+          - text: Explore Without Signing In
+        - link "Can't Access Your Account?" [ref=e33] [cursor=pointer]:
+          - /url: http://localhost/library_system_online/forgot-password.php
+          - img [ref=e34]
+          - text: Can't Access Your Account?
