@@ -316,6 +316,11 @@ $name       = htmlspecialchars($_SESSION['full_name'], ENT_QUOTES, 'UTF-8');
 $logout_url = htmlspecialchars(BASE_URL . 'logout.php', ENT_QUOTES, 'UTF-8');
 $current_page = 'librarian.checkout';
 $pageTitle    = 'Check Out | Library System';
+$extraStyles = [
+  'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap',
+  BASE_URL . 'assets/css/borrower-redesign.css',
+  BASE_URL . 'assets/css/librarian-redesign.css'
+];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -324,7 +329,7 @@ $pageTitle    = 'Check Out | Library System';
   <?php require_once __DIR__ . '/../includes/head.php'; ?>
 </head>
 
-<body>
+<body class="librarian-themed">
   <div class="app-shell">
     <?php require_once __DIR__ . '/../includes/sidebar-librarian.php'; ?>
     <main class="main-content">
@@ -437,72 +442,6 @@ $pageTitle    = 'Check Out | Library System';
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
   <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-  <style>
-    /* Match Select2 to the system's existing field style */
-    .select2-container {
-      width: 100% !important;
-    }
-
-    .select2-container--default .select2-selection--single {
-      height: auto;
-      min-height: 42px;
-      border: 1px solid var(--border, #d1c9be);
-      border-radius: var(--radius, 6px);
-      background: #fff;
-      padding: 8px 36px 8px 12px;
-      font-size: var(--text-base, 14px);
-      color: var(--ink, #1a1a1a);
-      display: flex;
-      align-items: center;
-    }
-
-    .select2-container--default .select2-selection--single .select2-selection__rendered {
-      padding: 0;
-      line-height: 1.4;
-      color: var(--ink, #1a1a1a);
-    }
-
-    .select2-container--default .select2-selection--single .select2-selection__arrow {
-      height: 100%;
-      top: 0;
-      right: 10px;
-    }
-
-    .select2-container--default.select2-container--focus .select2-selection--single,
-    .select2-container--default.select2-container--open .select2-selection--single {
-      border-color: var(--accent, #8b6f47);
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(139, 111, 71, .15);
-    }
-
-    .select2-dropdown {
-      border: 1px solid var(--border, #d1c9be);
-      border-radius: var(--radius, 6px);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, .08);
-      font-size: var(--text-base, 14px);
-    }
-
-    .select2-search--dropdown .select2-search__field {
-      border: 1px solid var(--border, #d1c9be);
-      border-radius: 4px;
-      padding: 6px 10px;
-      font-size: 14px;
-    }
-
-    .select2-search--dropdown .select2-search__field:focus {
-      outline: none;
-      border-color: var(--accent, #8b6f47);
-    }
-
-    .select2-container--default .select2-results__option--highlighted[aria-selected] {
-      background-color: var(--accent, #8b6f47);
-      color: #fff;
-    }
-
-    .select2-results__option {
-      padding: 8px 12px;
-    }
-  </style>
   <script>
     $(function() {
       $('.select2-borrower').select2({

@@ -69,6 +69,11 @@ $base_url = defined('BASE_URL') ? (string) constant('BASE_URL') : '/';
 
 $pageTitle = 'Printable Record | Library System';
 $includeSweetAlert = false;
+$extraStyles = [
+  'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap',
+  BASE_URL . 'assets/css/borrower-redesign.css',
+  BASE_URL . 'assets/css/librarian-redesign.css'
+];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -76,156 +81,115 @@ $includeSweetAlert = false;
 <head>
   <?php require_once __DIR__ . '/../includes/head.php'; ?>
   <style>
-    @page {
-      size: 8.5in 13in;
-      margin: 0.5in;
-    }
-
-    .print-record-page {
-      background: var(--paper);
-      padding: var(--space-6);
-    }
+    @page { size: 8.5in 13in; margin: 0.5in; }
 
     .print-sheet {
       max-width: 900px;
       margin: 0 auto;
       background: #fff;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow-sm);
-      padding: var(--space-8);
+      border: 1px solid var(--rd-border);
+      border-radius: var(--rd-radius);
+      box-shadow: var(--rd-shadow);
+      padding: 2.5rem;
     }
 
     .print-sheet__header {
-      border-bottom: 2px solid var(--ink);
-      padding-bottom: var(--space-4);
-      margin-bottom: var(--space-6);
+      border-bottom: 2px solid #1a1a1a;
+      padding-bottom: 1rem;
+      margin-bottom: 1.5rem;
       text-align: center;
     }
 
     .print-sheet__library {
-      font-family: var(--font-serif);
-      font-size: var(--text-2xl);
+      font-size: 1.75rem;
       font-weight: 700;
-      color: var(--ink);
+      color: #1a1a1a;
     }
 
     .print-sheet__title {
-      margin-top: var(--space-2);
-      font-size: var(--text-sm);
+      margin-top: 0.5rem;
+      font-size: 0.85rem;
       letter-spacing: .08em;
       text-transform: uppercase;
-      color: var(--muted);
+      color: #666;
       font-weight: 700;
     }
 
     .print-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: var(--space-4) var(--space-6);
-      margin-bottom: var(--space-6);
+      gap: 1rem 1.5rem;
+      margin-bottom: 1.5rem;
     }
 
     .print-field {
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: var(--space-3) var(--space-4);
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
       background: #fff;
     }
 
     .print-field__label {
       display: block;
-      font-size: var(--text-xs);
+      font-size: 0.7rem;
       font-weight: 700;
       letter-spacing: .03em;
       text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: var(--space-1);
+      color: #888;
+      margin-bottom: 0.25rem;
     }
 
     .print-field__value {
       display: block;
-      color: var(--ink);
-      font-size: var(--text-base);
+      color: #1a1a1a;
+      font-size: 0.95rem;
       word-break: break-word;
     }
 
     .print-signatures {
-      margin-top: var(--space-10);
+      margin-top: 3rem;
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: var(--space-8);
+      gap: 2rem;
     }
 
     .print-signature-line {
       border-top: 1px solid #000;
-      padding-top: var(--space-2);
-      font-size: var(--text-sm);
+      padding-top: 0.5rem;
+      font-size: 0.85rem;
       text-align: center;
     }
 
     .print-actions {
       max-width: 900px;
-      margin: 0 auto var(--space-4);
+      margin: 0 auto 1rem;
       display: flex;
       justify-content: space-between;
-      gap: var(--space-3);
+      gap: 0.75rem;
       flex-wrap: wrap;
     }
 
-    .print-actions a,
-    .print-actions button {
-      text-decoration: none;
-    }
-
     .print-meta {
-      margin-top: var(--space-6);
-      font-size: var(--text-xs);
-      color: var(--muted);
+      margin-top: 1.5rem;
+      font-size: 0.75rem;
+      color: #888;
       text-align: right;
     }
 
     @media (max-width: 768px) {
-      .print-record-page {
-        padding: var(--space-4);
-      }
-
-      .print-sheet {
-        padding: var(--space-5);
-      }
-
       .print-grid,
-      .print-signatures {
-        grid-template-columns: 1fr;
-      }
+      .print-signatures { grid-template-columns: 1fr; }
     }
 
     @media print {
-      body {
-        background: #fff !important;
-      }
-
-      .no-print {
-        display: none !important;
-      }
-
-      .print-sheet {
-        max-width: none;
-        border: 0;
-        border-radius: 0;
-        box-shadow: none;
-        margin: 0;
-        padding: 0;
-      }
-
-      .print-record-page {
-        padding: 0;
-      }
+      .no-print { display: none !important; }
+      body { background: #fff !important; }
+      .print-sheet { max-width: none; border: 0; border-radius: 0; box-shadow: none; margin: 0; padding: 0; }
     }
   </style>
 </head>
 
-<body class="print-record-page">
+<body class="librarian-themed" style="background:var(--rd-bg);padding:2rem 0;">
   <div class="print-actions no-print" aria-label="Print actions">
     <a class="btn-primary" href="<?= htmlspecialchars($base_url . $back_path, ENT_QUOTES, 'UTF-8') ?>">Back</a>
     <button class="btn-confirm" type="button" onclick="window.print()">Print Form</button>

@@ -61,6 +61,11 @@ function h(?string $v): string
 }
 $current_page = 'librarian.catalog';
 $pageTitle    = 'Book Catalog | Library System';
+$extraStyles = [
+  'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap',
+  BASE_URL . 'assets/css/borrower-redesign.css',
+  BASE_URL . 'assets/css/librarian-redesign.css'
+];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -69,7 +74,7 @@ $pageTitle    = 'Book Catalog | Library System';
   <?php require_once __DIR__ . '/../includes/head.php'; ?>
 </head>
 
-<body>
+<body class="librarian-themed">
   <div class="app-shell">
     <?php
     if ($_SESSION['role'] === 'admin') {
@@ -231,192 +236,6 @@ $pageTitle    = 'Book Catalog | Library System';
     </main>
   </div>
 
-  <style>
-    /* ── Toolbar ── */
-    .cat-toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-3);
-      align-items: center;
-      margin-bottom: var(--space-3);
-    }
-
-    .cat-toolbar__search-wrap {
-      position: relative;
-      flex: 1 1 220px;
-      min-width: 180px;
-    }
-
-    .cat-toolbar__search-icon {
-      position: absolute;
-      left: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 15px;
-      pointer-events: none;
-      opacity: .5;
-    }
-
-    .cat-toolbar__search {
-      width: 100%;
-      padding: 9px 12px 9px 36px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      font-size: var(--text-sm);
-      color: var(--ink);
-      background: #fff;
-      transition: border-color .15s, box-shadow .15s;
-    }
-
-    .cat-toolbar__search:focus {
-      outline: none;
-      border-color: var(--accent, #8b6f47);
-      box-shadow: 0 0 0 3px rgba(139, 111, 71, .15);
-    }
-
-    .cat-toolbar__select {
-      padding: 9px 12px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      font-size: var(--text-sm);
-      color: var(--ink);
-      background: #fff;
-      cursor: pointer;
-      min-width: 150px;
-    }
-
-    .cat-toolbar__select:focus {
-      outline: none;
-      border-color: var(--accent, #8b6f47);
-      box-shadow: 0 0 0 3px rgba(139, 111, 71, .15);
-    }
-
-    .cat-toolbar__reset {
-      padding: 9px 14px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      font-size: var(--text-sm);
-      background: #fff;
-      color: var(--muted);
-      cursor: pointer;
-      white-space: nowrap;
-      transition: background .15s, color .15s;
-    }
-
-    .cat-toolbar__reset:hover {
-      background: var(--surface);
-      color: var(--ink);
-    }
-
-    /* ── Count label ── */
-    .cat-count {
-      font-size: var(--text-sm);
-      color: var(--muted);
-      margin-bottom: var(--space-3);
-      min-height: 20px;
-    }
-
-    /* ── Table extras ── */
-    .cat-desc {
-      font-size: var(--text-xs);
-      color: var(--muted);
-      margin-top: 2px;
-      font-weight: 400;
-    }
-
-    .cat-isbn {
-      font-family: monospace;
-      font-size: var(--text-xs);
-      color: var(--muted);
-    }
-
-    .cat-chip {
-      display: inline-block;
-      padding: 2px 10px;
-      background: var(--surface, #f5f0eb);
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      font-size: var(--text-xs);
-      color: var(--ink);
-      white-space: nowrap;
-    }
-
-    .cat-muted {
-      color: var(--muted);
-    }
-
-    /* ── Empty search state ── */
-    .cat-empty-search {
-      padding: var(--space-10) var(--space-6);
-      text-align: center;
-      color: var(--muted);
-    }
-
-    .cat-empty-search p {
-      margin: var(--space-2) 0 var(--space-4);
-    }
-
-    /* ── Highlight matched text ── */
-    mark.cat-hl {
-      background: #fef08a;
-      color: inherit;
-      border-radius: 2px;
-      padding: 0 1px;
-    }
-
-    /* ── Action buttons ── */
-    .cat-actions {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .cat-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 5px 12px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      border: 1px solid transparent;
-      text-decoration: none;
-      transition: background .15s, color .15s, border-color .15s, box-shadow .15s;
-      white-space: nowrap;
-      line-height: 1.4;
-      letter-spacing: .01em;
-    }
-
-    .cat-btn--edit {
-      background: #fff;
-      color: #3a5a8c;
-      border-color: #b8cceb;
-    }
-
-    .cat-btn--edit:hover {
-      background: #eff4fc;
-      border-color: #3a5a8c;
-      box-shadow: 0 1px 4px rgba(58, 90, 140, .12);
-    }
-
-    .cat-btn--delete {
-      background: #fff;
-      color: #b91c1c;
-      border-color: #fca5a5;
-    }
-
-    .cat-btn--delete:hover {
-      background: #fef2f2;
-      border-color: #b91c1c;
-      box-shadow: 0 1px 4px rgba(185, 28, 28, .12);
-    }
-
-    /* ── Hidden row ── */
-    .cat-row--hidden {
-      display: none;
-    }
-  </style>
 
   <script>
     document.addEventListener('DOMContentLoaded', function() {

@@ -22,6 +22,11 @@ $pendingReservations = (int) $pdo->query("SELECT COUNT(*) FROM Reservations WHER
 
 $current_page = 'librarian.index';
 $pageTitle    = 'Dashboard | Library System';
+$extraStyles = [
+  'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap',
+  BASE_URL . 'assets/css/borrower-redesign.css',
+  BASE_URL . 'assets/css/librarian-redesign.css'
+];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -30,7 +35,7 @@ $pageTitle    = 'Dashboard | Library System';
   <?php require_once __DIR__ . '/../includes/head.php'; ?>
 </head>
 
-<body>
+<body class="librarian-themed">
   <div class="app-shell">
     <?php require_once __DIR__ . '/../includes/sidebar-librarian.php'; ?>
     <main class="main-content">

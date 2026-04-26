@@ -205,6 +205,11 @@ $f = [
 ];
 $current_page = 'librarian.catalog';
 $pageTitle    = 'Add Book | Library System';
+$extraStyles = [
+  'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap',
+  BASE_URL . 'assets/css/borrower-redesign.css',
+  BASE_URL . 'assets/css/librarian-redesign.css'
+];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -213,7 +218,7 @@ $pageTitle    = 'Add Book | Library System';
   <?php require_once __DIR__ . '/../includes/head.php'; ?>
 </head>
 
-<body>
+<body class="librarian-themed">
   <div class="app-shell">
     <?php require_once __DIR__ . '/../includes/sidebar-librarian.php'; ?>
     <main class="main-content librarian-catalog-form-page">

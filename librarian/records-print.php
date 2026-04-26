@@ -139,34 +139,36 @@ $back_url = htmlspecialchars(
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Circulation Records Printable Form | <?= htmlspecialchars($library_name, ENT_QUOTES, 'UTF-8') ?></title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="<?= htmlspecialchars(BASE_URL . 'assets/css/borrower-redesign.css', ENT_QUOTES, 'UTF-8') ?>">
+  <link rel="stylesheet" href="<?= htmlspecialchars(BASE_URL . 'assets/css/librarian-redesign.css', ENT_QUOTES, 'UTF-8') ?>">
   <style>
-    *,
-    *::before,
-    *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
+    /* ── Page: dark theme for toolbar area ── */
     body {
-      font-family: Georgia, 'Times New Roman', serif;
-      background: #f5f0eb;
-      color: #1a1a1a;
+      font-family: 'Outfit', system-ui, sans-serif;
+      background: var(--rd-bg);
+      color: var(--rd-text);
       padding: 32px 24px;
       font-size: 14px;
+      margin: 0;
+      min-height: 100vh;
     }
 
-    /* ---- Wrapper ---- */
+    /* ── Wrapper: white paper inside the dark page ── */
     .print-page {
       max-width: 960px;
       margin: 0 auto;
       background: #fff;
-      border: 1px solid #ddd;
-      border-radius: 8px;
+      border: 1px solid var(--rd-border);
+      border-radius: var(--rd-radius);
+      box-shadow: var(--rd-shadow);
       padding: 48px 56px;
+      color: #1a1a1a;
     }
 
-    /* ---- No-print toolbar ---- */
+    /* ── No-print toolbar ── */
     .toolbar {
       max-width: 960px;
       margin: 0 auto 20px;
@@ -177,33 +179,45 @@ $back_url = htmlspecialchars(
       flex-wrap: wrap;
     }
 
-    .btn {
-      display: inline-block;
-      padding: 8px 20px;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: 700;
+    .toolbar .btn-back {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--rd-border);
+      color: var(--rd-text);
+      border-radius: 12px;
+      padding: 0.65rem 1.25rem;
+      font-size: 0.9rem;
+      font-weight: 600;
       cursor: pointer;
-      border: none;
       text-decoration: none;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      transition: all 0.3s;
     }
 
-    .btn-back {
-      background: #e9e4de;
-      color: #3a2a1a;
+    .toolbar .btn-back:hover {
+      background: rgba(255,255,255,0.1);
     }
 
-    .btn-print {
-      background: #3a2a1a;
-      color: #fff;
+    .toolbar .btn-print {
+      background: linear-gradient(135deg, var(--rd-primary), #b8942d);
+      color: #1c1a17;
+      border: none;
+      border-radius: 12px;
+      padding: 0.65rem 1.5rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
     }
 
-    .btn:hover {
-      opacity: .85;
+    .toolbar .btn-print:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(201,168,76,0.25);
     }
 
-    /* ---- Header ---- */
+    /* ── Paper content: serif elegance ── */
+    .paper-text {
+      font-family: Georgia, 'Times New Roman', serif;
+    }
+
     .form-header {
       border-bottom: 2px solid #1a1a1a;
       padding-bottom: 20px;
@@ -217,6 +231,7 @@ $back_url = htmlspecialchars(
       letter-spacing: .1em;
       color: #666;
       margin-bottom: 6px;
+      font-family: 'Outfit', system-ui, sans-serif;
     }
 
     .form-header__title {
@@ -224,6 +239,7 @@ $back_url = htmlspecialchars(
       font-weight: 700;
       color: #1a1a1a;
       line-height: 1.2;
+      font-family: 'Outfit', system-ui, sans-serif;
     }
 
     .form-header__subtitle {
@@ -241,14 +257,10 @@ $back_url = htmlspecialchars(
       margin-top: 16px;
       font-size: 12px;
       color: #555;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
 
-    .form-meta strong {
-      color: #1a1a1a;
-    }
+    .form-meta strong { color: #1a1a1a; }
 
-    /* ---- Filters row ---- */
     .filter-row {
       background: #f9f6f2;
       border: 1px solid #e8e2da;
@@ -257,23 +269,18 @@ $back_url = htmlspecialchars(
       margin-bottom: 24px;
       font-size: 12px;
       color: #555;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: 'Outfit', system-ui, sans-serif;
     }
 
-    .filter-row strong {
-      color: #1a1a1a;
-    }
+    .filter-row strong { color: #1a1a1a; }
 
-    /* ---- Totals ---- */
-    .totals-section {
-      margin-bottom: 28px;
-    }
+    .totals-section { margin-bottom: 28px; }
 
     .totals-section h2 {
       font-size: 16px;
       font-weight: 700;
       margin-bottom: 12px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: 'Outfit', system-ui, sans-serif;
     }
 
     .totals-grid {
@@ -286,7 +293,7 @@ $back_url = htmlspecialchars(
       border: 1px solid #ddd;
       border-radius: 6px;
       padding: 12px 14px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: 'Outfit', system-ui, sans-serif;
     }
 
     .total-chip__value {
@@ -304,35 +311,23 @@ $back_url = htmlspecialchars(
       margin-top: 4px;
     }
 
-    .total-chip--active {
-      border-left: 4px solid #3b82f6;
-    }
+    .total-chip--active  { border-left: 4px solid #3b82f6; }
+    .total-chip--overdue  { border-left: 4px solid #ef4444; }
+    .total-chip--returned { border-left: 4px solid #22c55e; }
+    .total-chip--fines    { border-left: 4px solid #f59e0b; }
 
-    .total-chip--overdue {
-      border-left: 4px solid #ef4444;
-    }
-
-    .total-chip--returned {
-      border-left: 4px solid #22c55e;
-    }
-
-    .total-chip--fines {
-      border-left: 4px solid #f59e0b;
-    }
-
-    /* ---- Records section ---- */
     .records-section h2 {
       font-size: 16px;
       font-weight: 700;
       margin-bottom: 14px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: 'Outfit', system-ui, sans-serif;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
       font-size: 12px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: 'Outfit', system-ui, sans-serif;
     }
 
     thead th {
@@ -355,9 +350,7 @@ $back_url = htmlspecialchars(
       color: #1a1a1a;
     }
 
-    tbody tr:last-child td {
-      border-bottom: none;
-    }
+    tbody tr:last-child td { border-bottom: none; }
 
     .status-badge {
       display: inline-block;
@@ -369,27 +362,12 @@ $back_url = htmlspecialchars(
       letter-spacing: .04em;
     }
 
-    .status-badge--active {
-      background: #dbeafe;
-      color: #1d4ed8;
-    }
+    .status-badge--active   { background: #dbeafe; color: #1d4ed8; }
+    .status-badge--overdue  { background: #fee2e2; color: #b91c1c; }
+    .status-badge--returned { background: #dcfce7; color: #15803d; }
 
-    .status-badge--overdue {
-      background: #fee2e2;
-      color: #b91c1c;
-    }
+    .borrower-email { font-size: 10px; color: #999; }
 
-    .status-badge--returned {
-      background: #dcfce7;
-      color: #15803d;
-    }
-
-    .borrower-email {
-      font-size: 10px;
-      color: #999;
-    }
-
-    /* ---- Signature ---- */
     .signature-section {
       margin-top: 48px;
       display: grid;
@@ -403,7 +381,7 @@ $back_url = htmlspecialchars(
       text-align: center;
       font-size: 11px;
       color: #555;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: 'Outfit', system-ui, sans-serif;
     }
 
     .form-footer {
@@ -411,26 +389,20 @@ $back_url = htmlspecialchars(
       font-size: 11px;
       color: #aaa;
       text-align: right;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: 'Outfit', system-ui, sans-serif;
       border-top: 1px solid #eee;
       padding-top: 12px;
     }
 
-    /* ---- Empty state ---- */
     .empty-state {
       padding: 40px;
       text-align: center;
       color: #999;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       border: 1px dashed #ddd;
       border-radius: 6px;
     }
 
-    /* ---- Print ---- */
-    @page {
-      size: 8.5in 13in;
-      margin: 0.5in;
-    }
+    @page { size: 8.5in 13in; margin: 0.5in; }
 
     @media print {
       body {
@@ -438,9 +410,7 @@ $back_url = htmlspecialchars(
         padding: 0 !important;
       }
 
-      .toolbar {
-        display: none !important;
-      }
+      .toolbar { display: none !important; }
 
       .print-page {
         border: none !important;
@@ -454,11 +424,10 @@ $back_url = htmlspecialchars(
 </head>
 
 <body>
-
   <!-- Toolbar (hidden on print) -->
   <div class="toolbar">
-    <a class="btn btn-back" href="<?= $back_url ?>">&#8592; Back to Records</a>
-    <button class="btn btn-print" type="button" onclick="window.print()">&#128438;&nbsp; Print / Save as PDF</button>
+    <a class="btn-back" href="<?= $back_url ?>">&#8592; Back to Records</a>
+    <button class="btn-print" type="button" onclick="window.print()">&#128438;&nbsp; Print / Save as PDF</button>
   </div>
 
   <div class="print-page">

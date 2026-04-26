@@ -107,6 +107,11 @@ $generated_at = date('F d, Y h:i A');
 $current_page = 'librarian.records';
 $pageTitle    = 'Generate Records | Library System';
 $includeSweetAlert = false;
+$extraStyles = [
+  'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap',
+  BASE_URL . 'assets/css/borrower-redesign.css',
+  BASE_URL . 'assets/css/librarian-redesign.css'
+];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -114,165 +119,11 @@ $includeSweetAlert = false;
 <head>
   <?php require_once __DIR__ . '/../includes/head.php'; ?>
   <style>
-    /* ---- Records page layout ---- */
-    .records-filter-card {
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: var(--space-5) var(--space-6);
-      margin-bottom: var(--space-5);
-    }
-
-    .records-filter-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-3) var(--space-4);
-      align-items: flex-end;
-    }
-
-    .records-filter-group {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-1);
-      flex: 1 1 160px;
-      min-width: 140px;
-    }
-
-    .records-filter-group label {
-      font-size: var(--text-xs);
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .04em;
-      color: var(--muted);
-    }
-
-    .records-stat-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-3);
-      margin-bottom: var(--space-5);
-    }
-
-    .records-stat-chip {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: var(--space-3) var(--space-4);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-width: 110px;
-      flex: 1;
-    }
-
-    .records-stat-chip__value {
-      font-size: var(--text-2xl);
-      font-weight: 700;
-      color: var(--ink);
-      line-height: 1.1;
-    }
-
-    .records-stat-chip__label {
-      font-size: var(--text-xs);
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: .04em;
-      margin-top: var(--space-1);
-    }
-
-    .records-stat-chip--active   { border-left: 4px solid #3b82f6; }
-    .records-stat-chip--overdue  { border-left: 4px solid #ef4444; }
-    .records-stat-chip--returned { border-left: 4px solid #22c55e; }
-    .records-stat-chip--fines    { border-left: 4px solid #f59e0b; }
-
-    /* Table */
-    .records-table-wrap {
-      overflow-x: auto;
-    }
-
-    .records-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: var(--text-sm);
-    }
-
-    .records-table th {
-      background: var(--surface);
-      text-align: left;
-      padding: var(--space-3) var(--space-4);
-      font-size: var(--text-xs);
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .04em;
-      color: var(--muted);
-      border-bottom: 2px solid var(--border);
-      white-space: nowrap;
-    }
-
-    .records-table td {
-      padding: var(--space-3) var(--space-4);
-      border-bottom: 1px solid var(--border);
-      color: var(--ink);
-      vertical-align: middle;
-    }
-
-    .records-table tr:last-child td {
-      border-bottom: 0;
-    }
-
-    .records-table tr:hover td {
-      background: var(--paper);
-    }
-
-    /* Status badges */
-    .badge {
-      display: inline-block;
-      padding: 2px 10px;
-      border-radius: 999px;
-      font-size: var(--text-xs);
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .04em;
-    }
-    .badge--active   { background: #dbeafe; color: #1d4ed8; }
-    .badge--overdue  { background: #fee2e2; color: #b91c1c; }
-    .badge--returned { background: #dcfce7; color: #15803d; }
-
-    .btn-sm {
-      font-size: var(--text-xs);
-      padding: var(--space-1) var(--space-3);
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border);
-      background: #fff;
-      color: var(--ink);
-      cursor: pointer;
-      text-decoration: none;
-      white-space: nowrap;
-    }
-    .btn-sm:hover { background: var(--surface); }
-
-    .records-actions-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: var(--space-3);
-      margin-bottom: var(--space-4);
-    }
-
-    .records-count-label {
-      font-size: var(--text-sm);
-      color: var(--muted);
-    }
-
-    /* ---- Print styles ---- */
+    /* Print-only: only what's NOT in librarian-redesign.css */
     @page { size: 8.5in 13in; margin: 0.5in; }
 
     @media print {
-      .no-print { display: none !important; }
-
-      body { background: #fff !important; }
-
+      body { background: #fff !important; color: #1a1a1a !important; }
       .app-shell { display: block !important; }
       .sidebar   { display: none !important; }
       .main-content { margin: 0 !important; padding: 0 !important; }
@@ -284,30 +135,17 @@ $includeSweetAlert = false;
         padding-bottom: 10px;
       }
 
-      .print-header__title {
-        font-size: 20px;
-        font-weight: 700;
-      }
+      .print-header__title { font-size: 20px; font-weight: 700; }
+      .print-header__subtitle { font-size: 12px; color: #555; margin-top: 4px; }
 
-      .print-header__subtitle {
-        font-size: 12px;
-        color: #555;
-        margin-top: 4px;
-      }
-
-      .records-stat-row { display: none; }
-      .records-filter-card { display: none; }
-      .records-actions-bar { display: none; }
-      .records-table th, .records-table td { font-size: 11px; padding: 4px 6px; }
+      .records-table th, .records-table td { font-size: 11px !important; padding: 4px 6px !important; }
+      .col-action { display: none !important; }
       .print-meta { font-size: 10px; color: #666; text-align: right; margin-top: 12px; }
-
-      /* Hide the print button column header and cells */
-      .col-action { display: none; }
     }
   </style>
 </head>
 
-<body>
+<body class="librarian-themed">
   <div class="app-shell">
     <?php require_once __DIR__ . '/../includes/sidebar-librarian.php'; ?>
     <main class="main-content">

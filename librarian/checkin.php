@@ -177,6 +177,11 @@ unset($_SESSION['flash_error'], $_SESSION['flash_success'], $_SESSION['flash_pri
 $logout_url = htmlspecialchars(BASE_URL . 'logout.php', ENT_QUOTES, 'UTF-8');
 $current_page = 'librarian.checkin';
 $pageTitle    = 'Check In | Library System';
+$extraStyles = [
+  'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap',
+  BASE_URL . 'assets/css/borrower-redesign.css',
+  BASE_URL . 'assets/css/librarian-redesign.css'
+];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -185,7 +190,7 @@ $pageTitle    = 'Check In | Library System';
   <?php require_once __DIR__ . '/../includes/head.php'; ?>
 </head>
 
-<body>
+<body class="librarian-themed">
   <div class="app-shell">
     <?php require_once __DIR__ . '/../includes/sidebar-librarian.php'; ?>
     <main class="main-content">
