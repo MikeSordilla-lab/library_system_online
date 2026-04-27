@@ -413,7 +413,7 @@ try {
         VOL. 1 • <?= $books_count > 0 ? number_format($books_count) : '5,000' ?>+ VOLUMES • ARCHIVE
       </div>
       <h1 class="editorial-headline">
-        Find<br>
+        Discover Your<br>
         next great <i>read.</i>
       </h1>
       <p class="editorial-sub">
