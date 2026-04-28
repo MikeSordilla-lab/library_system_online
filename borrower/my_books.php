@@ -304,50 +304,58 @@ $extraStyles = [
         Ready for Pickup
         <span class="rd-badge rd-b-green" style="margin-left:8px;"><?= count($approved_reservations) ?></span>
       </div>
-      <div class="rd-card" style="margin-bottom: 2rem; border: 1px solid #10b981; background: rgba(16, 185, 129, 0.05);">
-        <p style="margin-top:0; color:#10b981; font-size:0.95rem;">
-          Your reservation has been approved! Visit the library to borrow these books before they expire.
-        </p>
-        <div style="overflow-x:auto;">
-          <table class="rd-table-glass">
-            <thead>
-              <tr>
-                <th>Book</th>
-                <th>Author</th>
-                <th>Approved On</th>
-                <th>Pickup By</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($approved_reservations as $res): ?>
-                <?php
-                  $expires_ts   = strtotime($res['expires_at']);
-                  $hrs_left     = (int)ceil(($expires_ts - time()) / 3600);
-                  $expires_soon = $hrs_left <= 24 && $hrs_left > 0;
-                ?>
+      <div class="rd-alert" style="margin-bottom: 2rem;">
+        <div class="rd-alert-icon">✅</div>
+        <div style="width: 100%;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom: 0.5rem;">
+            <h4 class="rd-alert-heading">Ready for Pickup</h4>
+            <span class="rd-badge rd-b-green"><?= count($approved_reservations) ?> approved</span>
+          </div>
+          <p class="rd-alert-body">
+            Your reservation<?= count($approved_reservations) > 1 ? 's have' : ' has' ?> been approved.
+            Visit the library to borrow <?= count($approved_reservations) > 1 ? 'these books' : 'this book' ?> before <strong>they expire</strong>.
+          </p>
+          <div class="rd-alert-table-wrap">
+            <table class="rd-table-glass">
+              <thead>
                 <tr>
-                  <td><strong><?= htmlspecialchars($res['title'], ENT_QUOTES, 'UTF-8') ?></strong></td>
-                  <td><?= htmlspecialchars($res['author'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                  <td><?= $res['approved_at'] ? htmlspecialchars(date('d M Y', strtotime($res['approved_at'])), ENT_QUOTES, 'UTF-8') : '—' ?></td>
-                  <td>
-                    <strong><?= htmlspecialchars(date('d M Y H:i', $expires_ts), ENT_QUOTES, 'UTF-8') ?></strong>
-                    <?php if ($expires_soon): ?>
-                      <span class="rd-badge rd-b-orange" style="margin-left:4px;">Expires soon!</span>
-                    <?php endif; ?>
-                  </td>
-                  <td>
-                    <form method="POST" action="<?= htmlspecialchars(BASE_URL . 'borrower/my_books.php', ENT_QUOTES, 'UTF-8') ?>" style="margin:0;">
-                      <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-                      <input type="hidden" name="action" value="cancel">
-                      <input type="hidden" name="reservation_id" value="<?= (int)$res['id'] ?>">
-                      <button type="submit" class="rd-btn-action rd-btn-danger" onclick="return confirm('Cancel this approved reservation?')">Cancel</button>
-                    </form>
-                  </td>
+                  <th>Book</th>
+                  <th>Author</th>
+                  <th>Approved On</th>
+                  <th>Pickup By</th>
+                  <th>Action</th>
                 </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                <?php foreach ($approved_reservations as $res): ?>
+                  <?php
+                    $expires_ts   = strtotime($res['expires_at']);
+                    $hrs_left     = (int)ceil(($expires_ts - time()) / 3600);
+                    $expires_soon = $hrs_left <= 24 && $hrs_left > 0;
+                  ?>
+                  <tr>
+                    <td><?= htmlspecialchars($res['title'], ENT_QUOTES, 'UTF-8') ?></td>
+                    <td><?= htmlspecialchars($res['author'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                    <td><?= $res['approved_at'] ? htmlspecialchars(date('d M Y', strtotime($res['approved_at'])), ENT_QUOTES, 'UTF-8') : '—' ?></td>
+                    <td>
+                      <?= htmlspecialchars(date('d M Y', $expires_ts), ENT_QUOTES, 'UTF-8') ?>
+                      <?php if ($expires_soon): ?>
+                        <span class="rd-badge rd-b-orange" style="margin-left:4px;">Expires soon!</span>
+                      <?php endif; ?>
+                    </td>
+                    <td>
+                      <form method="POST" action="<?= htmlspecialchars(BASE_URL . 'borrower/my_books.php', ENT_QUOTES, 'UTF-8') ?>" style="margin:0;">
+                        <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                        <input type="hidden" name="action" value="cancel">
+                        <input type="hidden" name="reservation_id" value="<?= (int)$res['id'] ?>">
+                        <button type="submit" class="rd-btn-action rd-btn-danger" onclick="return confirm('Cancel this approved reservation?')">Cancel</button>
+                      </form>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
       <?php endif; ?>

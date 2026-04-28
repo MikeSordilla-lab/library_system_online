@@ -239,15 +239,15 @@ $extraStyles = [
         <div class="rd-alert">
           <div class="rd-alert-icon">✅</div>
           <div style="width: 100%;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.5rem;">
-              <h4 style="margin:0; color: #34d399; font-size:1.1rem; font-weight:600;">Ready for Pickup!</h4>
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom: 0.5rem;">
+              <h4 class="rd-alert-heading">Ready for Pickup</h4>
               <span class="rd-badge rd-b-green"><?= count($approved_reservations) ?> approved</span>
             </div>
-            <p style="margin:0 0 1rem 0; color: #10b981; font-size: 0.95rem;">
-              Your reservation<?= count($approved_reservations) > 1 ? 's have' : ' has' ?> been approved by the librarian.
-              Visit the library desk to borrow <?= count($approved_reservations) > 1 ? 'these books' : 'this book' ?> before they expire.
+            <p class="rd-alert-body">
+              <?= count($approved_reservations) > 1 ? 'Your reservations have' : 'Your reservation has' ?> been approved by the librarian.
+              Visit the library desk to borrow <?= count($approved_reservations) > 1 ? 'these books' : 'this book' ?> before <strong>they expire</strong>.
             </p>
-            <div class="rd-card" style="padding:0; background:rgba(255,255,255,0.05); box-shadow:none;">
+            <div class="rd-alert-table-wrap">
               <table class="rd-table-glass">
                 <thead>
                   <tr><th>Book</th><th>Approved</th><th>Pickup By</th></tr>
@@ -255,9 +255,9 @@ $extraStyles = [
                 <tbody>
                   <?php foreach ($approved_reservations as $ar): ?>
                     <tr>
-                      <td><strong><?= htmlspecialchars($ar['title'], ENT_QUOTES, 'UTF-8') ?></strong></td>
+                      <td><?= htmlspecialchars($ar['title'], ENT_QUOTES, 'UTF-8') ?></td>
                       <td><?= $ar['approved_at'] ? htmlspecialchars(date('d M Y', strtotime($ar['approved_at'])), ENT_QUOTES, 'UTF-8') : '—' ?></td>
-                      <td><strong><?= htmlspecialchars(date('d M Y', strtotime($ar['expires_at'])), ENT_QUOTES, 'UTF-8') ?></strong></td>
+                      <td><?= htmlspecialchars(date('d M Y', strtotime($ar['expires_at'])), ENT_QUOTES, 'UTF-8') ?></td>
                     </tr>
                   <?php endforeach; ?>
                 </tbody>
