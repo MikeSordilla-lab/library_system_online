@@ -1,7 +1,7 @@
 <?php
 
 /**
- * includes/constants.php — Application-wide Constants
+ * includes/constants.php — Application-wide Constants (canonical)
  *
  * Centralizes magic numbers and configuration constants used throughout the application.
  * Prevents code duplication and makes maintenance easier.
@@ -62,8 +62,24 @@ define('CIRCULATION_STATUS_RETURNED', 'returned');
 
 // Reservation status constants
 define('RESERVATION_STATUS_PENDING', 'pending');
+define('RESERVATION_STATUS_APPROVED', 'approved');
+define('RESERVATION_STATUS_REJECTED', 'rejected');
+define('RESERVATION_STATUS_EXPIRED', 'expired');
 define('RESERVATION_STATUS_FULFILLED', 'fulfilled');
 define('RESERVATION_STATUS_CANCELLED', 'cancelled');
+
+/**
+ * Reservation states that are still open for queueing/cancellation.
+ *
+ * @return array<int, string>
+ */
+function reservation_open_statuses(): array
+{
+  return [
+    RESERVATION_STATUS_PENDING,
+    RESERVATION_STATUS_APPROVED,
+  ];
+}
 
 // Log outcome constants
 define('LOG_OUTCOME_SUCCESS', 'success');

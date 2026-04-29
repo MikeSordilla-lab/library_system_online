@@ -4,7 +4,7 @@
  * librarian/catalog-edit.php — Edit an Existing Book (US3, FR-003, FR-005, FR-006, FR-011, FR-012)
  *
  * GET:  Load the book by id; render pre-populated edit form.
- * POST: Validate, check uniqueness (excluding self), UPDATE via PDO, log, redirect.
+ * POST: Validate via catalog module, UPDATE, handle cover, redirect with flash.
  *
  * Accessible to: librarian only
  */
@@ -26,21 +26,13 @@ if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'borrower') {
 $allowed_roles = ['librarian'];
 require_once __DIR__ . '/../includes/auth_guard.php';
 require_once __DIR__ . '/../includes/csrf.php';
-
-/** Null-safe HTML escape helper (FR-007) */
-if (!function_exists('h')) {
-  function h(?string $v): string
-  {
-    return htmlspecialchars($v ?? '', ENT_QUOTES, 'UTF-8');
-  }
-}
+require_once __DIR__ . '/../src/utils/catalog.php'; // h(), validate_book_fields, validate_cover_upload, update_book, handle_book_cover
 
 $pdo    = get_db();
 $errors = [];
 $book   = null;
 
 // ─── Resolve the book id ─────────────────────────────────────────────────────
-// For GET: from query string. For POST: from hidden form field.
 $raw_id = ($_SERVER['REQUEST_METHOD'] === 'POST')
   ? ($_POST['id'] ?? '')
   : ($_GET['id']  ?? '');
@@ -56,184 +48,56 @@ if ($book_id === 0) {
 
 // ─── POST handler ────────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
-  // 1. CSRF validation (FR-011)
   csrf_verify();
 
-  // 2. Confirm record still exists
-  $chk = $pdo->prepare('SELECT id FROM Books WHERE id = ?');
-  $chk->execute([$book_id]);
-  if ($chk->fetchColumn() === false) {
-    header('Location: catalog.php');
-    exit;
-  }
+  $actor_id   = (int) $_SESSION['user_id'];
+  $actor_role = (string) $_SESSION['role'];
 
-  // 3. Collect and trim fields
-  $title            = trim($_POST['title']            ?? '');
-  $author           = trim($_POST['author']           ?? '');
-  $description      = trim($_POST['description']      ?? '');
-  $isbn             = trim($_POST['isbn']             ?? '');
-  $category         = trim($_POST['category']         ?? '');
-  $total_copies     = trim($_POST['total_copies']     ?? '');
-  $available_copies = trim($_POST['available_copies'] ?? '');
-
-  // 4. Required-field + max-length validation (FR-005)
-  if ($title === '') {
-    $errors[] = 'Title is required.';
-  } elseif (mb_strlen($title) > 255) {
-    $errors[] = 'Title must be 255 characters or fewer.';
-  }
-
-  if ($author === '') {
-    $errors[] = 'Author is required.';
-  } elseif (mb_strlen($author) > 255) {
-    $errors[] = 'Author must be 255 characters or fewer.';
-  }
-
-  if ($description === '') {
-    $errors[] = 'Description is required.';
-  }
-
-  if ($isbn === '') {
-    $errors[] = 'ISBN is required.';
-  } elseif (mb_strlen($isbn) > 20) {
-    $errors[] = 'ISBN must be 20 characters or fewer.';
-  }
-
-  if ($category === '') {
-    $errors[] = 'Category is required.';
-  } elseif (mb_strlen($category) > 100) {
-    $errors[] = 'Category must be 100 characters or fewer.';
-  }
-
-  if (!ctype_digit($total_copies) || (int)$total_copies < 0) {
-    $errors[] = 'Total copies must be a non-negative whole number.';
-  }
-
-  if (!ctype_digit($available_copies) || (int)$available_copies < 0) {
-    $errors[] = 'Available copies must be a non-negative whole number.';
-  }
-
-  if (empty($errors) && (int)$available_copies > (int)$total_copies) {
-    $errors[] = 'Available copies cannot exceed total copies.';
-  }
-
-  // 5. Title + Author uniqueness (excluding current record) (FR-012)
-  if (empty($errors)) {
-    $uniq = $pdo->prepare(
-      'SELECT id FROM Books WHERE title = ? AND author = ? AND id != ?'
-    );
-    $uniq->execute([$title, $author, $book_id]);
-    if ($uniq->fetchColumn() !== false) {
-      $errors[] = 'A book with this title and author already exists.';
-    }
-  }
-
-  // 6. Handle cover image upload and remove logic (Feature 008 — BLOB storage)
+  // Handle cover image upload/remove logic
   $remove_cover   = isset($_POST['remove_cover']) && $_POST['remove_cover'] === '1';
   $has_new_file   = isset($_FILES['cover_image']) && $_FILES['cover_image']['error'] !== UPLOAD_ERR_NO_FILE;
-  $cover_image_data = null;
-  $cover_mime       = null;
 
+  // Validate book fields
+  $errors = validate_book_fields($_POST);
+
+  // Validate cover upload
+  $cover = ['valid' => false, 'data' => null, 'mime' => null, 'error' => null];
   if ($has_new_file && empty($errors)) {
-    $file = $_FILES['cover_image'];
-    if ($file['error'] !== UPLOAD_ERR_OK) {
-      $errors[] = 'Cover image upload failed (error code ' . (int)$file['error'] . ').';
-    } elseif ($file['size'] > 2_097_152) {
-      $errors[] = 'Cover image must be 2 MB or smaller.';
-    } else {
-      $finfo   = new finfo(FILEINFO_MIME_TYPE);
-      $mime    = $finfo->file($file['tmp_name']);
-      $allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-      if (!in_array($mime, $allowed, true)) {
-        $errors[] = 'Only JPEG, PNG, WebP, and GIF images are accepted.';
-      } else {
-        $raw = file_get_contents($file['tmp_name']);
-        if ($raw === false || @getimagesizefromstring($raw) === false) {
-          $errors[] = 'The uploaded file does not appear to be a valid image.';
-        } else {
-          $cover_image_data = $raw;
-          $cover_mime       = $mime;
-        }
-      }
+    $cover = validate_cover_upload($_FILES['cover_image']);
+    if ($cover['error'] !== null) {
+      $errors[] = $cover['error'];
     }
   }
 
-  // 7. Update if all validations pass (FR-006 — PDO prepared statement)
   if (empty($errors)) {
-    $stmt = $pdo->prepare(
-      'UPDATE Books
-                SET title=?, author=?, description=?, isbn=?,
-                    category=?, total_copies=?, available_copies=?
-              WHERE id=?'
-    );
-    $stmt->execute([
-      $title,
-      $author,
-      $description !== '' ? $description : null,
-      $isbn,
-      $category,
-      (int)$total_copies,
-      (int)$available_copies,
-      $book_id,
-    ]);
+    $result = update_book($pdo, $book_id, $_POST, $actor_id, $actor_role);
 
-    // 8. Audit log — book update (Constitution Principle V)
-    log_event(
-      $pdo,
-      'BOOK_UPDATE',
-      (int)$_SESSION['user_id'],
-      'Books',
-      $book_id,
-      'SUCCESS',
-      $_SESSION['role']
-    );
+    if ($result['success']) {
+      // Handle cover: upload takes precedence over remove
+      if ($cover['data'] !== null) {
+        handle_book_cover($pdo, $book_id, $cover['data'], $cover['mime'], false, $actor_id, $actor_role);
+      } elseif ($remove_cover && !$has_new_file) {
+        handle_book_cover($pdo, $book_id, null, null, true, $actor_id, $actor_role);
+      }
 
-    // 9. Cover image action (Feature 008 — BLOB storage, FR-008 to FR-017)
-    if ($has_new_file && $cover_image_data !== null) {
-      // Determine whether this is a new upload or a replacement (for audit log)
-      $exists_chk = $pdo->prepare('SELECT 1 FROM book_covers WHERE book_id = ?');
-      $exists_chk->execute([$book_id]);
-      $cover_existed = (bool)$exists_chk->fetchColumn();
-
-      $cstmt = $pdo->prepare(
-        'INSERT INTO book_covers (book_id, image_data, mime_type)
-               VALUES (?, ?, ?)
-               ON DUPLICATE KEY UPDATE image_data = VALUES(image_data),
-                                        mime_type  = VALUES(mime_type),
-                                        updated_at = NOW()'
-      );
-      $cstmt->bindParam(1, $book_id, PDO::PARAM_INT);
-      $cstmt->bindParam(2, $cover_image_data, PDO::PARAM_LOB);
-      $cstmt->bindParam(3, $cover_mime, PDO::PARAM_STR);
-      $cstmt->execute();
-
-      $action = $cover_existed ? 'COVER_REPLACE' : 'COVER_UPLOAD';
-      log_event($pdo, $action, (int)$_SESSION['user_id'], 'book_covers', $book_id, 'SUCCESS', $_SESSION['role']);
-    } elseif ($remove_cover && !$has_new_file) {
-      // Remove cover (FR-015) — upload takes precedence over remove (FR-016)
-      $pdo->prepare('DELETE FROM book_covers WHERE book_id = ?')->execute([$book_id]);
-      log_event($pdo, 'COVER_DELETE', (int)$_SESSION['user_id'], 'book_covers', $book_id, 'SUCCESS', $_SESSION['role']);
+      $_SESSION['flash_success'] = 'Book updated successfully.';
+      header('Location: catalog.php');
+      exit;
     }
-    // Else: no file uploaded, remove not checked — existing cover preserved unchanged (FR-009)
-
-    $_SESSION['flash_success'] = 'Book updated successfully.';
-    header('Location: catalog.php');
-    exit;
+    $errors = $result['errors'];
   }
 
-  // Validation failed — re-render form using POST values (preserve user input)
+  // Validation failed — re-render form using POST values
   $book = [
     'id'               => $book_id,
-    'title'            => $title,
-    'author'           => $author,
-    'description'      => $description,
-    'isbn'             => $isbn,
-    'category'         => $category,
-    'total_copies'     => $total_copies,
-    'available_copies' => $available_copies,
+    'title'            => trim($_POST['title'] ?? ''),
+    'author'           => trim($_POST['author'] ?? ''),
+    'description'      => trim($_POST['description'] ?? ''),
+    'isbn'             => trim($_POST['isbn'] ?? ''),
+    'category'         => trim($_POST['category'] ?? ''),
+    'total_copies'     => trim($_POST['total_copies'] ?? ''),
+    'available_copies' => trim($_POST['available_copies'] ?? ''),
   ];
-  // Check cover status for re-render
   $cv = $pdo->prepare('SELECT 1 FROM book_covers WHERE book_id = ?');
   $cv->execute([$book_id]);
   $has_cover = (bool)$cv->fetchColumn();

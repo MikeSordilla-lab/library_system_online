@@ -4,6 +4,7 @@
  * librarian/pay-fine.php - Process Fine Payment Transaction
  *
  * POST: Clear all unpaid fines for a specific user.
+ * Delegates to circulation orchestration layer.
  * Protected: Librarian role only.
  */
 
@@ -21,8 +22,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 csrf_verify();
 
 $pdo = get_db();
-$user_id = (int) ($_POST['user_id'] ?? 0);
-$actor_id = (int) $_SESSION['user_id'];
+$user_id   = (int) ($_POST['user_id'] ?? 0);
+$actor_id   = (int) $_SESSION['user_id'];
 $actor_role = (string) $_SESSION['role'];
 
 if ($user_id < 1) {
@@ -31,73 +32,15 @@ if ($user_id < 1) {
   exit;
 }
 
-$borrower_stmt = $pdo->prepare('SELECT id, full_name, email FROM Users WHERE id = ? LIMIT 1');
-$borrower_stmt->execute([$user_id]);
-$borrower = $borrower_stmt->fetch();
+$result = pay_user_fines($pdo, $user_id, $actor_id, $actor_role);
 
-if (!$borrower) {
-  $_SESSION['flash_error'] = 'Borrower not found.';
-  header('Location: ' . BASE_URL . 'librarian/checkout.php');
-  exit;
-}
-
-$pdo->beginTransaction();
-
-try {
-  // Get total fines
-  $stmt = $pdo->prepare("SELECT SUM(fine_amount) FROM Circulation WHERE user_id = ? AND fine_paid = 0");
-  $stmt->execute([$user_id]);
-  $total_fines = (float) $stmt->fetchColumn();
-
-  if ($total_fines > 0) {
-    // Update fines to paid
-    $upd = $pdo->prepare("UPDATE Circulation SET fine_paid = 1, fine_paid_at = NOW() WHERE user_id = ? AND fine_paid = 0");
-    $upd->execute([$user_id]);
-    
-    // Log payment
-    log_circulation($pdo, [
-      'actor_id'      => $actor_id,
-      'actor_role'    => $actor_role,
-      'action_type'   => 'fine_payment',
-      'target_entity' => 'Users',
-      'target_id'     => $user_id,
-      'outcome'       => 'success_amount_' . $total_fines,
-    ]);
-
-    $receipt = issue_receipt_ticket($pdo, [
-      'type'            => 'fine_payment',
-      'actor_user_id'   => $actor_id,
-      'actor_role'      => $actor_role,
-      'patron_user_id'  => $user_id,
-      'reference_table' => 'Users',
-      'reference_id'    => $user_id,
-      'idempotency_key' => 'fine_payment:user:' . $user_id . ':at:' . date('YmdHi'),
-      'amount'          => $total_fines,
-      'currency'        => 'USD',
-      'format'          => 'a4',
-      'channel'         => 'librarian_console',
-      'payload'         => [
-        'patron_name'   => (string) ($borrower['full_name'] ?? ''),
-        'patron_email'  => (string) ($borrower['email'] ?? ''),
-        'total_fines'   => $total_fines,
-        'settled_scope' => 'all_unpaid_fines',
-      ],
-    ]);
-    
-    $pdo->commit();
-    $_SESSION['flash_success'] = 'Successfully cleared fines ($' . number_format($total_fines, 2) . ') for user.';
-    $receipt_no = (string) ($receipt['receipt_no'] ?? '');
-    $_SESSION['flash_receipt_no'] = $receipt_no;
-    header('Location: ' . BASE_URL . 'librarian/checkout.php');
-    exit;
-  } else {
-    $pdo->rollBack();
-    $_SESSION['flash_info'] = 'This user has no outstanding fines.';
+if ($result['success']) {
+  $_SESSION['flash_success'] = 'Successfully cleared fines ($' . number_format($result['total_paid'], 2) . ') for user.';
+  if ($result['receipt_no']) {
+    $_SESSION['flash_receipt_no'] = $result['receipt_no'];
   }
-} catch (Throwable $e) {
-  $pdo->rollBack();
-  error_log('[pay-fine.php] Transaction failed: ' . $e->getMessage());
-  $_SESSION['flash_error'] = 'Failed to process payment.';
+} else {
+  $_SESSION['flash_info'] = $result['message'];
 }
 
 header('Location: ' . BASE_URL . 'librarian/checkout.php');
