@@ -183,7 +183,7 @@ $logout_url = htmlspecialchars(BASE_URL . 'logout.php', ENT_QUOTES, 'UTF-8');
 $current_page = 'borrower.index';
 $pageTitle    = 'My Account | Library System';
 $extraStyles = [
-  'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap',
+  'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap',
   BASE_URL . 'assets/css/borrower-redesign.css'
 ];
 ?>
@@ -213,11 +213,12 @@ $extraStyles = [
       </div>
 
       <?php if ($flash_error !== ''): ?>
-        <div class="flash flash-error" role="alert" aria-live="assertive"><?= htmlspecialchars($flash_error, ENT_QUOTES, 'UTF-8') ?></div>
+        <div class="flash flash-error" role="alert" style="animation:slideDown 0.4s cubic-bezier(0.16,1,0.3,1) forwards;" aria-live="assertive"><?= htmlspecialchars($flash_error, ENT_QUOTES, 'UTF-8') ?></div>
       <?php endif; ?>
       <?php if ($flash_success !== ''): ?>
-        <div class="flash flash-success" role="alert" aria-live="polite"><?= htmlspecialchars($flash_success, ENT_QUOTES, 'UTF-8') ?></div>
+        <div class="flash flash-success" role="alert" style="animation:slideDown 0.4s cubic-bezier(0.16,1,0.3,1) forwards;" aria-live="polite"><?= htmlspecialchars($flash_success, ENT_QUOTES, 'UTF-8') ?></div>
       <?php endif; ?>
+
 
       <?php if ($due_soon_count > 0): ?>
         <div class="rd-alert" style="background: rgba(245, 158, 11, 0.1); border-left-color: var(--rd-warning);">
@@ -234,72 +235,99 @@ $extraStyles = [
         </div>
       <?php endif; ?>
 
-      <!-- EPIC 1: Approved Reservations Alert -->
+      <!-- Approved Reservations Alert — Redesigned -->
       <?php if (!empty($approved_reservations)): ?>
-        <div class="rd-alert">
-          <div class="rd-alert-icon">✅</div>
-          <div style="width: 100%;">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom: 0.5rem;">
-              <h4 class="rd-alert-heading">Ready for Pickup</h4>
+        <div class="rd-pickup-card">
+          <div class="rd-pickup-header">
+            <h4 class="rd-pickup-heading">
+              <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              Ready for Pickup
+            </h4>
+            <div class="rd-pickup-badge-group">
               <span class="rd-badge rd-b-green"><?= count($approved_reservations) ?> approved</span>
             </div>
-            <p class="rd-alert-body">
-              <?= count($approved_reservations) > 1 ? 'Your reservations have' : 'Your reservation has' ?> been approved by the librarian.
-              Visit the library desk to borrow <?= count($approved_reservations) > 1 ? 'these books' : 'this book' ?> before <strong>they expire</strong>.
-            </p>
-            <div class="rd-alert-table-wrap">
-              <table class="rd-table-glass">
-                <thead>
-                  <tr><th>Book</th><th>Approved</th><th>Pickup By</th></tr>
-                </thead>
-                <tbody>
-                  <?php foreach ($approved_reservations as $ar): ?>
-                    <tr>
-                      <td><?= htmlspecialchars($ar['title'], ENT_QUOTES, 'UTF-8') ?></td>
-                      <td><?= $ar['approved_at'] ? htmlspecialchars(date('d M Y', strtotime($ar['approved_at'])), ENT_QUOTES, 'UTF-8') : '—' ?></td>
-                      <td><?= htmlspecialchars(date('d M Y', strtotime($ar['expires_at'])), ENT_QUOTES, 'UTF-8') ?></td>
-                    </tr>
-                  <?php endforeach; ?>
-                </tbody>
-              </table>
-            </div>
+          </div>
+          <p class="rd-pickup-body">
+            <?= count($approved_reservations) > 1 ? 'Your reservations have' : 'Your reservation has' ?> been approved by the librarian.
+            Visit the library desk to borrow <?= count($approved_reservations) > 1 ? 'these books' : 'this book' ?> before <strong>they expire</strong>.
+          </p>
+          <div class="rd-pickup-table-wrap">
+            <table class="rd-pickup-table">
+              <thead>
+                <tr><th>Book</th><th>Approved On</th><th>Pickup By</th></tr>
+              </thead>
+              <tbody>
+                <?php foreach ($approved_reservations as $ar): ?>
+                  <?php
+                    $expires_ts     = strtotime($ar['expires_at']);
+                    $hrs_left       = (int)ceil(($expires_ts - time()) / 3600);
+                    $days_left      = (int)ceil(($expires_ts - time()) / 86400);
+                    $expires_soon   = $hrs_left <= 24 && $hrs_left > 0;
+                    $expires_crit   = $hrs_left <= 6 && $hrs_left > 0;
+                  ?>
+                  <tr>
+                    <td><?= htmlspecialchars($ar['title'], ENT_QUOTES, 'UTF-8') ?></td>
+                    <td class="rd-pickup-date"><?= $ar['approved_at'] ? htmlspecialchars(date('d M Y', strtotime($ar['approved_at'])), ENT_QUOTES, 'UTF-8') : '—' ?></td>
+                    <td>
+                      <span class="rd-pickup-date <?= $expires_soon ? 'rd-pickup-date--urgent' : '' ?>">
+                        <?= htmlspecialchars(date('d M Y', $expires_ts), ENT_QUOTES, 'UTF-8') ?>
+                      </span>
+                      <?php if ($expires_crit): ?>
+                        <span class="rd-pickup-expiry-badge rd-pickup-expiry-badge--critical">⚠️ Expiring today!</span>
+                      <?php elseif ($expires_soon): ?>
+                        <span class="rd-pickup-expiry-badge">⏳ <?= $days_left ?> day<?= $days_left !== 1 ? 's' : '' ?> left</span>
+                      <?php endif; ?>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
           </div>
         </div>
       <?php endif; ?>
 
       <div class="rd-stats-grid">
         <div class="rd-card rd-stat">
-          <div class="rd-stat-icon rd-i-blue">📚</div>
-          <div class="rd-stat-val"><?= $currently_borrowed ?></div>
+          <div class="rd-stat-icon rd-i-blue">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 016.5 2H20v20H6.5a2.5 2.5 0 010-5H20"/><path d="M12 6v7"/><path d="M9 9h6"/></svg>
+          </div>
+          <div class="rd-stat-val rd-stat-val-serif"><?= $currently_borrowed ?></div>
           <div class="rd-stat-title">Currently Borrowed</div>
           <div class="rd-stat-sub">active &amp; overdue</div>
         </div>
         <div class="rd-card rd-stat">
-          <div class="rd-stat-icon rd-i-green">📖</div>
-          <div class="rd-stat-val"><?= $total_borrowed ?></div>
+          <div class="rd-stat-icon rd-i-green">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+          </div>
+          <div class="rd-stat-val rd-stat-val-serif"><?= $total_borrowed ?></div>
           <div class="rd-stat-title">Total Books Read</div>
           <div class="rd-stat-sub">all time</div>
         </div>
         <div class="rd-card rd-stat">
-          <div class="rd-stat-icon rd-i-orange">⏰</div>
-          <div class="rd-stat-val"><?= $due_soon_count ?></div>
+          <div class="rd-stat-icon rd-i-orange">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          </div>
+          <div class="rd-stat-val rd-stat-val-serif"><?= $due_soon_count ?></div>
           <div class="rd-stat-title">Due Soon</div>
           <div class="rd-stat-sub">within 3 days</div>
         </div>
         <div class="rd-card rd-stat">
-          <div class="rd-stat-icon rd-i-purple">🔖</div>
-          <div class="rd-stat-val"><?= $pending_count ?></div>
+          <div class="rd-stat-icon rd-i-purple">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+          </div>
+          <div class="rd-stat-val rd-stat-val-serif"><?= $pending_count ?></div>
           <div class="rd-stat-title">Reservations</div>
           <div class="rd-stat-sub">pending</div>
         </div>
       </div>
 
-      <div class="rd-layout-grid">
+      <div class="rd-layout-grid rd-stagger">
         
         <!-- Left Column -->
         <div>
           <!-- Active Loans -->
           <div class="rd-section-title">
+
             <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
             Active Loans
           </div>
@@ -477,7 +505,8 @@ $extraStyles = [
                         <td style="text-align:right;">
                           <?php if ((float)$h['fine_amount'] > 0): ?>
                             <span style="color: <?= $h['fine_paid'] ? 'var(--rd-success)' : 'var(--rd-danger)' ?>; font-weight:600;">
-                              $<?= htmlspecialchars(number_format((float) $h['fine_amount'], 2), ENT_QUOTES, 'UTF-8') ?>
+                              ₱<?= htmlspecialchars(number_format((float) $h['fine_amount'], 2), ENT_QUOTES, 'UTF-8') ?>
+
                               <br><small><?= $h['fine_paid'] ? '(Paid)' : '(Unpaid)' ?></small>
                             </span>
                           <?php else: ?>

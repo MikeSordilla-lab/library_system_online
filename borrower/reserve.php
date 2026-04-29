@@ -63,7 +63,8 @@ if ($action === 'place') {
 
     if ($unpaid_fines > 0.0) {
       $pdo->rollBack();
-      $_SESSION['flash_error'] = 'You have outstanding unpaid fines ($' . number_format($unpaid_fines, 2) . ') and cannot reserve books.';
+      $_SESSION['flash_error'] = 'You have outstanding unpaid fines (₱' . number_format($unpaid_fines, 2) . ') and cannot reserve books.';
+
       header('Location: ' . BASE_URL . 'borrower/catalog.php');
       exit;
     }

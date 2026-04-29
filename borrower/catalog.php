@@ -195,7 +195,8 @@ $buildCatalogUrl = function (int $page) use ($q, $filter_category, $filter_avail
 					<?php endif; ?>
 				</div>
 
-				<section class="catalog-grid" aria-label="Catalog books">
+				<section class="catalog-grid rd-stagger" aria-label="Catalog books">
+
 					<?php if (empty($books)): ?>
 						<div class="catalog-empty" role="status" aria-live="polite">
 							<div class="catalog-empty__icon" aria-hidden="true">Books</div>

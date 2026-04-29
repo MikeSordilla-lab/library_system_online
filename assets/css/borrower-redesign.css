@@ -13,6 +13,21 @@
   --rd-radius: 24px;
   --rd-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   --rd-shadow-hover: 0 10px 40px rgba(201, 168, 76, 0.15);
+
+  /* Serif stat font */
+  --rd-font-serif: "Playfair Display", Georgia, serif;
+}
+
+/* Serif stat value — mixed sans/serif hierarchy for visual punch */
+.rd-stat-val-serif {
+  font-family: var(--rd-font-serif);
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--rd-text-bold);
+  line-height: 1;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.03em;
+  text-shadow: 0 2px 8px rgba(201, 168, 76, 0.2);
 }
 
 .borrower-dashboard-new {
@@ -420,6 +435,422 @@
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 8px rgba(201,168,76,0.15); }
+  50% { box-shadow: 0 0 20px rgba(201,168,76,0.3); }
+}
+
+/* ── Enhanced stat cards with gold glow ── */
+.rd-stat-val-serif {
+  position: relative;
+  z-index: 1;
+}
+.rd-stat-val-serif::after {
+  content: '';
+  position: absolute;
+  inset: -8px -12px;
+  background: radial-gradient(ellipse at center, rgba(201,168,76,0.10) 0%, transparent 70%);
+  border-radius: 50%;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.rd-stat .rd-stat-icon {
+  position: relative;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.rd-stat:hover .rd-stat-icon {
+  transform: scale(1.1);
+}
+
+/* ── Alternating table rows ── */
+.rd-table-glass tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.02);
+}
+.rd-table-glass tbody tr:nth-child(odd) {
+  background: transparent;
+}
+
+/* ── Overdue row left border accent ── */
+tr.rd-row-overdue td:first-child {
+  border-left: 3px solid var(--rd-danger);
+  padding-left: calc(1rem - 3px);
+}
+
+/* ── Section title with underline accent ── */
+.rd-section-title {
+  position: relative;
+  padding-bottom: 0.75rem;
+}
+.rd-section-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 48px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--rd-primary), transparent);
+  border-radius: 2px;
+}
+
+/* ── Section card border variants for My Books lifecycle ── */
+.rd-card-border-green {
+  border-left: 3px solid var(--rd-success) !important;
+}
+.rd-card-border-blue {
+  border-left: 3px solid #60a5fa !important;
+}
+.rd-card-border-red {
+  border-left: 3px solid var(--rd-danger) !important;
+}
+.rd-card-border-orange {
+  border-left: 3px solid var(--rd-warning) !important;
+}
+
+/* ── Enhanced lifecycle step ── */
+.rd-lifecycle-step.active {
+  box-shadow: 0 0 20px rgba(201,168,76,0.1);
+}
+.rd-lifecycle-step .icon {
+  transition: transform 0.3s ease;
+}
+.rd-lifecycle-step.active .icon {
+  transform: scale(1.15);
+}
+.rd-lifecycle-arrow {
+  font-size: 1.25rem;
+  font-weight: 300;
+  opacity: 0.5;
+}
+
+/* ── Collapsible section toggle ── */
+.rd-collapsible-header {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.rd-collapsible-header .rd-collapse-icon {
+  transition: transform 0.3s ease;
+  font-size: 0.8rem;
+  color: var(--rd-text-muted);
+}
+.rd-collapsible-header.collapsed .rd-collapse-icon {
+  transform: rotate(-90deg);
+}
+.rd-collapsible-body {
+  overflow: hidden;
+  transition: max-height 0.4s ease, opacity 0.3s ease;
+  max-height: 2000px;
+  opacity: 1;
+}
+.rd-collapsible-body.collapsed {
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* ── Ready for Pickup — Redesigned Card ─────────────────────────────────── */
+.rd-pickup-card {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.10), rgba(16, 185, 129, 0.04));
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 20px;
+  padding: 1.75rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(16, 185, 129, 0.08) inset;
+  animation: slideDown 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: box-shadow 0.3s ease;
+}
+
+.rd-pickup-card:hover {
+  box-shadow: 0 8px 36px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(16, 185, 129, 0.2) inset;
+}
+
+/* ── Pickup card header row ── */
+.rd-pickup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.rd-pickup-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #34d399;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.rd-pickup-heading svg {
+  flex-shrink: 0;
+  stroke: #34d399;
+}
+
+.rd-pickup-badge-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ── Pickup card body text ── */
+.rd-pickup-body {
+  color: #f5f2ed;
+  font-size: 1rem;
+  line-height: 1.65;
+  margin: 0 0 1.25rem 0;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background: rgba(16, 185, 129, 0.07);
+  border: 1px solid rgba(16, 185, 129, 0.1);
+}
+
+.rd-pickup-body strong {
+  color: #6ee7b7;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+/* ── Pickup table wrapper ── */
+.rd-pickup-table-wrap {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(16, 185, 129, 0.12);
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.rd-pickup-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.rd-pickup-table thead th {
+  text-align: left;
+  padding: 0.85rem 1rem;
+  color: rgba(236, 232, 219, 0.5);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: rgba(16, 185, 129, 0.06);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.1);
+}
+
+.rd-pickup-table tbody td {
+  padding: 0.85rem 1rem;
+  vertical-align: middle;
+  color: #ece8db;
+  font-size: 0.9rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.rd-pickup-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.rd-pickup-table tbody tr {
+  transition: background 0.2s ease;
+}
+
+.rd-pickup-table tbody tr:hover {
+  background: rgba(16, 185, 129, 0.06);
+}
+
+/* ── Book cell with author inline ── */
+.rd-pickup-book-title {
+  font-weight: 600;
+  color: #fff;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.rd-pickup-book-author {
+  font-size: 0.82rem;
+  color: rgba(236, 232, 219, 0.55);
+  display: block;
+}
+
+/* ── Date cells ── */
+.rd-pickup-date {
+  white-space: nowrap;
+  color: #ece8db;
+}
+
+.rd-pickup-date--urgent {
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+/* ── Expiry badge ── */
+.rd-pickup-expiry-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  white-space: nowrap;
+}
+
+.rd-pickup-expiry-badge--critical {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+/* ── Solid Cancel button ── */
+.rd-btn-danger-solid {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 1rem;
+  border-radius: 8px;
+  border: none;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.rd-btn-danger-solid:hover {
+  background: #ef4444;
+  color: #fff;
+  border-color: #ef4444;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.rd-btn-danger-solid:active {
+  transform: translateY(0);
+}
+
+/* ── Profile form input focus animations ── */
+.prof-field input:focus {
+  transform: translateY(-1px);
+}
+
+/* ── Staggered card animations ── */
+.rd-stagger > * {
+  animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.rd-stagger > *:nth-child(1) { animation-delay: 0.05s; }
+.rd-stagger > *:nth-child(2) { animation-delay: 0.1s; }
+.rd-stagger > *:nth-child(3) { animation-delay: 0.15s; }
+.rd-stagger > *:nth-child(4) { animation-delay: 0.2s; }
+.rd-stagger > *:nth-child(5) { animation-delay: 0.25s; }
+.rd-stagger > *:nth-child(6) { animation-delay: 0.3s; }
+.rd-stagger > *:nth-child(7) { animation-delay: 0.35s; }
+.rd-stagger > *:nth-child(8) { animation-delay: 0.4s; }
+
+/* ── Larger catalog book cover area ── */
+.catalog-book {
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease !important;
+}
+.catalog-book:hover {
+  transform: translateY(-6px) scale(1.02);
+}
+.catalog-book__badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  letter-spacing: 0.02em;
+}
+
+/* ── Pagination touch targets ── */
+.catalog-pagination a,
+.catalog-pagination .catalog-pagination__current {
+  min-width: 36px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Flash message enhancements ── */
+.flash {
+  animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ── Empty state improvements ── */
+.catalog-empty {
+  padding: 4rem 2rem !important;
+  border-radius: var(--rd-radius) !important;
+}
+
+/* ── Profile banner gradient refinement ── */
+.prof-banner {
+  position: relative;
+  overflow: hidden;
+}
+.prof-banner::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 30px;
+  background: linear-gradient(to bottom, transparent, var(--rd-bg));
+}
+
+/* ── Responsive refinements ── */
+@media (max-width: 992px) {
+  .borrower-dashboard-new .main-content {
+    padding: 1.5rem !important;
+  }
+  .rd-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  .rd-header h1 {
+    font-size: 1.6rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .borrower-dashboard-new .main-content {
+    padding: 1rem !important;
+  }
+  .rd-card {
+    padding: 1rem;
+  }
+  .rd-table-glass th,
+  .rd-table-glass td {
+    padding: 0.65rem 0.5rem;
+    font-size: 0.8rem;
+  }
+  .catalog-filters__primary {
+    flex-direction: column;
+  }
+  .catalog-filters__primary button {
+    width: 100%;
+  }
 }
 
 /* Dark Theme Catalog Overrides */

@@ -461,13 +461,15 @@ $extraStyles  = [
           <div class="prof-info-row"><span class="prof-info-label">Email</span><span class="prof-info-val"><?= $escape($email ?: '—') ?></span></div>
           <div class="prof-info-row"><span class="prof-info-label">Outstanding Fines</span>
             <span class="prof-info-val" style="color:<?= $outstanding_fines > 0 ? 'var(--rd-danger)' : 'var(--rd-success)' ?>">
-              $<?= number_format($outstanding_fines, 2) ?>
+              ₱<?= number_format($outstanding_fines, 2) ?>
             </span>
+
           </div>
         </div>
 
         <!-- Stats -->
-        <div class="prof-stats">
+        <div class="prof-stats rd-stagger">
+
           <div class="prof-stat-card">
             <div class="prof-stat-num"><?= $total_loans ?></div>
             <div class="prof-stat-label">Total Loans</div>
@@ -482,8 +484,9 @@ $extraStyles  = [
           </div>
           <div class="prof-stat-card">
             <div class="prof-stat-num" style="color:<?= $outstanding_fines > 0 ? 'var(--rd-danger)' : 'var(--rd-success)' ?>">
-              $<?= number_format($outstanding_fines, 2) ?>
+              ₱<?= number_format($outstanding_fines, 2) ?>
             </div>
+
             <div class="prof-stat-label">Unpaid Fines</div>
           </div>
         </div>

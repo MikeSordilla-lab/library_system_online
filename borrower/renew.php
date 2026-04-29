@@ -88,7 +88,8 @@ try {
 
     if ($unpaid_fines > 0.0) {
       $pdo->rollBack();
-      $_SESSION['flash_error'] = 'You have outstanding unpaid fines ($' . number_format($unpaid_fines, 2) . ') and cannot renew books.';
+      $_SESSION['flash_error'] = 'You have outstanding unpaid fines (₱' . number_format($unpaid_fines, 2) . ') and cannot renew books.';
+
       header('Location: ' . BASE_URL . 'borrower/index.php');
       exit;
     }
