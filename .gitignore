@@ -20,7 +20,7 @@ tests/automation/**/*.log
 
 # Uploaded files / user content
 
-
+.assets\images\covers\book cover
 # IDE & editor
 .vscode/
 .idea/
