@@ -5,7 +5,8 @@
  *
  * GET:  Bulk-update overdue loans, then display the active/overdue loan list
  *       with a Return button per row.
- * POST: Delegate to circulation orchestration layer.
+ * POST: Atomically record the return date, restore available_copies (with
+ *       LEAST() guard), calculate any fine, and write a System_Logs audit entry.
  *
  * Protected: Librarian role only (FR-029).
  */
@@ -20,7 +21,7 @@ require_once __DIR__ . '/../includes/receipts.php';
 $pdo = get_db();
 
 // ---------------------------------------------------------------------------
-// POST handler — delegate to orchestration layer
+// POST handler — T014–T016
 // ---------------------------------------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   csrf_verify();
@@ -35,37 +36,111 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
   }
 
-  $result = perform_checkin($pdo, $loan_id, $actor_id, $actor_role);
+  // T014 — Fetch loan; reject if not found or already returned
+  $loan_stmt = $pdo->prepare(
+    'SELECT c.id, c.user_id, c.book_id, c.due_date, c.status,
+            b.title AS book_title,
+            u.full_name AS borrower_name
+       FROM Circulation c
+       JOIN Books b ON c.book_id = b.id
+       JOIN Users u ON c.user_id = u.id
+      WHERE c.id = ?
+      LIMIT 1'
+  );
+  $loan_stmt->execute([$loan_id]);
+  $loan = $loan_stmt->fetch();
 
-  if ($result['success']) {
-    // Reservation alert (presentation-specific)
-    $has_reservations = false;
-    try {
-      $res_check = $pdo->prepare("SELECT COUNT(*) FROM Reservations WHERE book_id IN (SELECT book_id FROM Circulation WHERE id = ?) AND status = 'pending'");
-      $res_check->execute([$loan_id]);
-      $has_reservations = (int) $res_check->fetchColumn() > 0;
-    } catch (Throwable $e) {
-      // non-critical; ignore
-    }
+  if (!$loan || $loan['status'] === 'returned') {
+    $_SESSION['flash_error'] = 'Loan not found or has already been returned.';
+    header('Location: ' . BASE_URL . 'librarian/checkin.php');
+    exit;
+  }
 
-    $fine_msg = $result['fine'] > 0.00
-      ? ' Fine assessed: $' . number_format($result['fine'], 2) . '.'
+  // T015 — Calculate fine in PHP
+  $return_ts = time();
+  $due_ts    = strtotime($loan['due_date']);
+  $days_late = max(0, (int) ceil(($return_ts - $due_ts) / 86400));
+  $rate      = (float) get_setting($pdo, 'fine_per_day', '0.00');
+  $fine      = round($days_late * $rate, 2);
+
+  // T016 — Transactional update
+  $pdo->beginTransaction();
+
+  try {
+    $upd_loan = $pdo->prepare(
+      'UPDATE Circulation
+                SET return_date  = NOW(),
+                    status       = \'returned\',
+                    fine_amount  = ?
+              WHERE id = ?'
+    );
+    $upd_loan->execute([$fine, $loan_id]);
+
+    $upd_book = $pdo->prepare(
+      'UPDATE Books
+                SET available_copies = LEAST(available_copies + 1, total_copies)
+              WHERE id = ?'
+    );
+    $upd_book->execute([(int) $loan['book_id']]);
+
+    log_circulation($pdo, [
+      'actor_id'      => $actor_id,
+      'actor_role'    => $actor_role,
+      'action_type'   => 'checkin',
+      'target_entity' => 'Circulation',
+      'target_id'     => $loan_id,
+      'outcome'       => 'success',
+    ]);
+
+    $receipt = issue_receipt_ticket($pdo, [
+      'type'            => 'checkin',
+      'actor_user_id'   => $actor_id,
+      'actor_role'      => $actor_role,
+      'patron_user_id'  => (int) $loan['user_id'],
+      'reference_table' => 'Circulation',
+      'reference_id'    => $loan_id,
+      'format'          => 'thermal',
+      'channel'         => 'librarian_console',
+      'payload'         => [
+        'loan_id'       => $loan_id,
+        'book_id'       => (int) $loan['book_id'],
+        'book_title'    => (string) ($loan['book_title'] ?? ''),
+        'patron_name'   => (string) ($loan['borrower_name'] ?? ''),
+        'due_date'      => (string) ($loan['due_date'] ?? ''),
+        'returned_at'   => date('Y-m-d H:i:s'),
+        'days_late'     => $days_late,
+        'fine_amount'   => $fine,
+      ],
+    ]);
+
+    $pdo->commit();
+
+    // --- NEW LOGIC: Reservation Alert ---
+    $res_check = $pdo->prepare("SELECT COUNT(*) FROM Reservations WHERE book_id = ? AND status = 'pending'");
+    $res_check->execute([(int) $loan['book_id']]);
+    $has_reservations = (int) $res_check->fetchColumn();
+
+    $fine_msg = ($fine > 0.00)
+      ? ' Fine assessed: $' . number_format($fine, 2) . '.'
       : ' No fine.';
-
-    $alert_msg = $has_reservations
+      
+    $alert_msg = ($has_reservations > 0) 
       ? ' ⚠️ Note: There are pending reservations for this book. Please place it on the Hold shelf.'
       : '';
 
     $_SESSION['flash_success'] = 'Book returned successfully. Loan ID: ' . $loan_id . '.' . $fine_msg . $alert_msg;
-    $_SESSION['flash_receipt_no'] = $result['receipt_no'] ?? '';
+    $_SESSION['flash_receipt_no'] = (string) ($receipt['receipt_no'] ?? '');
     $_SESSION['flash_print_url'] = BASE_URL . 'librarian/print-record.php?loan_id=' . $loan_id . '&type=checkin';
     $_SESSION['flash_print_label'] = 'Print Return Record';
-  } else {
-    $_SESSION['flash_error'] = $result['message'];
+    header('Location: ' . BASE_URL . 'librarian/checkin.php');
+    exit;
+  } catch (Throwable $e) {
+    $pdo->rollBack();
+    error_log('[checkin.php] Transaction failed: ' . $e->getMessage());
+    $_SESSION['flash_error'] = 'An unexpected error occurred. Please try again.';
+    header('Location: ' . BASE_URL . 'librarian/checkin.php');
+    exit;
   }
-
-  header('Location: ' . BASE_URL . 'librarian/checkin.php');
-  exit;
 }
 
 // ---------------------------------------------------------------------------
@@ -150,7 +225,7 @@ $extraStyles = [
 
       <div class="section-card">
         <div class="section-card__header">
-          <span class="section-card__title">Active & Overdue Loans</span>
+          <span class="section-card__title">Active &amp; Overdue Loans</span>
         </div>
 
         <?php if (empty($loans)): ?>
@@ -204,3 +279,8 @@ $extraStyles = [
 </body>
 
 </html>
+
+
+
+
+

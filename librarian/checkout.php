@@ -4,7 +4,8 @@
  * librarian/checkout.php — Process Book Check-Out (US1, FR-005–FR-010)
  *
  * GET:  Display checkout form with verified Borrower list and available books.
- * POST: Delegate to circulation orchestration layer.
+ * POST: Atomically create a Circulation record, decrement available_copies,
+ *       and write a System_Logs audit entry — all in one PDO transaction.
  *
  * Protected: Librarian role only (FR-029).
  */
@@ -19,28 +20,253 @@ require_once __DIR__ . '/../includes/receipts.php';
 $pdo = get_db();
 
 // ---------------------------------------------------------------------------
-// POST handler — delegate to orchestration layer
+// POST handler — T007–T011
 // ---------------------------------------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   csrf_verify();
 
-  $user_id    = (int) ($_POST['user_id'] ?? 0);
-  $book_id    = (int) ($_POST['book_id'] ?? 0);
+  $user_id = (int) ($_POST['user_id'] ?? 0);
+  $book_id = (int) ($_POST['book_id'] ?? 0);
+
   $actor_id   = (int) $_SESSION['user_id'];
   $actor_role = (string) $_SESSION['role'];
 
-  $result = perform_checkout($pdo, $user_id, $book_id, $actor_id, $actor_role);
-
-  if ($result['success']) {
-    if ($result['receipt_no']) {
-      $_SESSION['flash_receipt_no'] = $result['receipt_no'];
-    }
-  } else {
-    $_SESSION['flash_error'] = $result['message'];
+  if ($user_id < 1 || $book_id < 1) {
+    $_SESSION['flash_error'] = 'Please select both a Borrower and a Book.';
+    header('Location: ' . BASE_URL . 'librarian/checkout.php');
+    exit;
   }
 
-  header('Location: ' . BASE_URL . 'librarian/checkout.php');
-  exit;
+  $pdo->beginTransaction();
+
+  try {
+    // Expire stale reservations first
+    expire_stale_reservations($pdo);
+
+    // T008 — Lock the book row and check availability
+    $book_stmt = $pdo->prepare(
+      'SELECT id, title, available_copies, total_copies
+               FROM Books
+              WHERE id = ?
+              FOR UPDATE'
+    );
+    $book_stmt->execute([$book_id]);
+    $book = $book_stmt->fetch();
+
+    if (!$book || (int) $book['available_copies'] < 1) {
+      log_circulation($pdo, [
+        'actor_id'      => $actor_id,
+        'actor_role'    => $actor_role,
+        'action_type'   => 'checkout',
+        'target_entity' => 'Books',
+        'target_id'     => $book_id,
+        'outcome'       => 'failure',
+      ]);
+      $pdo->commit();
+      $_SESSION['flash_error'] = 'No available copies for the selected book.';
+      header('Location: ' . BASE_URL . 'librarian/checkout.php');
+      exit;
+    }
+
+    // T009 — Verify borrower exists, is verified, and is not suspended
+    $user_stmt = $pdo->prepare(
+      'SELECT id FROM Users WHERE id = ? AND role = ? AND is_verified = 1 AND is_suspended = 0 LIMIT 1'
+    );
+    $user_stmt->execute([$user_id, 'borrower']);
+    $borrower = $user_stmt->fetch();
+
+    if (!$borrower) {
+      log_circulation($pdo, [
+        'actor_id'      => $actor_id,
+        'actor_role'    => $actor_role,
+        'action_type'   => 'checkout',
+        'target_entity' => 'Users',
+        'target_id'     => $user_id,
+        'outcome'       => 'failure',
+      ]);
+      $pdo->commit();
+      $_SESSION['flash_error'] = 'Selected Borrower not found, is not verified, or is suspended.';
+      header('Location: ' . BASE_URL . 'librarian/checkout.php');
+      exit;
+    }
+
+    // --- NEW LOGIC: Block Delinquent Borrowers (Unpaid Fines or Overdue Books) ---
+    // Check for unpaid fines
+    $fines_stmt = $pdo->prepare(
+      'SELECT SUM(fine_amount) as total_unpaid FROM Circulation WHERE user_id = ? AND fine_paid = 0'
+    );
+    $fines_stmt->execute([$user_id]);
+    $unpaid_fines = (float) ($fines_stmt->fetchColumn() ?: 0.0);
+
+    if ($unpaid_fines > 0.0) {
+      $pdo->rollBack();
+      $_SESSION['flash_error'] = 'Borrower has outstanding unpaid fines ($' . number_format($unpaid_fines, 2) . ') and cannot check out books.';
+      header('Location: ' . BASE_URL . 'librarian/checkout.php');
+      exit;
+    }
+
+    // Check for currently overdue books (even if not yet returned/fined)
+    $overdue_stmt = $pdo->prepare(
+      'SELECT COUNT(*) FROM Circulation WHERE user_id = ? AND status IN (\'active\', \'overdue\') AND due_date < NOW()'
+    );
+    $overdue_stmt->execute([$user_id]);
+    if ((int)$overdue_stmt->fetchColumn() > 0) {
+      $pdo->rollBack();
+      $_SESSION['flash_error'] = 'Borrower has overdue books that must be returned before checking out new ones.';
+      header('Location: ' . BASE_URL . 'librarian/checkout.php');
+      exit;
+    }
+
+    // --- NEW LOGIC: Enforce Max Borrow Limit ---
+    $limit_stmt = $pdo->prepare(
+      'SELECT COUNT(*) FROM Circulation WHERE user_id = ? AND status IN (\'active\', \'overdue\')'
+    );
+    $limit_stmt->execute([$user_id]);
+    $current_loans = (int) $limit_stmt->fetchColumn();
+
+    $res_limit_stmt = $pdo->prepare(
+      'SELECT COUNT(*) FROM Reservations WHERE user_id = ? AND status IN (?, ?) AND book_id != ?'
+    );
+    $res_limit_stmt->execute([$user_id, RESERVATION_STATUS_PENDING, RESERVATION_STATUS_APPROVED, $book_id]);
+    $current_res = (int) $res_limit_stmt->fetchColumn();
+
+    $max_limit = (int) get_setting($pdo, 'max_borrow_limit', '3');
+
+    if ($current_loans + $current_res >= $max_limit) {
+      $pdo->rollBack();
+      $_SESSION['flash_error'] = 'Borrower has reached their maximum allowed active loans and reservations (' . $max_limit . ').';
+      header('Location: ' . BASE_URL . 'librarian/checkout.php');
+      exit;
+    }
+
+    // T010 — Check for existing active/overdue loan for same (user_id, book_id)
+    $dup_stmt = $pdo->prepare(
+      'SELECT id FROM Circulation
+              WHERE user_id = ? AND book_id = ? AND status IN (\'active\', \'overdue\')
+              LIMIT 1'
+    );
+    $dup_stmt->execute([$user_id, $book_id]);
+    $existing_loan = $dup_stmt->fetch();
+
+    if ($existing_loan) {
+      log_circulation($pdo, [
+        'actor_id'      => $actor_id,
+        'actor_role'    => $actor_role,
+        'action_type'   => 'checkout',
+        'target_entity' => 'Circulation',
+        'target_id'     => (int) $existing_loan['id'],
+        'outcome'       => 'failure',
+      ]);
+      $pdo->commit();
+      $_SESSION['flash_error'] = 'This Borrower already has an active loan for this book.';
+      header('Location: ' . BASE_URL . 'librarian/checkout.php');
+      exit;
+    }
+
+    // T011 — Create the loan, decrement available_copies, write success log
+    $loan_days = get_loan_period($pdo);
+
+    $ins_stmt = $pdo->prepare(
+      'INSERT INTO Circulation (user_id, book_id, due_date, status)
+             VALUES (?, ?, NOW() + INTERVAL ? DAY, \'active\')'
+    );
+    $ins_stmt->execute([$user_id, $book_id, $loan_days]);
+    $new_loan_id = (int) $pdo->lastInsertId();
+
+    $loan_meta_stmt = $pdo->prepare(
+      'SELECT c.due_date, b.title, u.full_name
+         FROM Circulation c
+         JOIN Books b ON c.book_id = b.id
+         JOIN Users u ON c.user_id = u.id
+        WHERE c.id = ?
+        LIMIT 1'
+    );
+    $loan_meta_stmt->execute([$new_loan_id]);
+    $loan_meta = $loan_meta_stmt->fetch();
+
+    $upd_stmt = $pdo->prepare(
+      'UPDATE Books SET available_copies = available_copies - 1 WHERE id = ?'
+    );
+    $upd_stmt->execute([$book_id]);
+
+    // Fulfill reservation queue deterministically: approved first, fallback pending.
+    $res_pick_stmt = $pdo->prepare(
+      'SELECT id, status
+         FROM Reservations
+        WHERE user_id = ?
+          AND book_id = ?
+          AND status IN (?, ?)
+        ORDER BY
+          CASE status WHEN ? THEN 0 ELSE 1 END ASC,
+          reserved_at ASC,
+          id ASC
+        LIMIT 1
+        FOR UPDATE'
+    );
+    $res_pick_stmt->execute([
+      $user_id,
+      $book_id,
+      RESERVATION_STATUS_APPROVED,
+      RESERVATION_STATUS_PENDING,
+      RESERVATION_STATUS_APPROVED,
+    ]);
+    $reservationToFulfill = $res_pick_stmt->fetch();
+
+    if ($reservationToFulfill) {
+      transition_reservation_status(
+        $pdo,
+        (int) $reservationToFulfill['id'],
+        (string) $reservationToFulfill['status'],
+        RESERVATION_STATUS_FULFILLED,
+        [
+          'actor_id' => $actor_id,
+          'actor_role' => $actor_role,
+          'action_type' => 'reservation_fulfill',
+        ]
+      );
+    }
+
+    log_circulation($pdo, [
+      'actor_id'      => $actor_id,
+      'actor_role'    => $actor_role,
+      'action_type'   => 'checkout',
+      'target_entity' => 'Circulation',
+      'target_id'     => $new_loan_id,
+      'outcome'       => 'success',
+    ]);
+
+    $receipt = issue_receipt_ticket($pdo, [
+      'type'           => 'checkout',
+      'actor_user_id'  => $actor_id,
+      'actor_role'     => $actor_role,
+      'patron_user_id' => $user_id,
+      'reference_table' => 'Circulation',
+      'reference_id'   => $new_loan_id,
+      'format'         => 'thermal',
+      'channel'        => 'librarian_console',
+      'payload'        => [
+        'loan_id'      => $new_loan_id,
+        'book_id'      => $book_id,
+        'book_title'   => (string) ($loan_meta['title'] ?? ''),
+        'patron_name'  => (string) ($loan_meta['full_name'] ?? ''),
+        'due_date'     => (string) ($loan_meta['due_date'] ?? ''),
+        'loan_days'    => $loan_days,
+      ],
+    ]);
+
+    $pdo->commit();
+
+    $receipt_no = (string) ($receipt['receipt_no'] ?? '');
+    $_SESSION['flash_receipt_no'] = $receipt_no;
+    header('Location: ' . BASE_URL . 'librarian/checkout.php');
+    exit;
+  } catch (Throwable $e) {
+    $pdo->rollBack();
+    error_log('[checkout.php] Transaction failed: ' . $e->getMessage());
+    $_SESSION['flash_error'] = 'An unexpected error occurred. Please try again.';
+    header('Location: ' . BASE_URL . 'librarian/checkout.php');
+    exit;
+  }
 }
 
 // ---------------------------------------------------------------------------
