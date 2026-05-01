@@ -2,7 +2,7 @@
 // seed-books-covers.php
 // Script to populate the database with 120 books using local cover images
 // Run: php seed-books-covers.php
-
+//hi
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/src/config/constants.php';
 
@@ -166,7 +166,7 @@ foreach ($booksToSeed as $b) {
     if ($coverIndex < count($coverFiles)) {
         $coverPath = $coverFiles[$coverIndex];
         $imageData = file_get_contents($coverPath);
-        
+
         if ($imageData !== false) {
             $mimeType = 'image/jpeg';
             $stmtCover->execute([
