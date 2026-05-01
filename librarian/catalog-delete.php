@@ -3,7 +3,8 @@
 /**
  * librarian/catalog-delete.php — POST-only Delete Handler (US4, FR-004, FR-011)
  *
- * POST: Validate → delegate to catalog module → log → flash → redirect.
+ * GET:  Redirect to catalog.php (no UI to display).
+ * POST: CSRF verify → validate id → SELECT exists → DELETE → log → flash → redirect.
  *
  * Accessible to: librarian only
  */
@@ -31,7 +32,6 @@ if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'borrower') {
 $allowed_roles = ['librarian'];
 require_once __DIR__ . '/../includes/auth_guard.php';
 require_once __DIR__ . '/../includes/csrf.php';
-require_once __DIR__ . '/../src/utils/catalog.php';
 
 // 1. CSRF validation (FR-011)
 csrf_verify();
@@ -49,18 +49,32 @@ if ($book_id === 0) {
   exit;
 }
 
-$actor_id   = (int) $_SESSION['user_id'];
-$actor_role = (string) $_SESSION['role'];
+// 3. Confirm record exists
+$chk = $pdo->prepare('SELECT id, title FROM Books WHERE id = ?');
+$chk->execute([$book_id]);
+$book = $chk->fetch();
 
-$result = delete_book($pdo, $book_id, $actor_id, $actor_role);
-
-if ($result['success']) {
-  $_SESSION['flash_success'] = 'Book deleted successfully.';
-} else {
-  // Book not found — redirect silently
+if ($book === false) {
+  // Already gone — redirect silently
   header('Location: catalog.php');
   exit;
 }
 
+// 4. Delete (FR-006 — PDO prepared statement)
+$stmt = $pdo->prepare('DELETE FROM Books WHERE id = ?');
+$stmt->execute([$book_id]);
+
+// 5. Audit log (Constitution Principle V)
+log_event(
+  $pdo,
+  'BOOK_DELETE',
+  (int)$_SESSION['user_id'],
+  'Books',
+  $book_id,
+  'SUCCESS',
+  $_SESSION['role']
+);
+
+$_SESSION['flash_success'] = 'Book deleted successfully.';
 header('Location: catalog.php');
 exit;

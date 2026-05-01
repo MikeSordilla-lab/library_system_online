@@ -8,7 +8,7 @@
  */
 
 if (!defined('AVATAR_UPLOAD_DIR')) {
-  define('AVATAR_UPLOAD_DIR', __DIR__ . '/../../assets/avatars/');
+  define('AVATAR_UPLOAD_DIR', __DIR__ . '/../assets/avatars/');
 }
 if (!defined('AVATAR_MAX_SIZE')) {
   define('AVATAR_MAX_SIZE', 5 * 1024 * 1024); // 5MB
