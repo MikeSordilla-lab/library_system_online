@@ -72,6 +72,54 @@ $extraStyles = [
 
 <head>
   <?php require_once __DIR__ . '/../includes/head.php'; ?>
+  <style>
+    .pagination-controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+    }
+    .pagination-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border, #e2e8f0);
+      min-height: 40px;
+    }
+    @media (max-width: 600px) {
+      .pagination-wrapper {
+        flex-direction: column;
+        gap: 16px;
+      }
+    }
+    .pagination-btn {
+      padding: 8px 16px;
+      border: 1px solid var(--border, #e2e8f0);
+      background: var(--bg-surface, #fff);
+      color: var(--text-primary, #1e293b);
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .pagination-btn:hover:not(:disabled) {
+      background: var(--bg-hover, #f1f5f9);
+    }
+    .pagination-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .pagination-info {
+      font-size: 0.9rem;
+      color: var(--text-secondary, #64748b);
+    }
+    .cat-row--hidden {
+      display: none !important;
+    }
+  </style>
 </head>
 
 <body class="librarian-themed">
@@ -149,7 +197,7 @@ $extraStyles = [
             <p>No books in the catalog yet. <a href="catalog-add.php">Add the first one.</a></p>
           </div>
         <?php else: ?>
-          <div class="tbl-wrapper">
+          <div class="tbl-wrapper" id="tbl-wrapper">
             <table class="tbl" id="catalog-table">
               <thead>
                 <tr>
@@ -172,10 +220,18 @@ $extraStyles = [
                     data-category="<?= h((string)($book['category'] ?? '')) ?>"
                     data-available="<?= (int)$book['available_copies'] > 0 ? 'available' : 'unavailable' ?>">
                     <td data-label="Title">
-                      <strong class="cat-title"><?= h($book['title']) ?></strong>
-                      <?php if (!empty($book['description'])): ?>
-                        <div class="cat-desc"><?= h(mb_strimwidth((string)$book['description'], 0, 80, '…')) ?></div>
-                      <?php endif; ?>
+                      <div style="display: flex; gap: 12px; align-items: flex-start;">
+                        <img src="<?= h(BASE_URL . 'public/book-cover.php?book_id=' . (int)$book['id']) ?>"
+                             alt="Cover"
+                             onerror="this.onerror=null;this.src='<?= h(BASE_URL . 'assets/images/placeholder-book.png') ?>';"
+                             style="width: 40px; height: 60px; object-fit: cover; border-radius: 4px; flex-shrink: 0; border: 1px solid var(--border, #e2e8f0);">
+                        <div>
+                          <strong class="cat-title"><?= h($book['title']) ?></strong>
+                          <?php if (!empty($book['description'])): ?>
+                            <div class="cat-desc"><?= h(mb_strimwidth((string)$book['description'], 0, 80, '…')) ?></div>
+                          <?php endif; ?>
+                        </div>
+                      </div>
                     </td>
                     <td data-label="Author"><?= h($book['author']) ?></td>
                     <td data-label="ISBN"><span class="cat-isbn"><?= h($book['isbn']) ?></span></td>
@@ -230,6 +286,18 @@ $extraStyles = [
               <p>No books match your search.</p>
               <button class="btn-ghost" id="cat-reset2" type="button">Clear filters</button>
             </div>
+
+            <div class="pagination-wrapper" id="pagination-wrapper" style="display: <?php echo empty($books) ? 'none' : 'flex'; ?>">
+              <select class="cat-toolbar__select" id="cat-items-per-page" style="width: auto; padding: 6px 32px 6px 12px; margin: 0;" title="Items per page" aria-label="Items per page">
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="15" selected>15</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+                <option value="1000000">All</option>
+              </select>
+              <div id="pagination-container"></div>
+            </div>
           </div>
         <?php endif; ?>
       </div>
@@ -245,13 +313,21 @@ $extraStyles = [
       const searchInput = document.getElementById('cat-search');
       const filterCat = document.getElementById('cat-filter-category');
       const filterAvail = document.getElementById('cat-filter-avail');
+      const itemsPerPageSelect = document.getElementById('cat-items-per-page');
       const resetBtn = document.getElementById('cat-reset');
       const resetBtn2 = document.getElementById('cat-reset2');
       const rows = document.querySelectorAll('.cat-row');
       const countEl = document.getElementById('cat-count');
       const emptySearch = document.getElementById('cat-empty-search');
+      const paginationContainer = document.getElementById('pagination-container');
+      const paginationWrapper = document.getElementById('pagination-wrapper');
 
       let totalBooks = rows.length;
+
+      // ── Pagination State ──
+      let itemsPerPage = parseInt(itemsPerPageSelect.value, 10);
+      let currentPage = 1;
+      let matchingRows = [];
 
       // ── Highlight helper ──
       function highlight(text, query) {
@@ -271,13 +347,79 @@ $extraStyles = [
         if (authorEl) originalAuthors[id] = authorEl.textContent;
       });
 
+      // ── Pagination render function ──
+      function renderPagination() {
+        if (!paginationContainer) return;
+        paginationContainer.innerHTML = '';
+
+        const totalPages = Math.ceil(matchingRows.length / itemsPerPage);
+        if (totalPages <= 1) return;
+
+        const controls = document.createElement('div');
+        controls.className = 'pagination-controls';
+
+        const prevBtn = document.createElement('button');
+        prevBtn.className = 'pagination-btn';
+        prevBtn.textContent = 'Previous';
+        prevBtn.disabled = currentPage === 1;
+        prevBtn.addEventListener('click', () => {
+          if (currentPage > 1) {
+            currentPage--;
+            showCurrentPage();
+            renderPagination();
+          }
+        });
+
+        const info = document.createElement('span');
+        info.className = 'pagination-info';
+        info.textContent = `Page ${currentPage} of ${totalPages}`;
+
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'pagination-btn';
+        nextBtn.textContent = 'Next';
+        nextBtn.disabled = currentPage === totalPages;
+        nextBtn.addEventListener('click', () => {
+          if (currentPage < totalPages) {
+            currentPage++;
+            showCurrentPage();
+            renderPagination();
+          }
+        });
+
+        controls.appendChild(prevBtn);
+        controls.appendChild(info);
+        controls.appendChild(nextBtn);
+        paginationContainer.appendChild(controls);
+      }
+
+      // ── Show current page function ──
+      function showCurrentPage() {
+        // Hide all rows first
+        rows.forEach(row => {
+          row.style.display = 'none';
+          row.classList.add('cat-row--hidden');
+        });
+
+        const start = (currentPage - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+
+        for (let i = 0; i < matchingRows.length; i++) {
+          if (i >= start && i < end) {
+            matchingRows[i].style.display = '';
+            matchingRows[i].classList.remove('cat-row--hidden');
+          }
+        }
+      }
+
       // ── Main filter function ──
-      function applyFilters() {
+      function applyFilters(resetPage = true) {
+        if (resetPage) currentPage = 1;
+
         const q = searchInput.value.trim().toLowerCase();
         const cat = filterCat.value;
         const avail = filterAvail.value;
 
-        let visible = 0;
+        matchingRows = [];
 
         rows.forEach(row => {
           const matchSearch = !q ||
@@ -289,10 +431,9 @@ $extraStyles = [
           const matchAvail = !avail || row.dataset.available === avail;
 
           const show = matchSearch && matchCat && matchAvail;
-          row.classList.toggle('cat-row--hidden', !show);
 
           if (show) {
-            visible++;
+            matchingRows.push(row);
             // Apply highlight
             const titleEl = row.querySelector('.cat-title');
             const authorEl = row.querySelector('[data-label="Author"]');
@@ -305,15 +446,26 @@ $extraStyles = [
 
         // Update count label
         if (q || cat || avail) {
-          countEl.textContent = visible + ' of ' + totalBooks + ' book' + (totalBooks !== 1 ? 's' : '') + ' shown';
+          countEl.textContent = matchingRows.length + ' of ' + totalBooks + ' book' + (totalBooks !== 1 ? 's' : '') + ' found';
         } else {
           countEl.textContent = totalBooks + ' book' + (totalBooks !== 1 ? 's' : '') + ' in catalog';
         }
 
         // Toggle empty state
         if (emptySearch) {
-          emptySearch.style.display = visible === 0 ? 'block' : 'none';
+          emptySearch.style.display = matchingRows.length === 0 ? 'block' : 'none';
         }
+
+        if (paginationWrapper) {
+          if (matchingRows.length === 0) {
+            paginationWrapper.style.display = 'none';
+          } else {
+            paginationWrapper.style.display = 'flex';
+          }
+        }
+
+        showCurrentPage();
+        renderPagination();
       }
 
       // ── Reset function ──
@@ -321,19 +473,25 @@ $extraStyles = [
         searchInput.value = '';
         filterCat.value = '';
         filterAvail.value = '';
-        applyFilters();
+        itemsPerPageSelect.value = '15';
+        itemsPerPage = 15;
+        applyFilters(true);
         searchInput.focus();
       }
 
       // ── Event listeners ──
-      searchInput.addEventListener('input', applyFilters);
-      filterCat.addEventListener('change', applyFilters);
-      filterAvail.addEventListener('change', applyFilters);
+      searchInput.addEventListener('input', () => applyFilters(true));
+      filterCat.addEventListener('change', () => applyFilters(true));
+      filterAvail.addEventListener('change', () => applyFilters(true));
+      itemsPerPageSelect.addEventListener('change', (e) => {
+        itemsPerPage = parseInt(e.target.value, 10);
+        applyFilters(true);
+      });
       resetBtn.addEventListener('click', resetFilters);
       if (resetBtn2) resetBtn2.addEventListener('click', resetFilters);
 
       // Run once on load to set count
-      applyFilters();
+      applyFilters(true);
 
       // ── Delete confirmations ──
       document.querySelectorAll('.delete-book-form').forEach(form => {
