@@ -560,6 +560,11 @@ $extraStyles = [
         modal.setAttribute('aria-hidden', 'true');
       }
 
+      window.closeRenewalBlockModal = closeModal;
+
+      if (window.renewalBlockModalHandlersBound) return;
+      window.renewalBlockModalHandlersBound = true;
+
       if (closeBg) closeBg.addEventListener('click', closeModal);
       if (okBtn) okBtn.addEventListener('click', closeModal);
       document.addEventListener('keydown', function(event) {
