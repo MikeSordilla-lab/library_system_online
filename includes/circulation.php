@@ -286,3 +286,30 @@ function reservation_column_exists(PDO $pdo, string $column): bool
 
   return $cache[$column];
 }
+
+/**
+ * Cached Circulation table column existence check.
+ *
+ * @param PDO $pdo Active PDO connection
+ * @param string $column Column name
+ * @return bool
+ */
+function circulation_column_exists(PDO $pdo, string $column): bool
+{
+  static $cache = [];
+  if (array_key_exists($column, $cache)) {
+    return $cache[$column];
+  }
+
+  // SHOW COLUMNS does not support bound placeholders on some MariaDB versions.
+  if (!preg_match('/\A[A-Za-z0-9_]+\z/', $column)) {
+    $cache[$column] = false;
+    return false;
+  }
+
+  $escapedColumn = str_replace(['\\', "'"], ['\\\\', "\\'"], $column);
+  $stmt = $pdo->query("SHOW COLUMNS FROM Circulation LIKE '{$escapedColumn}'");
+  $cache[$column] = $stmt->fetch() !== false;
+
+  return $cache[$column];
+}

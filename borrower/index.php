@@ -23,11 +23,25 @@ $user_id = (int) $_SESSION['user_id'];
 // Flash messages
 $flash_error   = $_SESSION['flash_error']   ?? '';
 $flash_success = $_SESSION['flash_success'] ?? '';
-unset($_SESSION['flash_error'], $_SESSION['flash_success']);
+$renewal_block = $_SESSION['renewal_block'] ?? null;
+unset($_SESSION['flash_error'], $_SESSION['flash_success'], $_SESSION['renewal_block']);
+
+$renewal_block_title = 'Renewal blocked';
+$renewal_block_message = '';
+if (is_array($renewal_block)) {
+  $renewal_block_title = (string) ($renewal_block['title'] ?? $renewal_block_title);
+  $renewal_block_message = (string) ($renewal_block['message'] ?? '');
+} elseif (is_string($renewal_block)) {
+  $renewal_block_message = $renewal_block;
+}
+$show_renewal_modal = $renewal_block_message !== '';
 
 // T026 — Active loans
+$has_renewal_count = circulation_column_exists($pdo, 'renewal_count');
+$renewal_select = $has_renewal_count ? ', c.renewal_count' : '';
+
 $active_stmt = $pdo->prepare(
-  'SELECT c.id, c.checkout_date, c.due_date, c.status, b.title
+  'SELECT c.id, c.checkout_date, c.due_date, c.status' . $renewal_select . ', b.title
        FROM Circulation c
        JOIN Books       b ON c.book_id = b.id
       WHERE c.user_id = ? AND c.status IN (\'active\', \'overdue\')
@@ -192,6 +206,29 @@ $extraStyles = [
 
 <head>
   <?php require_once __DIR__ . '/../includes/head.php'; ?>
+  <style>
+    .rd-modal {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 1rem;
+    }
+    .rd-modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(4px);
+    }
+    .rd-modal-panel {
+      position: relative;
+      width: 100%;
+      max-width: 520px;
+      z-index: 1;
+    }
+  </style>
 </head>
 
 <body class="dashboard-redesign borrower-dashboard-new">
@@ -219,6 +256,20 @@ $extraStyles = [
         <div class="flash flash-success" role="alert" style="animation:slideDown 0.4s cubic-bezier(0.16,1,0.3,1) forwards;" aria-live="polite"><?= htmlspecialchars($flash_success, ENT_QUOTES, 'UTF-8') ?></div>
       <?php endif; ?>
 
+      <?php if ($show_renewal_modal): ?>
+        <div id="renewal-block-modal" class="rd-modal" aria-hidden="false">
+          <div class="rd-modal-backdrop" id="renewal-block-modal-close" aria-hidden="true"></div>
+          <div class="rd-modal-panel rd-card" role="dialog" aria-modal="true" aria-labelledby="renewal-block-modal-title">
+            <h2 id="renewal-block-modal-title" style="margin-top:0; color:var(--rd-primary);"><?= htmlspecialchars($renewal_block_title, ENT_QUOTES, 'UTF-8') ?></h2>
+            <p style="color:var(--rd-text-muted); margin-bottom:1.5rem;">
+              <?= htmlspecialchars($renewal_block_message, ENT_QUOTES, 'UTF-8') ?>
+            </p>
+            <div style="display:flex; justify-content:flex-end;">
+              <button type="button" class="rd-btn rd-btn-primary" id="renewal-block-modal-ok">OK</button>
+            </div>
+          </div>
+        </div>
+      <?php endif; ?>
 
       <?php if ($due_soon_count > 0): ?>
         <div class="rd-alert" style="background: rgba(245, 158, 11, 0.1); border-left-color: var(--rd-warning);">
@@ -322,7 +373,7 @@ $extraStyles = [
       </div>
 
       <div class="rd-layout-grid rd-stagger">
-        
+
         <!-- Left Column -->
         <div>
           <!-- Active Loans -->
@@ -363,11 +414,22 @@ $extraStyles = [
                           <?php endif; ?>
                         </td>
                         <td>
+                          <?php
+                            $renew_count = $has_renewal_count && isset($loan['renewal_count']) ? (int)$loan['renewal_count'] : 0;
+                            $renew_eligible = $loan['status'] === 'active'
+                                && strtotime($loan['due_date']) - time() <= 86400
+                                && strtotime($loan['due_date']) > time()
+                                && $renew_count < 1;
+                          ?>
+                          <?php if ($renew_eligible): ?>
                           <form method="POST" action="<?= htmlspecialchars(BASE_URL . 'borrower/renew.php', ENT_QUOTES, 'UTF-8') ?>" style="margin:0;">
                             <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                             <input type="hidden" name="loan_id" value="<?= (int) $loan['id'] ?>">
                             <button type="submit" class="rd-btn-action">Renew</button>
                           </form>
+                          <?php else: ?>
+                            <span style="color:var(--rd-text-muted);font-size:0.85rem;">Not available</span>
+                          <?php endif; ?>
                         </td>
                         </tr>
                       <?php endforeach; ?>
@@ -485,6 +547,29 @@ $extraStyles = [
     </main>
   </div>
 
+  <script>
+    (function() {
+      var modal = document.getElementById('renewal-block-modal');
+      if (!modal) return;
+
+      var closeBg = document.getElementById('renewal-block-modal-close');
+      var okBtn = document.getElementById('renewal-block-modal-ok');
+
+      function closeModal() {
+        modal.style.display = 'none';
+        modal.setAttribute('aria-hidden', 'true');
+      }
+
+      if (closeBg) closeBg.addEventListener('click', closeModal);
+      if (okBtn) okBtn.addEventListener('click', closeModal);
+      document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+          closeModal();
+        }
+      });
+    }());
+  </script>
+
   <!-- ── Chart.js ─────────────────────────────────────────────────────────── -->
   <script src="<?= htmlspecialchars(BASE_URL, ENT_QUOTES, 'UTF-8') ?>assets/js/chart.min.js"></script>
   <script>
@@ -526,7 +611,7 @@ $extraStyles = [
       if (monthCtx) {
         var monthLabels = <?= json_encode($month_labels, JSON_HEX_TAG | JSON_HEX_AMP) ?>;
         var monthValues = <?= json_encode($month_values, JSON_HEX_TAG | JSON_HEX_AMP) ?>;
-        
+
         let gradient = monthCtx.getContext('2d').createLinearGradient(0, 0, 0, 400);
         gradient.addColorStop(0, 'rgba(201, 168, 76, 0.8)');
         gradient.addColorStop(1, 'rgba(201, 168, 76, 0.1)');
