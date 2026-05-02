@@ -142,9 +142,11 @@ function _sanitize_borrower_redirect(string $value): string
   if ($candidate === '') {
     return $default;
   }
+  // Reject control characters (ASCII 0–31 and DEL)
   if (preg_match('/[\x00-\x1F\x7F]/', $candidate) === 1) {
     return $default;
   }
+  // Reject absolute URLs (http:, ftp:, etc.), protocol-relative (//), or Windows paths (\\)
   if (preg_match('/^(?:[a-z][a-z0-9+\-.]*:|\/\/|\\\\)/i', $candidate) === 1) {
     return $default;
   }
