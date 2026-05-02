@@ -42,16 +42,20 @@ if ($loan_id < 1) {
     exit;
 }
 
-// Max renewals allowed
-define('MAX_RENEWALS', 2);
+// Max renewals allowed (US5: limit to single renewal per loan)
+define('MAX_RENEWALS', 1);
 
 try {
+    $has_renewal_count = circulation_column_exists($pdo, 'renewal_count');
+
     $pdo->beginTransaction();
+
+    $renewal_select = $has_renewal_count ? ', c.renewal_count' : '';
 
     // Fetch the loan with lock
     $loan_stmt = $pdo->prepare(
-        'SELECT c.id, c.user_id, c.book_id, c.due_date, c.status, c.renewal_count,
-                b.title, b.available_copies
+        'SELECT c.id, c.user_id, c.book_id, c.due_date, c.status' . $renewal_select . ',
+                b.title
          FROM Circulation c
          JOIN Books b ON c.book_id = b.id
          WHERE c.id = ?
@@ -63,7 +67,10 @@ try {
     // Check loan exists and belongs to user
     if (!$loan) {
         $pdo->rollBack();
-        $_SESSION['flash_error'] = 'Loan not found.';
+        $_SESSION['renewal_block'] = [
+            'title' => 'Renewal blocked',
+            'message' => 'Loan not found. Please try again.',
+        ];
         header('Location: ' . BASE_URL . 'borrower/index.php');
         exit;
     }
@@ -78,35 +85,75 @@ try {
             'outcome'       => 'failure:unauthorized',
         ]);
         $pdo->rollBack();
-        $_SESSION['flash_error'] = 'You do not have permission to renew this loan.';
+        $_SESSION['renewal_block'] = [
+            'title' => 'Renewal blocked',
+            'message' => 'You do not have permission to renew this loan.',
+        ];
         header('Location: ' . BASE_URL . 'borrower/index.php');
         exit;
     }
 
-    // --- NEW LOGIC: Block Delinquent Borrowers (Unpaid Fines or OTHER Overdue Books) ---
+    // Block Delinquent Borrowers (Unpaid Fines)
     $unpaid_fines = get_unpaid_fines_total($pdo, $user_id);
 
     if ($unpaid_fines > 0.0) {
       $pdo->rollBack();
-      $_SESSION['flash_error'] = 'You have outstanding unpaid fines (₱' . number_format($unpaid_fines, 2) . ') and cannot renew books.';
-
+      $modal_message = 'You have outstanding unpaid fines (₱' . number_format($unpaid_fines, 2) . '). Please return any overdue books and settle the fines before renewing.';
+      $_SESSION['renewal_block'] = [
+        'title' => 'Renewal blocked',
+        'message' => $modal_message,
+      ];
       header('Location: ' . BASE_URL . 'borrower/index.php');
       exit;
     }
 
-    // Check if the current loan is active and not overdue
-    if ($loan['status'] !== 'active' || strtotime($loan['due_date']) < time()) {
+    $due_ts = strtotime($loan['due_date']);
+    $is_overdue = ($loan['status'] === 'overdue') || ($loan['status'] === 'active' && $due_ts !== false && $due_ts < time());
+
+    if ($is_overdue) {
         $pdo->rollBack();
-        $_SESSION['flash_error'] = 'This loan cannot be renewed (either already returned or marked overdue).';
+        $modal_message = 'This loan is overdue. Please return the book and pay the overdue fines before renewing.';
+        $_SESSION['renewal_block'] = [
+            'title' => 'Renewal blocked',
+            'message' => $modal_message,
+        ];
+        header('Location: ' . BASE_URL . 'borrower/index.php');
+        exit;
+    }
+
+    // Check if the current loan is active
+    if ($loan['status'] !== 'active') {
+        $pdo->rollBack();
+        $_SESSION['renewal_block'] = [
+            'title' => 'Renewal blocked',
+            'message' => 'This loan cannot be renewed (already returned or inactive).',
+        ];
         header('Location: ' . BASE_URL . 'borrower/index.php');
         exit;
     }
 
     // Check renewal limit (gracefully handle if column doesn't exist)
-    $current_renewals = isset($loan['renewal_count']) ? (int) $loan['renewal_count'] : 0;
+    $current_renewals = ($has_renewal_count && isset($loan['renewal_count'])) ? (int) $loan['renewal_count'] : 0;
     if ($current_renewals >= MAX_RENEWALS) {
         $pdo->rollBack();
-        $_SESSION['flash_error'] = 'You have reached the maximum renewal limit (' . MAX_RENEWALS . ' times) for this book.';
+        $_SESSION['renewal_block'] = [
+            'title' => 'Renewal blocked',
+            'message' => 'You have reached the maximum renewal limit (1 time) for this book.',
+        ];
+        header('Location: ' . BASE_URL . 'borrower/index.php');
+        exit;
+    }
+
+    // Renewal is only allowed within 1 day before the due date
+    $due_ts_check = strtotime($loan['due_date']);
+    $one_day_before_due = $due_ts_check - 86400; // 24 hours before due
+    if (time() < $one_day_before_due) {
+        $pdo->rollBack();
+        $days_until_due = (int) ceil(($due_ts_check - time()) / 86400);
+        $_SESSION['renewal_block'] = [
+            'title' => 'Renewal blocked',
+            'message' => 'This book can only be renewed within 1 day before its due date. You still have ' . $days_until_due . ' day' . ($days_until_due !== 1 ? 's' : '') . ' remaining. Please try again closer to the due date.',
+        ];
         header('Location: ' . BASE_URL . 'borrower/index.php');
         exit;
     }
@@ -122,7 +169,10 @@ try {
 
     if ($other_reservation) {
         $pdo->rollBack();
-        $_SESSION['flash_error'] = 'Cannot renew: this book has been reserved by another member.';
+        $_SESSION['renewal_block'] = [
+            'title' => 'Renewal blocked',
+            'message' => 'Cannot renew: this book has been reserved by another member.',
+        ];
         header('Location: ' . BASE_URL . 'borrower/index.php');
         exit;
     }
@@ -136,18 +186,16 @@ try {
     $new_due_date = $new_due->format('Y-m-d H:i:s');
 
     // Update the loan - handle renewal_count column gracefully
-    $update_sql = 'UPDATE Circulation 
-         SET due_date = ?, 
+    $update_sql = 'UPDATE Circulation
+         SET due_date = ?,
              status = \'active\'
          WHERE id = ?';
     $update_stmt = $pdo->prepare($update_sql);
     $update_stmt->execute([$new_due_date, $loan_id]);
 
-    // Try to increment renewal_count if column exists
-    try {
-        $pdo->exec('UPDATE Circulation SET renewal_count = renewal_count + 1 WHERE id = ' . (int)$loan_id);
-    } catch (Exception $e) {
-        // Column might not exist, ignore
+    if ($has_renewal_count) {
+        $renew_stmt = $pdo->prepare('UPDATE Circulation SET renewal_count = renewal_count + 1 WHERE id = ?');
+        $renew_stmt->execute([$loan_id]);
     }
 
     // Log the renewal
@@ -169,7 +217,10 @@ try {
         $pdo->rollBack();
     }
     error_log('[renew.php] Renewal failed: ' . $e->getMessage());
-    $_SESSION['flash_error'] = 'An unexpected error occurred. Please try again.';
+    $_SESSION['renewal_block'] = [
+        'title' => 'Renewal blocked',
+        'message' => 'An unexpected error occurred. Please try again.',
+    ];
 }
 
 header('Location: ' . BASE_URL . 'borrower/index.php');
