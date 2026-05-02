@@ -40,10 +40,17 @@ $pageTitle    = 'Reports | Library System';
 <html lang="en">
 
 <head>
-  <?php require_once __DIR__ . '/../includes/head.php'; ?>
+  <?php
+  $extraStyles = [
+    'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap',
+    BASE_URL . 'assets/css/borrower-redesign.css',
+    BASE_URL . 'assets/css/admin-redesign.css'
+  ];
+  require_once __DIR__ . '/../includes/head.php';
+?>
 </head>
 
-<body>
+<body class="admin-themed">
   <div class="app-shell">
     <?php require_once __DIR__ . '/../includes/sidebar-admin.php'; ?>
     <main class="main-content admin-reports-page">
