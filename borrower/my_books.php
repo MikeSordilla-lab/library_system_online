@@ -318,9 +318,19 @@ $extraStyles = [
                     </td>
                     <td>
                       <?php
+                        $renew_count = 0;
+                        if (array_key_exists('renew_count', $loan)) {
+                            $renew_count = (int) $loan['renew_count'];
+                        } elseif (array_key_exists('renewal_count', $loan)) {
+                            $renew_count = (int) $loan['renewal_count'];
+                        }
+
+                        $max_renewals = defined('MAX_RENEWALS') ? (int) MAX_RENEWALS : 1;
+
                         $renew_eligible = $loan['status'] === 'active' && !$is_overdue
                             && strtotime($loan['due_date']) - time() <= 86400
-                            && strtotime($loan['due_date']) > time();
+                            && strtotime($loan['due_date']) > time()
+                            && $renew_count < $max_renewals;
                       ?>
                       <?php if ($renew_eligible): ?>
                       <form method="POST" action="<?= htmlspecialchars(BASE_URL . 'borrower/renew.php', ENT_QUOTES, 'UTF-8') ?>" style="margin:0;">
