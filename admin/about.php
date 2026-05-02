@@ -690,6 +690,166 @@ $skills = ['PHP', 'MySQL', 'CSS'];
       }
     }
   </style>
+  <style>
+    .admin-profile-page {
+      background:
+        radial-gradient(
+          circle at 12% 0%,
+          rgba(201, 168, 76, 0.14) 0%,
+          rgba(201, 168, 76, 0) 38%
+        ),
+        var(--paper);
+      color: var(--ink);
+    }
+
+    .admin-profile-page .page-header h1 {
+      color: var(--ink);
+      text-shadow: none;
+    }
+
+    .admin-profile-page .page-header__lede {
+      color: var(--muted);
+    }
+
+    .admin-profile-page .profile-card,
+    .admin-profile-page .data-card,
+    .admin-profile-page .developer-card,
+    .admin-profile-page .profile-side {
+      background: var(--card);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+
+    .admin-profile-page .profile-card:hover,
+    .admin-profile-page .data-card:hover {
+      box-shadow: var(--shadow-lg);
+    }
+
+    .admin-profile-page .profile-banner {
+      background:
+        linear-gradient(
+          120deg,
+          rgba(201, 168, 76, 0.2) 0%,
+          rgba(201, 168, 76, 0.05) 100%
+        ),
+        repeating-linear-gradient(
+          45deg,
+          rgba(255, 255, 255, 0.4) 0 10px,
+          transparent 10px 20px
+        );
+    }
+
+    .admin-profile-page .avatar-wrap {
+      background: var(--card);
+      border-color: var(--gold);
+      box-shadow: var(--shadow);
+    }
+
+    .admin-profile-page .profile-avatar {
+      color: var(--gold-dark);
+      background: linear-gradient(
+        145deg,
+        rgba(201, 168, 76, 0.2) 0%,
+        rgba(201, 168, 76, 0.08) 100%
+      );
+    }
+
+    .admin-profile-page .profile-info h2 {
+      color: var(--ink);
+    }
+
+    .admin-profile-page .profile-role {
+      color: var(--muted);
+    }
+
+    .admin-profile-page .status-badge {
+      background: var(--success-bg);
+      color: var(--success-text);
+      border: 1px solid var(--success-border);
+    }
+
+    .admin-profile-page .status-badge.status--inactive {
+      color: var(--error-text);
+      background: var(--error-bg);
+      border-color: var(--error-border);
+    }
+
+    .admin-profile-page .profile-bio {
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .admin-profile-page .btn-primary {
+      background: var(--ink);
+      color: var(--card);
+      border: 1px solid var(--ink);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .admin-profile-page .btn-primary:hover {
+      background: var(--sidebar-hover);
+      border-color: var(--sidebar-hover);
+      box-shadow: var(--shadow);
+    }
+
+    .admin-profile-page .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--ink);
+    }
+
+    .admin-profile-page .btn-secondary:hover {
+      background: var(--cream);
+      border-color: var(--border);
+      color: var(--ink);
+    }
+
+    .admin-profile-page .profile-side h3,
+    .admin-profile-page .developer-card h3 {
+      color: var(--ink);
+    }
+
+    .admin-profile-page .profile-side p,
+    .admin-profile-page .profile-side li {
+      color: var(--muted);
+    }
+
+    .admin-profile-page .profile-side li::before {
+      background: rgba(74, 103, 65, 0.14);
+      color: var(--sage-dark);
+    }
+
+    .admin-profile-page .data-icon {
+      background: color-mix(in srgb, var(--gold) 18%, var(--card));
+      color: var(--gold-dark);
+    }
+
+    .admin-profile-page .data-label {
+      color: var(--muted);
+    }
+
+    .admin-profile-page .data-value {
+      color: var(--ink);
+    }
+
+    .admin-profile-page .developer-card p {
+      color: var(--muted);
+    }
+
+    .admin-profile-page .badge-row {
+      border-top: 1px dashed var(--border);
+    }
+
+    .admin-profile-page .tech-badge {
+      background: var(--cream);
+      border: 1px solid var(--border);
+      color: var(--ink);
+    }
+
+    .admin-profile-page .tech-badge:hover {
+      border-color: var(--gold);
+    }
+  </style>
 </head>
 
 <body class="admin-themed">

@@ -1383,6 +1383,62 @@ $has_feedback = $flash_success !== ''
   ];
   require_once __DIR__ . '/../includes/head.php';
 ?>
+  <style>
+    .admin-themed .admin-users-page {
+      color-scheme: dark;
+      --paper: var(--rd-bg);
+      --cream: #2a2723;
+      --card: var(--rd-surface);
+      --ink: var(--rd-text);
+      --muted: var(--rd-text-muted);
+      --border: var(--rd-border);
+      --accent: var(--rd-primary);
+      --accent-dark: #b8942d;
+      --gold: var(--rd-primary);
+      --gold-dark: #b8942d;
+      --sage: var(--rd-success);
+      --sage-dark: #059669;
+      color: var(--rd-text);
+    }
+
+    .admin-themed .admin-users-page .btn-primary {
+      background: linear-gradient(135deg, var(--rd-primary), #b8942d);
+      color: #1c1a17 !important;
+      border: none;
+      box-shadow: 0 8px 16px rgba(201, 168, 76, 0.25);
+    }
+
+    .admin-themed .admin-users-page .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(201, 168, 76, 0.35);
+    }
+
+    .admin-themed .admin-users-page .btn-ghost {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--rd-border);
+      color: var(--rd-text);
+    }
+
+    .admin-themed .admin-users-page .btn-ghost:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--rd-text-bold);
+      border-color: var(--rd-border);
+    }
+
+    .admin-themed .admin-users-page .users-stat-list strong {
+      font-family: var(--rd-font-serif);
+      color: var(--rd-text-bold);
+    }
+
+    .admin-themed .admin-users-page .users-stat-label {
+      color: var(--rd-text-muted);
+    }
+
+    .admin-themed .admin-users-page .users-empty-state__icon {
+      margin: 0 auto var(--space-4);
+      opacity: 1;
+    }
+  </style>
 </head>
 
 <body class="admin-themed">
@@ -1464,22 +1520,45 @@ $has_feedback = $flash_success !== ''
               <h2 class="users-toolbar__title">Summary</h2>
               <ul class="users-stat-list" aria-label="User account statistics">
                 <li class="stat-card-tooltip" data-title="Total users in the system">
-                  <span class="stat-card-icon" aria-hidden="true">👥</span>
+                  <span class="rd-stat-icon rd-i-blue" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M17 20h5v-2a4 4 0 0 0-4-4h-1" />
+                      <path d="M9 20H2v-2a4 4 0 0 1 4-4h1" />
+                      <circle cx="9" cy="7" r="3" />
+                      <circle cx="17" cy="7" r="3" />
+                    </svg>
+                  </span>
                   <strong><?= (int) $total_users ?></strong>
                   <span class="users-stat-label">Total Users</span>
                 </li>
                 <li class="stat-card-tooltip" data-title="Active users who can log in">
-                  <span class="stat-card-icon" aria-hidden="true">✓</span>
+                  <span class="rd-stat-icon rd-i-green" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M9 12l2 2 4-4" />
+                    </svg>
+                  </span>
                   <strong><?= (int) $active_users ?></strong>
                   <span class="users-stat-label">Active Accounts</span>
                 </li>
                 <li class="stat-card-tooltip" data-title="Inactive users (archived or suspended)">
-                  <span class="stat-card-icon" aria-hidden="true">⏸</span>
+                  <span class="rd-stat-icon rd-i-orange" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M10 8v8" />
+                      <path d="M14 8v8" />
+                    </svg>
+                  </span>
                   <strong><?= (int) $inactive_users ?></strong>
                   <span class="users-stat-label">Inactive Accounts</span>
                 </li>
                 <li class="stat-card-tooltip" data-title="Users with admin privileges">
-                  <span class="stat-card-icon" aria-hidden="true">👑</span>
+                  <span class="rd-stat-icon rd-i-purple" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M3 7l4 4 5-7 5 7 4-4v10H3z" />
+                      <path d="M3 17h18" />
+                    </svg>
+                  </span>
                   <strong><?= (int) $admin_users ?></strong>
                   <span class="users-stat-label">Admin Accounts</span>
                 </li>
@@ -1534,7 +1613,14 @@ $has_feedback = $flash_success !== ''
 
            <?php if (empty($users)): ?>
               <div class="users-empty-state">
-                <div class="users-empty-state__icon">👥</div>
+                <div class="users-empty-state__icon rd-stat-icon rd-i-blue" aria-hidden="true">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 20h5v-2a4 4 0 0 0-4-4h-1" />
+                    <path d="M9 20H2v-2a4 4 0 0 1 4-4h1" />
+                    <circle cx="9" cy="7" r="3" />
+                    <circle cx="17" cy="7" r="3" />
+                  </svg>
+                </div>
                 <h3 class="users-empty-state__title"><?= ($q !== '') ? 'No users found' : 'No users yet' ?></h3>
                 <p class="users-empty-state__description">
                   <?= ($q !== '')
@@ -1931,7 +2017,7 @@ $has_feedback = $flash_success !== ''
                  <?php else: ?>
                    <button class="btn-ghost pagination-btn" disabled aria-label="Previous page">← Previous</button>
                  <?php endif; ?>
-                 
+
                  <?php if ($page < $total_pages): ?>
                    <a class="btn-ghost pagination-btn" href="<?= htmlspecialchars($build_page_url($page + 1), ENT_QUOTES, 'UTF-8') ?>" aria-label="Next page">Next →</a>
                  <?php else: ?>
@@ -1977,12 +2063,12 @@ $has_feedback = $flash_success !== ''
             <!-- Full Name Field -->
             <div class="field-group">
               <label for="modal-full_name" class="field-label">Full Name <span aria-label="required">*</span></label>
-              <input 
-                type="text" 
-                id="modal-full_name" 
-                name="full_name" 
-                class="field-input" 
-                placeholder="e.g., Jane Smith" 
+              <input
+                type="text"
+                id="modal-full_name"
+                name="full_name"
+                class="field-input"
+                placeholder="e.g., Jane Smith"
                 value="<?= htmlspecialchars((string) $create_user_old['full_name'], ENT_QUOTES, 'UTF-8') ?>"
                 required
                 aria-required="true"
@@ -1993,12 +2079,12 @@ $has_feedback = $flash_success !== ''
             <!-- Email Field -->
             <div class="field-group">
               <label for="modal-email" class="field-label">Email Address <span aria-label="required">*</span></label>
-              <input 
-                type="email" 
-                id="modal-email" 
-                name="email" 
-                class="field-input" 
-                placeholder="e.g., jane@example.com" 
+              <input
+                type="email"
+                id="modal-email"
+                name="email"
+                class="field-input"
+                placeholder="e.g., jane@example.com"
                 value="<?= htmlspecialchars((string) $create_user_old['email'], ENT_QUOTES, 'UTF-8') ?>"
                 required
                 aria-required="true"
@@ -2009,12 +2095,12 @@ $has_feedback = $flash_success !== ''
             <!-- Password Field -->
             <div class="field-group">
               <label for="modal-password" class="field-label">Password <span aria-label="required">*</span></label>
-              <input 
-                type="password" 
-                id="modal-password" 
-                name="password" 
-                class="field-input" 
-                placeholder="8+ characters" 
+              <input
+                type="password"
+                id="modal-password"
+                name="password"
+                class="field-input"
+                placeholder="8+ characters"
                 required
                 aria-required="true"
                 aria-describedby="password-error password-help">
@@ -2025,10 +2111,10 @@ $has_feedback = $flash_success !== ''
             <!-- Role Field -->
             <div class="field-group">
               <label for="modal-role" class="field-label">Account Type <span aria-label="required">*</span></label>
-              <select 
-                id="modal-role" 
-                name="role" 
-                class="field-select" 
+              <select
+                id="modal-role"
+                name="role"
+                class="field-select"
                 required
                 aria-required="true"
                 aria-describedby="role-error role-help">
@@ -2044,10 +2130,10 @@ $has_feedback = $flash_success !== ''
             <!-- Verification Checkbox -->
             <div class="field-group">
               <label for="modal-is_verified" class="field-checkbox">
-                <input 
-                  type="checkbox" 
-                  id="modal-is_verified" 
-                  name="is_verified" 
+                <input
+                  type="checkbox"
+                  id="modal-is_verified"
+                  name="is_verified"
                   value="1"
                   <?= (int) $create_user_old['is_verified'] === 1 ? 'checked' : '' ?>>
                 <span>Mark email as verified</span>
