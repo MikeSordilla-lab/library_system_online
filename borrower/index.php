@@ -134,8 +134,12 @@ $due_soon_count = (int) ($due_row['due_soon_count'] ?? 0);
 $pending_count = count($pending_reservations);
 
 // Q4b: Approved reservations — ready for pickup (EPIC 1: librarian approval → borrower view)
+$approved_at_select = reservation_column_exists($pdo, 'approved_at')
+  ? 'r.approved_at AS approved_at'
+  : 'NULL AS approved_at';
+
 $approved_stmt = $pdo->prepare(
-  "SELECT r.id, r.approved_at, r.expires_at, b.title, b.author
+  "SELECT r.id, {$approved_at_select}, r.expires_at, b.title, b.author
      FROM Reservations r
      JOIN Books b ON r.book_id = b.id
     WHERE r.user_id = ? AND r.status = 'approved'

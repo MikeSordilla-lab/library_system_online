@@ -110,13 +110,20 @@ $active_stmt->execute([$user_id]);
 $active_loans = $active_stmt->fetchAll();
 
 // ── 2. Approved Reservations (ready for pickup) ───────────────────────────────
+$approved_at_select = reservation_column_exists($pdo, 'approved_at')
+    ? 'r.approved_at AS approved_at'
+    : 'NULL AS approved_at';
+$approved_order_by = reservation_column_exists($pdo, 'approved_at')
+    ? 'r.approved_at'
+    : 'r.reserved_at';
+
 $approved_stmt = $pdo->prepare(
-    "SELECT r.id, r.reserved_at, r.expires_at, r.approved_at,
+    "SELECT r.id, r.reserved_at, r.expires_at, {$approved_at_select},
             b.title, b.author, b.isbn
        FROM Reservations r
        JOIN Books b ON r.book_id = b.id
       WHERE r.user_id = ? AND r.status = 'approved'
-      ORDER BY r.approved_at DESC"
+      ORDER BY {$approved_order_by} DESC"
 );
 $approved_stmt->execute([$user_id]);
 $approved_reservations = $approved_stmt->fetchAll();
