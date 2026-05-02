@@ -15,12 +15,34 @@
  * @param string $default Default value if setting not found (optional)
  * @return string Setting value or default
  */
+/**
+ * Get a system setting value from the Settings table
+ *
+ * @param PDO $pdo Database connection
+ * @param string $key Setting key to retrieve
+ * @param string $default Default value if setting not found (optional)
+ * @return string Setting value or default
+ */
 function get_setting(PDO $pdo, string $key, string $default = ''): string
 {
+  static $cache = [];
+  if (isset($cache[$key])) {
+    return $cache[$key];
+  }
   $stmt = $pdo->prepare('SELECT `value` FROM `Settings` WHERE `key` = ? LIMIT 1');
   $stmt->execute([$key]);
   $row = $stmt->fetch();
-  return ($row !== false) ? (string) $row['value'] : $default;
+  $cache[$key] = ($row !== false) ? (string) $row['value'] : $default;
+  return $cache[$key];
+}
+
+/**
+ * Clear the settings cache (internal, used by set_setting)
+ */
+function _setting_cache_clear(string $key): void
+{
+  static $cache = [];
+  unset($cache[$key]);
 }
 
 /**
@@ -34,9 +56,9 @@ function get_setting(PDO $pdo, string $key, string $default = ''): string
 function set_setting(PDO $pdo, string $key, string $value): bool
 {
   try {
-    // Use REPLACE to insert or update
     $stmt = $pdo->prepare('REPLACE INTO `Settings` (`key`, `value`) VALUES (?, ?)');
     $stmt->execute([$key, $value]);
+    _setting_cache_clear($key);
     return true;
   } catch (PDOException $e) {
     error_log('[settings.php] Failed to set setting: ' . $e->getMessage());

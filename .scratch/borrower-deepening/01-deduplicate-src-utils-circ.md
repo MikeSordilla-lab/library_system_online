@@ -6,9 +6,9 @@ Remove `src/utils/circulation.php` (inactive duplicate). Confirm `includes/circu
 
 ## Acceptance criteria
 
-- [ ] `src/utils/circulation.php` is deleted
-- [ ] No PHP fatal errors on any borrower page after deletion
-- [ ] `includes/circulation.php` is the single canonical implementation
+- [x] `src/utils/circulation.php` is deleted
+- [x] No PHP fatal errors on any borrower page after deletion
+- [x] `includes/circulation.php` is the single canonical implementation
 
 ## Blocked by
 
