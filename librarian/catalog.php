@@ -325,7 +325,7 @@ $extraStyles = [
       let totalBooks = rows.length;
 
       // ── Pagination State ──
-      let itemsPerPage = parseInt(itemsPerPageSelect.value, 10);
+      let itemsPerPage = itemsPerPageSelect ? parseInt(itemsPerPageSelect.value, 10) : 15;
       let currentPage = 1;
       let matchingRows = [];
 
@@ -473,7 +473,9 @@ $extraStyles = [
         searchInput.value = '';
         filterCat.value = '';
         filterAvail.value = '';
-        itemsPerPageSelect.value = '15';
+        if (itemsPerPageSelect) {
+          itemsPerPageSelect.value = '15';
+        }
         itemsPerPage = 15;
         applyFilters(true);
         searchInput.focus();
@@ -483,10 +485,12 @@ $extraStyles = [
       searchInput.addEventListener('input', () => applyFilters(true));
       filterCat.addEventListener('change', () => applyFilters(true));
       filterAvail.addEventListener('change', () => applyFilters(true));
-      itemsPerPageSelect.addEventListener('change', (e) => {
-        itemsPerPage = parseInt(e.target.value, 10);
-        applyFilters(true);
-      });
+      if (itemsPerPageSelect) {
+        itemsPerPageSelect.addEventListener('change', (e) => {
+          itemsPerPage = parseInt(e.target.value, 10);
+          applyFilters(true);
+        });
+      }
       resetBtn.addEventListener('click', resetFilters);
       if (resetBtn2) resetBtn2.addEventListener('click', resetFilters);
 
