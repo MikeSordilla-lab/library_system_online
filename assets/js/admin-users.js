@@ -34,9 +34,10 @@
   const bulkApply = document.getElementById('apply-bulk-action');
   const bulkSelectedContainer = document.getElementById('users-bulk-selected-container');
 
-  const managePanel = document.getElementById('users-manage-panel');
-  const manageOverlay = document.getElementById('users-manage-overlay');
-  const manageCloseBtn = document.getElementById('users-manage-close');
+  const manageModalOverlay = document.getElementById('manage-user-modal-overlay');
+  const manageModal = document.getElementById('manage-user-modal');
+  const manageCloseBtn = document.getElementById('manage-user-modal-close');
+  const manageCancelBtn = document.getElementById('manage-user-modal-cancel-btn');
   const manageTriggers = Array.from(document.querySelectorAll('.users-manage-trigger'));
   const manageName = document.getElementById('users-manage-name');
   const manageEmail = document.getElementById('users-manage-email');
@@ -446,25 +447,22 @@
     activateForm.hidden = !data.suspended;
     deactivateForm.hidden = data.suspended;
 
-    var controls = managePanel.querySelectorAll('input, select, button');
+    var isProtected = data.isProtected;
+    var controls = manageModal.querySelectorAll('input, select, button');
     controls.forEach(function (control) {
-      if (control === manageCloseBtn) {
+      if (control === manageCloseBtn || control === manageCancelBtn) {
         return;
       }
-      if (control.closest('.users-manage-focus-guard')) {
-        return;
-      }
-      control.disabled = data.isProtected;
+      control.disabled = isProtected;
     });
-    managePanel.classList.toggle('users-manage-panel--protected', data.isProtected);
 
     updateManageRoleOptionPolicy();
     updateManageVerificationState();
     updateManageRoleHelp();
   }
 
-  function openManagePanel(row, trigger) {
-    if (!managePanel || !manageOverlay || !row) {
+  function openManageModal(row, trigger) {
+    if (!manageModalOverlay || !manageModal || !row) {
       return;
     }
 
@@ -476,7 +474,7 @@
       panelState.row = row;
       panelState.trigger = trigger || panelState.trigger;
       hydrateManagePanel(row);
-      var first = getFocusable(managePanel)[0];
+      var first = getFocusable(manageModal)[0];
       if (first) {
         first.focus();
       }
@@ -489,7 +487,7 @@
 
     var data = readRowData(row);
     if (data.isProtected) {
-      announce('Protected account cannot be modified from this panel.');
+      announce('Protected account cannot be modified.');
       return;
     }
 
@@ -499,33 +497,31 @@
 
     hydrateManagePanel(row);
 
-    manageOverlay.hidden = false;
-    managePanel.hidden = false;
-    managePanel.setAttribute('aria-hidden', 'false');
-    managePanel.classList.add('is-open');
+    manageModalOverlay.hidden = false;
+    manageModalOverlay.classList.add('active');
+    manageModalOverlay.setAttribute('aria-hidden', 'false');
     lockBodyScroll();
 
     window.setTimeout(function () {
-      var focusableItems = getFocusable(managePanel);
+      var focusableItems = getFocusable(manageModal);
       var firstFocusable = focusableItems.find(function (el) {
-        return el.id === 'users-manage-full-name' || el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'BUTTON';
+        return el.id === 'users-manage-full-name' || el.tagName === 'INPUT' || el.tagName === 'SELECT';
       });
       if (firstFocusable) {
         firstFocusable.focus();
       }
-    }, 60);
+    }, 80);
   }
 
-  function closeManagePanel(restoreFocus) {
-    if (!managePanel || !manageOverlay || !panelState.isOpen) {
+  function closeManageModal(restoreFocus) {
+    if (!manageModalOverlay || !panelState.isOpen) {
       return;
     }
 
     panelState.isOpen = false;
-    managePanel.classList.remove('is-open');
-    managePanel.setAttribute('aria-hidden', 'true');
-    managePanel.hidden = true;
-    manageOverlay.hidden = true;
+    manageModalOverlay.classList.remove('active');
+    manageModalOverlay.setAttribute('aria-hidden', 'true');
+    manageModalOverlay.hidden = true;
     unlockBodyScroll();
 
     if (restoreFocus !== false && panelState.trigger && typeof panelState.trigger.focus === 'function') {
@@ -842,7 +838,7 @@
       return;
     }
 
-    closeManagePanel(false);
+    closeManageModal(false);
     createModalOverlay.classList.add('active');
     createModalOverlay.setAttribute('aria-hidden', 'false');
     lockBodyScroll();
@@ -986,8 +982,8 @@
     });
   }
 
-  function wireManagePanel() {
-    if (!managePanel || !manageOverlay) {
+  function wireManageModal() {
+    if (!manageModalOverlay || !manageModal) {
       return;
     }
 
@@ -1001,41 +997,34 @@
         if (!row) {
           return;
         }
-        openManagePanel(row, trigger);
+        openManageModal(row, trigger);
       });
     });
 
     if (manageCloseBtn) {
       manageCloseBtn.addEventListener('click', function () {
-        closeManagePanel(true);
+        closeManageModal(true);
+      });
+    }
+    if (manageCancelBtn) {
+      manageCancelBtn.addEventListener('click', function () {
+        closeManageModal(true);
       });
     }
 
-    manageOverlay.addEventListener('click', function () {
-      closeManagePanel(true);
+    manageModalOverlay.addEventListener('click', function (e) {
+      if (e.target === manageModalOverlay) {
+        closeManageModal(true);
+      }
     });
 
-    managePanel.addEventListener('keydown', function (e) {
+    manageModalOverlay.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') {
         e.preventDefault();
-        closeManagePanel(true);
+        closeManageModal(true);
         return;
       }
-      trapFocus(e, managePanel);
-    });
-
-    managePanel.querySelectorAll('.users-manage-focus-guard').forEach(function (guard) {
-      guard.addEventListener('focus', function () {
-        var focusables = getFocusable(managePanel);
-        if (focusables.length === 0) {
-          return;
-        }
-        if (guard.getAttribute('data-focus-guard') === 'start') {
-          focusables[focusables.length - 1].focus();
-        } else {
-          focusables[0].focus();
-        }
-      });
+      trapFocus(e, manageModal);
     });
 
     if (roleSelect) {
@@ -1299,7 +1288,7 @@
   // Initialize everything
   wireBulkSelection();
   wireBulkForm();
-  wireManagePanel();
+  wireManageModal();
   wireCreateModal();
   wireKeyboardAndOnboarding();
   wireActionForms();
