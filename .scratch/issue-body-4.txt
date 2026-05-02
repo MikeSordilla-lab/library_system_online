@@ -1,0 +1,20 @@
+## What to build
+
+Extract `BorrowerReservationModule` into `includes/BorrowerReservationModule.php` with two methods:
+
+- `place(PDO $pdo, int $userId, int $bookId): ReservationPlaceResult` — enforces all booking policy (delinquent-fines block, overdue-loan block, max-limit, duplicate prevention), computes queue position, issues receipt, logs to System_Logs
+- `cancel(PDO $pdo, int $userId, int $reservationId): CancellationResult` — cancels own pending/approved reservation, rejects others
+
+`borrower/reserve.php` becomes a thin HTTP adapter: `parseRequest() → module.place() / module.cancel() → setFlash() → redirect()`.
+
+## Acceptance criteria
+
+- [ ] `place()` returns `{success: true, queue_position: N, receipt: {...}}` when all conditions pass
+- [ ] `place()` returns `{success: false, reason_code: 'delinquent'}` when borrower has unpaid fines
+- [ ] `place()` returns `{success: false, reason_code: 'max_limit'}` when borrower at loan+reservation cap
+- [ ] `place()` returns `{success: false, reason_code: 'duplicate_res'}` when borrower already has active reservation for same book
+- [ ] `place()` returns `{success: false, reason_code: 'duplicate_loan'}` when borrower has active loan for same book
+- [ ] `cancel()` returns `{success: true}` for own pending/approved reservation
+- [ ] `cancel()` returns `{success: false, reason_code: 'not_cancellable'}` for non-cancellable statuses
+- [ ] `cancel()` returns `{success: false, reason_code: 'not_found'}` for foreign or non-existent reservations
+- [ ] `borrower/reserve.php` delegates all business logic to the module (thin adapter, <50 lines)
