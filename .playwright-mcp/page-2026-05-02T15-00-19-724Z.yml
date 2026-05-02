@@ -1,0 +1,72 @@
+- generic [ref=e2]:
+  - navigation "Admin navigation" [ref=e3]:
+    - link "Go to admin dashboard" [ref=e4] [cursor=pointer]:
+      - /url: http://localhost/library_system_online/admin/index.php
+      - img [ref=e6]
+      - generic [ref=e7]: Library System
+    - generic [ref=e8]:
+      - link "Dashboard" [ref=e9] [cursor=pointer]:
+        - /url: http://localhost/library_system_online/admin/index.php
+      - link "Profile Details" [ref=e10] [cursor=pointer]:
+        - /url: http://localhost/library_system_online/admin/about.php
+      - link "Password & Security" [ref=e11] [cursor=pointer]:
+        - /url: http://localhost/library_system_online/admin/change-password.php
+      - link "Users" [ref=e12] [cursor=pointer]:
+        - /url: http://localhost/library_system_online/admin/users.php
+      - link "Settings" [ref=e13] [cursor=pointer]:
+        - /url: http://localhost/library_system_online/admin/settings.php
+      - link "Transaction Logs" [ref=e14] [cursor=pointer]:
+        - /url: http://localhost/library_system_online/admin/audit-log.php
+    - generic [ref=e15]:
+      - generic [ref=e16]:
+        - generic [ref=e17]: SA
+        - generic [ref=e18]:
+          - generic [ref=e19]: Super Admin
+          - generic [ref=e20]: admin
+      - link "Log out" [ref=e21] [cursor=pointer]:
+        - /url: http://localhost/library_system_online/logout.php
+        - generic [ref=e22]: ↪
+        - generic [ref=e23]: Log Out
+  - main [ref=e24]:
+    - generic [ref=e25]:
+      - generic [ref=e26]:
+        - heading "Dashboard" [level=1] [ref=e27]
+        - paragraph [ref=e28]: Welcome back, Super Admin. Here’s a quick snapshot of the library system.
+      - link "Manage Users" [ref=e30] [cursor=pointer]:
+        - /url: http://localhost/library_system_online/admin/users.php
+    - generic [ref=e31]:
+      - generic [ref=e32]:
+        - img [ref=e34]
+        - generic [ref=e39]: "91"
+        - generic [ref=e40]: Total Users
+      - generic [ref=e42]:
+        - img [ref=e44]
+        - generic [ref=e46]: "760"
+        - generic [ref=e47]: Total Books
+      - generic [ref=e49]:
+        - img [ref=e51]
+        - generic [ref=e54]: "6"
+        - generic [ref=e55]: Active Loans
+      - generic [ref=e57]:
+        - img [ref=e59]
+        - generic [ref=e61]: "0"
+        - generic [ref=e62]: Pending Reservations
+    - generic [ref=e64]:
+      - generic [ref=e65]:
+        - heading "User Management" [level=3] [ref=e66]
+        - generic [ref=e67]:
+          - link "User Accounts" [ref=e68] [cursor=pointer]:
+            - /url: http://localhost/library_system_online/admin/users.php
+          - link "Admin Profile" [ref=e69] [cursor=pointer]:
+            - /url: http://localhost/library_system_online/admin/about.php
+          - link "Change Password" [ref=e70] [cursor=pointer]:
+            - /url: http://localhost/library_system_online/admin/change-password.php
+      - generic [ref=e71]:
+        - heading "System Oversight" [level=3] [ref=e72]
+        - generic [ref=e73]:
+          - link "Reports" [ref=e74] [cursor=pointer]:
+            - /url: http://localhost/library_system_online/admin/reports.php
+          - link "Audit Log" [ref=e75] [cursor=pointer]:
+            - /url: http://localhost/library_system_online/admin/audit-log.php
+          - link "Settings" [ref=e76] [cursor=pointer]:
+            - /url: http://localhost/library_system_online/admin/settings.php

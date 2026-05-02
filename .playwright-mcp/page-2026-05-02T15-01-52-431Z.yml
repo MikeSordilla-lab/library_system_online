@@ -1,0 +1,82 @@
+- generic [ref=e2]:
+  - navigation "Borrower navigation" [ref=e3]:
+    - link "Go to borrower dashboard" [ref=e4] [cursor=pointer]:
+      - /url: http://localhost/library_system_online/borrower/index.php
+      - img [ref=e6]
+      - generic [ref=e7]: Library System
+    - generic [ref=e8]:
+      - link "My Dashboard" [ref=e9] [cursor=pointer]:
+        - /url: http://localhost/library_system_online/borrower/index.php
+      - link "Browse Catalog" [ref=e10] [cursor=pointer]:
+        - /url: http://localhost/library_system_online/borrower/catalog.php
+      - link "My Books" [ref=e11] [cursor=pointer]:
+        - /url: http://localhost/library_system_online/borrower/my_books.php
+      - link "My Receipts" [ref=e12] [cursor=pointer]:
+        - /url: http://localhost/library_system_online/receipt/index.php
+      - link "My Profile" [ref=e13] [cursor=pointer]:
+        - /url: http://localhost/library_system_online/borrower/profile.php
+    - generic [ref=e14]:
+      - generic [ref=e15]:
+        - generic [ref=e17]: AB
+        - generic [ref=e18]:
+          - generic [ref=e19]: Angelo Bautista
+          - generic [ref=e20]: borrower
+      - link "Log out" [ref=e21] [cursor=pointer]:
+        - /url: http://localhost/library_system_online/logout.php
+        - generic [ref=e22]: ↪
+        - generic [ref=e23]: Log Out
+  - main [ref=e24]:
+    - generic [ref=e25]:
+      - generic [ref=e26]:
+        - heading "Dashboard" [level=1] [ref=e27]
+        - paragraph [ref=e28]: Welcome back, Angelo Bautista. Here's what's happening with your account.
+      - link "Browse Catalog" [ref=e30] [cursor=pointer]:
+        - /url: http://localhost/library_system_online/borrower/catalog.php
+        - img [ref=e31]
+        - generic [ref=e33]: Browse Catalog
+    - generic [ref=e34]:
+      - generic [ref=e35]:
+        - img [ref=e37]
+        - generic [ref=e39]: "0"
+        - generic [ref=e40]: Currently Borrowed
+        - generic [ref=e41]: active & overdue
+      - generic [ref=e42]:
+        - img [ref=e44]
+        - generic [ref=e47]: "0"
+        - generic [ref=e48]: Total Books Read
+        - generic [ref=e49]: all time
+      - generic [ref=e50]:
+        - img [ref=e52]
+        - generic [ref=e55]: "0"
+        - generic [ref=e56]: Due Soon
+        - generic [ref=e57]: within 3 days
+      - generic [ref=e58]:
+        - img [ref=e60]
+        - generic [ref=e62]: "0"
+        - generic [ref=e63]: Reservations
+        - generic [ref=e64]: pending
+    - generic [ref=e65]:
+      - generic [ref=e66]:
+        - generic [ref=e67]:
+          - img [ref=e68]
+          - text: Active Loans
+        - generic [ref=e71]:
+          - generic [ref=e72]: 📚
+          - paragraph [ref=e73]: No active or overdue loans.
+        - generic [ref=e74]:
+          - img [ref=e75]
+          - text: Pending Reservations
+        - generic [ref=e78]:
+          - generic [ref=e79]: 🔖
+          - paragraph [ref=e80]: No pending reservations.
+        - generic [ref=e81]:
+          - img [ref=e82]
+          - text: Reading Insights
+        - generic [ref=e84]:
+          - heading "Books by Category" [level=4] [ref=e86]
+          - heading "Monthly Activity" [level=4] [ref=e90]
+      - generic [ref=e93]:
+        - generic [ref=e94]:
+          - img [ref=e95]
+          - text: Activity Timeline
+        - paragraph [ref=e98]: No recent activity.

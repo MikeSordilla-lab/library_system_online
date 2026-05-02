@@ -16,6 +16,7 @@ $allowed_roles = ['borrower'];
 require_once __DIR__ . '/../includes/auth_guard.php';
 require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/circulation.php';
+require_once __DIR__ . '/../includes/BorrowerAccountSummaryModule.php';
 
 $pdo     = get_db();
 $user_id = (int) $_SESSION['user_id'];
@@ -36,118 +37,24 @@ if (is_array($renewal_block)) {
 }
 $show_renewal_modal = $renewal_block_message !== '';
 
-// T026 — Active loans
-$has_renewal_count = circulation_column_exists($pdo, 'renewal_count');
-$renewal_select = $has_renewal_count ? ', c.renewal_count' : '';
-
-$active_stmt = $pdo->prepare(
-  'SELECT c.id, c.checkout_date, c.due_date, c.status' . $renewal_select . ', b.title
-       FROM Circulation c
-       JOIN Books       b ON c.book_id = b.id
-      WHERE c.user_id = ? AND c.status IN (\'active\', \'overdue\')
-      ORDER BY c.due_date ASC'
-);
-$active_stmt->execute([$user_id]);
-$active_loans = $active_stmt->fetchAll();
-
-// T027 — Loan history (returned, last 20)
-$history_stmt = $pdo->prepare(
-  'SELECT c.return_date, c.fine_amount, c.fine_paid, b.title
-       FROM Circulation c
-       JOIN Books       b ON c.book_id = b.id
-      WHERE c.user_id = ? AND c.status = \'returned\'
-      ORDER BY c.return_date DESC
-      LIMIT 20'
-);
-$history_stmt->execute([$user_id]);
-$loan_history = $history_stmt->fetchAll();
-
-// Bug fix: expire stale pending reservations before displaying them so the
-// pending list and queue positions reflect reality.
 expire_stale_reservations($pdo);
 
-// T028 — Pending reservations with queue position (optimized: avoid N+1 query)
-// First, fetch all pending reservations for this user
-$res_stmt = $pdo->prepare(
-  'SELECT r.id, r.reserved_at, r.expires_at, r.book_id, b.title
-   FROM Reservations r
-   JOIN Books b ON r.book_id = b.id
-   WHERE r.user_id = ? AND r.status = \'pending\'
-   ORDER BY r.reserved_at ASC'
-);
-$res_stmt->execute([$user_id]);
-$pending_reservations_raw = $res_stmt->fetchAll();
+$summary = BorrowerAccountSummaryModule::getSummary($pdo, $user_id);
+$active_loans           = $summary['active_loans'];
+$loan_history           = $summary['loan_history'];
+$pending_reservations   = $summary['pending_reservations'];
+$approved_reservations  = $summary['approved_reservations'];
+$rejected_reservations  = $summary['rejected_reservations'];
+$stats                  = $summary['stats'];
 
-// Build a map of book_id => [reservation rows for that book] to calculate positions
-$book_reservations = [];
-foreach ($pending_reservations_raw as $res) {
-  $book_id = (int) $res['book_id'];
-  if (!isset($book_reservations[$book_id])) {
-    $book_reservations[$book_id] = [];
-  }
-  $book_reservations[$book_id][] = $res;
-}
+$currently_borrowed = $stats['currently_borrowed'];
+$total_borrowed      = $stats['total_borrowed'];
+$pending_count       = $stats['pending_count'];
+$due_soon_count      = $stats['due_soon_count'];
+$next_return         = $stats['next_return'];
+$approved_count      = count($approved_reservations);
 
-// Now calculate queue position for each reservation (O(n) instead of O(n²))
-$pending_reservations = [];
-foreach ($pending_reservations_raw as $res) {
-  $book_id = (int) $res['book_id'];
-  $position = 1;
-  foreach ($book_reservations[$book_id] as $other_res) {
-    if ($other_res['reserved_at'] < $res['reserved_at']) {
-      $position++;
-    }
-  }
-  $res['queue_position'] = $position;
-  $pending_reservations[] = $res;
-}
-
-// ─── Feature 007 dashboard queries ──────────────────────────────────────────
-
-// Q1: Currently borrowed count
-$q1 = $pdo->prepare(
-  "SELECT COUNT(*) AS cnt FROM Circulation WHERE user_id = ? AND status IN ('active', 'overdue')"
-);
-$q1->execute([$user_id]);
-$currently_borrowed = (int) $q1->fetchColumn();
-
-// Q2: Total loans ever
-$q2 = $pdo->prepare('SELECT COUNT(*) AS cnt FROM Circulation WHERE user_id = ?');
-$q2->execute([$user_id]);
-$total_borrowed = (int) $q2->fetchColumn();
-
-// Q3: Next return date + due-soon count (within 3 days)
-$q3 = $pdo->prepare(
-  "SELECT MIN(due_date) AS next_return,
-          COUNT(*) AS due_soon_count
-     FROM Circulation
-    WHERE user_id = ?
-      AND status IN ('active', 'overdue')
-      AND due_date <= DATE_ADD(NOW(), INTERVAL 3 DAY)"
-);
-$q3->execute([$user_id]);
-$due_row        = $q3->fetch();
-$next_return    = $due_row['next_return'] ?? null;
-$due_soon_count = (int) ($due_row['due_soon_count'] ?? 0);
-
-// Q4: Pending reservations count (from already-fetched $pending_reservations)
-$pending_count = count($pending_reservations);
-
-// Q4b: Approved reservations — ready for pickup (EPIC 1: librarian approval → borrower view)
-$approved_at_select = reservation_column_exists($pdo, 'approved_at')
-  ? 'r.approved_at AS approved_at'
-  : 'NULL AS approved_at';
-
-$approved_stmt = $pdo->prepare(
-  "SELECT r.id, {$approved_at_select}, r.expires_at, b.title, b.author
-     FROM Reservations r
-     JOIN Books b ON r.book_id = b.id
-    WHERE r.user_id = ? AND r.status = 'approved'
-    ORDER BY r.expires_at ASC"
-);
-$approved_stmt->execute([$user_id]);
-$approved_reservations = $approved_stmt->fetchAll();
-$approved_count = count($approved_reservations);
+$has_renewal_count = !empty($active_loans) && array_key_exists('renewal_count', $active_loans[0]);
 
 // Q5: Category distribution for donut chart
 $q5 = $pdo->prepare(
@@ -174,7 +81,6 @@ $monthly_raw = [];
 foreach ($q6->fetchAll() as $row) {
   $monthly_raw[$row['month']] = (int) $row['cnt'];
 }
-// Fill all 12 slots even when no loans that month
 $month_labels = [];
 $month_values = [];
 for ($i = 11; $i >= 0; $i--) {

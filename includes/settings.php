@@ -8,6 +8,16 @@
  */
 
 /**
+ * Returns a reference to the shared settings cache.
+ * Both get_setting and _setting_cache_clear use this to access the same static array.
+ */
+function &_settings_cache_ref(): array
+{
+  static $cache = [];
+  return $cache;
+}
+
+/**
  * Get a system setting value from the Settings table
  *
  * @param PDO $pdo Database connection
@@ -17,26 +27,29 @@
  */
 function get_setting(PDO $pdo, string $key, string $default = ''): string
 {
+  $cache = &_settings_cache_ref();
+  if (isset($cache[$key])) {
+    return $cache[$key];
+  }
   $stmt = $pdo->prepare('SELECT `value` FROM `Settings` WHERE `key` = ? LIMIT 1');
   $stmt->execute([$key]);
   $row = $stmt->fetch();
-  return ($row !== false) ? (string) $row['value'] : $default;
+  $cache[$key] = ($row !== false) ? (string) $row['value'] : $default;
+  return $cache[$key];
 }
 
-/**
- * Set a system setting value in the Settings table
- *
- * @param PDO $pdo Database connection
- * @param string $key Setting key
- * @param string $value Setting value
- * @return bool Success status
- */
+function _setting_cache_clear(string $key): void
+{
+  $cache = &_settings_cache_ref();
+  unset($cache[$key]);
+}
+
 function set_setting(PDO $pdo, string $key, string $value): bool
 {
   try {
-    // Use REPLACE to insert or update
     $stmt = $pdo->prepare('REPLACE INTO `Settings` (`key`, `value`) VALUES (?, ?)');
     $stmt->execute([$key, $value]);
+    _setting_cache_clear($key);
     return true;
   } catch (PDOException $e) {
     error_log('[settings.php] Failed to set setting: ' . $e->getMessage());

@@ -1,0 +1,6 @@
+- generic [ref=e4]:
+  - heading "Signing out..." [level=1] [ref=e5]
+  - paragraph [ref=e6]: You are being signed out of your library account.
+  - paragraph [ref=e7]:
+    - link "Go to sign in" [ref=e8] [cursor=pointer]:
+      - /url: http://localhost/library_system_online/login.php

@@ -20,6 +20,7 @@ $allowed_roles = ['borrower'];
 require_once __DIR__ . '/../includes/auth_guard.php';
 require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/circulation.php';
+require_once __DIR__ . '/../includes/BorrowerAccountSummaryModule.php';
 
 $pdo     = get_db();
 $user_id = (int) $_SESSION['user_id'];
@@ -46,136 +47,15 @@ if (is_array($renewal_block)) {
 }
 $show_renewal_modal = $renewal_block_message !== '';
 
-// ── Cancel reservation (POST) ────────────────────────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    csrf_verify();
-    $action         = (string) ($_POST['action'] ?? '');
-    $reservation_id = (int)   ($_POST['reservation_id'] ?? 0);
+expire_stale_reservations($pdo);
 
-    if ($action === 'cancel' && $reservation_id > 0) {
-        $pdo->beginTransaction();
-        try {
-            // Only allow cancelling own pending/approved reservations
-            $chk = $pdo->prepare(
-                "SELECT id, status FROM Reservations
-                  WHERE id = ? AND user_id = ? AND status IN ('pending','approved')
-                  FOR UPDATE"
-            );
-            $chk->execute([$reservation_id, $user_id]);
-            $res = $chk->fetch();
-
-            if ($res) {
-                $upd = $pdo->prepare(
-                    "UPDATE Reservations
-                        SET status = 'cancelled', updated_at = NOW()
-                      WHERE id = ?"
-                );
-                $upd->execute([$reservation_id]);
-                log_circulation($pdo, [
-                    'actor_id'      => $user_id,
-                    'actor_role'    => 'borrower',
-                    'action_type'   => 'reservation_cancel',
-                    'target_entity' => 'Reservations',
-                    'target_id'     => $reservation_id,
-                    'outcome'       => 'success',
-                ]);
-                $pdo->commit();
-                $_SESSION['flash_success'] = 'Reservation cancelled.';
-            } else {
-                $pdo->rollBack();
-                $_SESSION['flash_error'] = 'Could not cancel — reservation not found or already processed.';
-            }
-        } catch (Throwable $e) {
-            if ($pdo->inTransaction()) $pdo->rollBack();
-            error_log('[my_books.php] cancel failed: ' . $e->getMessage());
-            $_SESSION['flash_error'] = 'An error occurred. Please try again.';
-        }
-    }
-
-    header('Location: ' . BASE_URL . 'borrower/my_books.php');
-    exit;
-}
-
-// ── 1. Active & Overdue Loans ─────────────────────────────────────────────────
-$active_stmt = $pdo->prepare(
-    "SELECT c.id, c.checkout_date, c.due_date, c.status,
-            b.title, b.author, b.isbn,
-            DATEDIFF(NOW(), c.due_date) AS days_overdue
-       FROM Circulation c
-       JOIN Books b ON c.book_id = b.id
-      WHERE c.user_id = ? AND c.status IN ('active','overdue')
-      ORDER BY c.due_date ASC"
-);
-$active_stmt->execute([$user_id]);
-$active_loans = $active_stmt->fetchAll();
-
-// ── 2. Approved Reservations (ready for pickup) ───────────────────────────────
-$approved_at_select = reservation_column_exists($pdo, 'approved_at')
-    ? 'r.approved_at AS approved_at'
-    : 'NULL AS approved_at';
-$approved_order_by = reservation_column_exists($pdo, 'approved_at')
-    ? 'r.approved_at'
-    : 'r.reserved_at';
-
-$approved_stmt = $pdo->prepare(
-    "SELECT r.id, r.reserved_at, r.expires_at, {$approved_at_select},
-            b.title, b.author, b.isbn
-       FROM Reservations r
-       JOIN Books b ON r.book_id = b.id
-      WHERE r.user_id = ? AND r.status = 'approved'
-      ORDER BY {$approved_order_by} DESC"
-);
-$approved_stmt->execute([$user_id]);
-$approved_reservations = $approved_stmt->fetchAll();
-
-// ── 3. Pending Reservations with queue position ────────────────────────────────
-$pending_stmt = $pdo->prepare(
-    "SELECT r.id, r.reserved_at, r.expires_at, r.book_id,
-            b.title, b.author,
-            (
-              SELECT COUNT(*) + 1
-                FROM Reservations q
-               WHERE q.book_id = r.book_id
-                 AND q.status  = 'pending'
-                 AND (
-                   q.reserved_at < r.reserved_at
-                   OR (q.reserved_at = r.reserved_at AND q.id < r.id)
-                 )
-            ) AS queue_position
-       FROM Reservations r
-       JOIN Books b ON r.book_id = b.id
-      WHERE r.user_id = ? AND r.status = 'pending'
-      ORDER BY r.reserved_at ASC"
-);
-$pending_stmt->execute([$user_id]);
-$pending_reservations = $pending_stmt->fetchAll();
-
-// ── 4. Rejected Reservations (recent 10) ─────────────────────────────────────
-$rejected_stmt = $pdo->prepare(
-    "SELECT r.id, r.reserved_at, r.rejected_at, r.rejection_reason,
-            b.title, b.author
-       FROM Reservations r
-       JOIN Books b ON r.book_id = b.id
-      WHERE r.user_id = ? AND r.status = 'rejected'
-      ORDER BY r.rejected_at DESC
-      LIMIT 10"
-);
-$rejected_stmt->execute([$user_id]);
-$rejected_reservations = $rejected_stmt->fetchAll();
-
-// ── 5. Loan History (returned, last 30) ───────────────────────────────────────
-$history_stmt = $pdo->prepare(
-    "SELECT c.id, c.checkout_date, c.due_date, c.return_date,
-            c.fine_amount, c.fine_paid,
-            b.title, b.author
-       FROM Circulation c
-       JOIN Books b ON c.book_id = b.id
-      WHERE c.user_id = ? AND c.status = 'returned'
-      ORDER BY c.return_date DESC
-      LIMIT 30"
-);
-$history_stmt->execute([$user_id]);
-$loan_history = $history_stmt->fetchAll();
+$summary = BorrowerAccountSummaryModule::getSummary($pdo, $user_id);
+$active_loans           = $summary['active_loans'];
+$approved_reservations  = $summary['approved_reservations'];
+$pending_reservations    = $summary['pending_reservations'];
+$rejected_reservations  = $summary['rejected_reservations'];
+$loan_history           = $summary['loan_history'];
+$stats                  = $summary['stats'];
 
 $current_page = 'borrower.my_books';
 $pageTitle    = 'My Books | Library System';
@@ -229,7 +109,7 @@ $extraStyles = [
       <div class="rd-card" style="margin-bottom: 2rem;">
         <div class="rd-lifecycle">
           <div class="rd-lifecycle-step <?= !empty($pending_reservations) ? 'active' : '' ?>">
-            <div class="icon">📋</div>
+            <svg class="icon" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
             <div class="label">Reserved</div>
             <?php if (!empty($pending_reservations)): ?>
               <span class="rd-badge rd-b-blue"><?= count($pending_reservations) ?></span>
@@ -237,7 +117,7 @@ $extraStyles = [
           </div>
           <div class="rd-lifecycle-arrow">→</div>
           <div class="rd-lifecycle-step <?= !empty($approved_reservations) ? 'active' : '' ?>">
-            <div class="icon">✅</div>
+            <svg class="icon" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             <div class="label">Approved</div>
             <?php if (!empty($approved_reservations)): ?>
               <span class="rd-badge rd-b-green"><?= count($approved_reservations) ?></span>
@@ -245,7 +125,7 @@ $extraStyles = [
           </div>
           <div class="rd-lifecycle-arrow">→</div>
           <div class="rd-lifecycle-step <?= !empty($active_loans) ? 'active' : '' ?>">
-            <div class="icon">📖</div>
+            <svg class="icon" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
             <div class="label">Borrowed</div>
             <?php if (!empty($active_loans)): ?>
               <span class="rd-badge rd-b-orange"><?= count($active_loans) ?></span>
@@ -253,7 +133,7 @@ $extraStyles = [
           </div>
           <div class="rd-lifecycle-arrow">→</div>
           <div class="rd-lifecycle-step <?= !empty($loan_history) ? 'active' : '' ?>">
-            <div class="icon">↩️</div>
+            <svg class="icon" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a5 5 0 015 5v2M3 10l6 6M3 10l6-6"/></svg>
             <div class="label">Returned</div>
             <?php if (!empty($loan_history)): ?>
               <span class="rd-badge"><?= count($loan_history) ?></span>
@@ -413,10 +293,11 @@ $extraStyles = [
                     <?php endif; ?>
                   </td>
                   <td>
-                    <form method="POST" action="<?= htmlspecialchars(BASE_URL . 'borrower/my_books.php', ENT_QUOTES, 'UTF-8') ?>" style="margin:0;">
+                    <form method="POST" action="<?= htmlspecialchars(BASE_URL . 'borrower/reserve.php', ENT_QUOTES, 'UTF-8') ?>" style="margin:0;">
                       <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                       <input type="hidden" name="action" value="cancel">
                       <input type="hidden" name="reservation_id" value="<?= (int)$res['id'] ?>">
+                      <input type="hidden" name="redirect_to" value="borrower/my_books.php">
                       <button type="submit" class="rd-btn-danger-solid" onclick="return confirm('Cancel this approved reservation?')">Cancel</button>
                     </form>
                   </td>
@@ -467,10 +348,11 @@ $extraStyles = [
                     <td><span class="rd-badge rd-b-blue">#<?= (int)$res['queue_position'] ?></span></td>
                     <td><span class="rd-badge rd-b-orange">Awaiting Approval</span></td>
                     <td>
-                      <form method="POST" action="<?= htmlspecialchars(BASE_URL . 'borrower/my_books.php', ENT_QUOTES, 'UTF-8') ?>" style="margin:0;">
+                      <form method="POST" action="<?= htmlspecialchars(BASE_URL . 'borrower/reserve.php', ENT_QUOTES, 'UTF-8') ?>" style="margin:0;">
                         <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                         <input type="hidden" name="action" value="cancel">
                         <input type="hidden" name="reservation_id" value="<?= (int)$res['id'] ?>">
+                        <input type="hidden" name="redirect_to" value="borrower/my_books.php">
                         <button type="submit" class="rd-btn-action rd-btn-danger" onclick="return confirm('Cancel this reservation?')">Cancel</button>
                       </form>
                     </td>
@@ -651,7 +533,7 @@ $extraStyles = [
       background: rgba(201, 168, 76, 0.05);
       border-color: rgba(201, 168, 76, 0.2);
     }
-    .rd-lifecycle-step .icon { font-size: 1.5rem; }
+    .rd-lifecycle-step .icon { width: 24px; height: 24px; }
     .rd-lifecycle-step .label { font-size: 0.85rem; font-weight: 600; color: var(--rd-text-main); }
     .rd-lifecycle-arrow {
       color: var(--rd-text-muted);

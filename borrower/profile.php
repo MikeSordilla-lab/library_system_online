@@ -220,13 +220,17 @@ $extraStyles  = [
     .prof-name-block {
       flex: 1;
       padding-bottom: 0.25rem;
+      min-width: 0;
     }
 
     .prof-name-block h2 {
       margin: 0 0 0.25rem;
       font-size: 1.6rem;
       font-weight: 800;
-      color: var(--rd-text-bold);
+      color: var(--rd-text-bold, #ffffff);
+      text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+      min-height: 1.6rem;
+      line-height: 1.2;
     }
 
     .prof-name-block p {

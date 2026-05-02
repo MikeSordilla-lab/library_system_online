@@ -1,0 +1,99 @@
+- generic [ref=e2]:
+  - navigation "Borrower navigation" [ref=e3]:
+    - link "Go to borrower dashboard" [ref=e4] [cursor=pointer]:
+      - /url: http://localhost/library_system_online/borrower/index.php
+      - img [ref=e6]
+      - generic [ref=e7]: Library System
+    - generic [ref=e8]:
+      - link "My Dashboard" [ref=e9] [cursor=pointer]:
+        - /url: http://localhost/library_system_online/borrower/index.php
+      - link "Browse Catalog" [ref=e10] [cursor=pointer]:
+        - /url: http://localhost/library_system_online/borrower/catalog.php
+      - link "My Books" [ref=e11] [cursor=pointer]:
+        - /url: http://localhost/library_system_online/borrower/my_books.php
+      - link "My Receipts" [ref=e12] [cursor=pointer]:
+        - /url: http://localhost/library_system_online/receipt/index.php
+      - link "My Profile" [ref=e13] [cursor=pointer]:
+        - /url: http://localhost/library_system_online/borrower/profile.php
+    - generic [ref=e14]:
+      - generic [ref=e15]:
+        - generic [ref=e17]: AB
+        - generic [ref=e18]:
+          - generic [ref=e19]: Angelo Bautista
+          - generic [ref=e20]: borrower
+      - link "Log out" [ref=e21] [cursor=pointer]:
+        - /url: http://localhost/library_system_online/logout.php
+        - generic [ref=e22]: ↪
+        - generic [ref=e23]: Log Out
+  - main [ref=e24]:
+    - generic [ref=e25]:
+      - generic [ref=e26]:
+        - generic [ref=e27]:
+          - heading "My Profile" [level=1] [ref=e28]
+          - paragraph [ref=e29]: Manage your account info and security settings.
+        - link "← Dashboard" [ref=e30] [cursor=pointer]:
+          - /url: http://localhost/library_system_online/borrower/index.php
+      - generic [ref=e32]:
+        - generic [ref=e33]:
+          - generic [ref=e34]:
+            - button "Choose File" [ref=e35]
+            - generic "Change photo" [ref=e36] [cursor=pointer]:
+              - generic [ref=e37]: AB
+              - generic: 📷 Change
+          - generic [ref=e38]:
+            - heading "Angelo Bautista" [level=2] [ref=e39]
+            - paragraph [ref=e40]: abautista@library.local
+            - generic [ref=e41]: Active Borrower
+        - generic [ref=e42]:
+          - generic [ref=e43]: Member Since
+          - generic [ref=e44]: March 1, 2025
+        - generic [ref=e45]:
+          - generic [ref=e46]: Role
+          - generic [ref=e47]: Borrower
+        - generic [ref=e48]:
+          - generic [ref=e49]: Email
+          - generic [ref=e50]: abautista@library.local
+        - generic [ref=e51]:
+          - generic [ref=e52]: Outstanding Fines
+          - generic [ref=e53]: ₱0.00
+      - generic [ref=e54]:
+        - generic [ref=e55]:
+          - generic [ref=e56]: "0"
+          - generic [ref=e57]: Total Loans
+        - generic [ref=e58]:
+          - generic [ref=e59]: "0"
+          - generic [ref=e60]: Active Loans
+        - generic [ref=e61]:
+          - generic [ref=e62]: "0"
+          - generic [ref=e63]: Reservations
+        - generic [ref=e64]:
+          - generic [ref=e65]: ₱0.00
+          - generic [ref=e66]: Unpaid Fines
+      - generic [ref=e67]:
+        - generic [ref=e68]:
+          - heading "Update Name" [level=3] [ref=e69]:
+            - img [ref=e70]
+            - text: Update Name
+          - generic [ref=e72]:
+            - generic [ref=e73]:
+              - generic [ref=e74]: Display Name
+              - textbox "Display Name" [ref=e75]: Angelo Bautista
+            - generic [ref=e76]:
+              - generic [ref=e77]: Email
+              - generic [ref=e78]: abautista@library.local
+            - button "Save Name" [ref=e79] [cursor=pointer]
+        - generic [ref=e80]:
+          - heading "Change Password" [level=3] [ref=e81]:
+            - img [ref=e82]
+            - text: Change Password
+          - generic [ref=e84]:
+            - generic [ref=e85]:
+              - generic [ref=e86]: Current Password
+              - textbox "Current Password" [ref=e87]
+            - generic [ref=e88]:
+              - generic [ref=e89]: New Password
+              - textbox "New Password" [ref=e90]
+            - generic [ref=e91]:
+              - generic [ref=e92]: Confirm Password
+              - textbox "Confirm Password" [ref=e93]
+            - button "Update Password" [ref=e94] [cursor=pointer]

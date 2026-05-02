@@ -20,6 +20,7 @@ $allowed_roles = ['borrower'];
 require_once __DIR__ . '/../includes/auth_guard.php';
 require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/circulation.php';
+require_once __DIR__ . '/../includes/RenewalEligibilityModule.php';
 
 $pdo = get_db();
 
@@ -42,9 +43,7 @@ if ($loan_id < 1) {
     exit;
 }
 
-// Max renewals allowed (US5: limit to single renewal per loan)
-define('MAX_RENEWALS', 1);
-
+// Validate
 try {
     $has_renewal_count = circulation_column_exists($pdo, 'renewal_count');
 
@@ -93,97 +92,28 @@ try {
         exit;
     }
 
-    // Block Delinquent Borrowers (Unpaid Fines)
-    $unpaid_fines = get_unpaid_fines_total($pdo, $user_id);
+    $check = RenewalEligibilityModule::check($pdo, $user_id, $loan_id);
 
-    if ($unpaid_fines > 0.0) {
-      $pdo->rollBack();
-      $modal_message = 'You have outstanding unpaid fines (₱' . number_format($unpaid_fines, 2) . '). Please return any overdue books and settle the fines before renewing.';
-      $_SESSION['renewal_block'] = [
-        'title' => 'Renewal blocked',
-        'message' => $modal_message,
-      ];
-      header('Location: ' . BASE_URL . 'borrower/index.php');
-      exit;
-    }
-
-    $due_ts = strtotime($loan['due_date']);
-    $is_overdue = ($loan['status'] === 'overdue') || ($loan['status'] === 'active' && $due_ts !== false && $due_ts < time());
-
-    if ($is_overdue) {
+    if (!$check['eligible']) {
         $pdo->rollBack();
-        $modal_message = 'This loan is overdue. Please return the book and pay the overdue fines before renewing.';
+        $reason_messages = [
+            'not_found'             => 'Loan not found. Please try again.',
+            'delinquent'            => 'You have unpaid fines. Please clear your balance before renewing.',
+            'overdue'               => 'This loan is overdue. Please return the book instead of renewing.',
+            'not_active'            => 'This loan is no longer active.',
+            'already_renewed'       => 'This book has already been renewed the maximum number of times.',
+            'too_early'             => 'Renewal is only available within 1 day of the due date.',
+            'competing_reservation' => 'Another borrower has reserved this book. It cannot be renewed.',
+        ];
         $_SESSION['renewal_block'] = [
             'title' => 'Renewal blocked',
-            'message' => $modal_message,
+            'message' => $reason_messages[$check['reason_code']] ?? 'This loan cannot be renewed at this time.',
         ];
         header('Location: ' . BASE_URL . 'borrower/index.php');
         exit;
     }
 
-    // Check if the current loan is active
-    if ($loan['status'] !== 'active') {
-        $pdo->rollBack();
-        $_SESSION['renewal_block'] = [
-            'title' => 'Renewal blocked',
-            'message' => 'This loan cannot be renewed (already returned or inactive).',
-        ];
-        header('Location: ' . BASE_URL . 'borrower/index.php');
-        exit;
-    }
-
-    // Check renewal limit (gracefully handle if column doesn't exist)
-    $current_renewals = ($has_renewal_count && isset($loan['renewal_count'])) ? (int) $loan['renewal_count'] : 0;
-    if ($current_renewals >= MAX_RENEWALS) {
-        $pdo->rollBack();
-        $_SESSION['renewal_block'] = [
-            'title' => 'Renewal blocked',
-            'message' => 'You have reached the maximum renewal limit (1 time) for this book.',
-        ];
-        header('Location: ' . BASE_URL . 'borrower/index.php');
-        exit;
-    }
-
-    // Renewal is only allowed within 1 day before the due date
-    $due_ts_check = strtotime($loan['due_date']);
-    $one_day_before_due = $due_ts_check - 86400; // 24 hours before due
-    if (time() < $one_day_before_due) {
-        $pdo->rollBack();
-        $days_until_due = (int) ceil(($due_ts_check - time()) / 86400);
-        $_SESSION['renewal_block'] = [
-            'title' => 'Renewal blocked',
-            'message' => 'This book can only be renewed within 1 day before its due date. You still have ' . $days_until_due . ' day' . ($days_until_due !== 1 ? 's' : '') . ' remaining. Please try again closer to the due date.',
-        ];
-        header('Location: ' . BASE_URL . 'borrower/index.php');
-        exit;
-    }
-
-    // Check for pending reservations from OTHER users
-    $res_stmt = $pdo->prepare(
-        'SELECT id, user_id FROM Reservations
-         WHERE book_id = ? AND status = \'pending\' AND user_id != ?
-         LIMIT 1'
-    );
-    $res_stmt->execute([(int) $loan['book_id'], $user_id]);
-    $other_reservation = $res_stmt->fetch();
-
-    if ($other_reservation) {
-        $pdo->rollBack();
-        $_SESSION['renewal_block'] = [
-            'title' => 'Renewal blocked',
-            'message' => 'Cannot renew: this book has been reserved by another member.',
-        ];
-        header('Location: ' . BASE_URL . 'borrower/index.php');
-        exit;
-    }
-
-    // Get loan period from settings
-    $loan_days = get_loan_period($pdo);
-
-    // Calculate new due date
-    $current_due = new DateTime($loan['due_date']);
-    $new_due = $current_due->add(new DateInterval('P' . $loan_days . 'D'));
-    $new_due_date = $new_due->format('Y-m-d H:i:s');
+    $new_due_date = $check['new_due_date'];
 
     // Update the loan - handle renewal_count column gracefully
     $update_sql = 'UPDATE Circulation
