@@ -7874,6 +7874,7 @@ img.book-thumb {
   display: flex;
   gap: var(--space-2);
   order: 2;
+  margin-right: auto;
 }
 
 .pagination-btn {
@@ -11020,4 +11021,115 @@ img.book-thumb {
   .admin-users-page.users-v2 .users-row--focus-pulse {
     animation: none !important;
   }
+}
+
+/* ── User avatar initial badge ── */
+.users-avatar-initial {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--avatar-color, hsl(210, 55%, 62%));
+  color: #fff;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-right: var(--space-3);
+}
+
+.admin-users-page.users-v2 .users-identity {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0 var(--space-3);
+}
+
+.admin-users-page.users-v2 .users-identity__name {
+  font-weight: 600;
+}
+
+.admin-users-page.users-v2 .users-identity .users-avatar-initial {
+  grid-row: 1 / 4;
+}
+
+.admin-users-page.users-v2 .users-identity .users-avatar-img {
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* ── Pagination per-page selector ── */
+.pagination-per-page {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.pagination-per-page-form {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.pagination-per-page-label {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.pagination-per-page-select {
+  font-size: var(--text-xs);
+  padding: 4px var(--space-2);
+  min-width: 60px;
+  width: auto;
+}
+
+.users-pagination {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
+}
+
+@media (max-width: 600px) {
+  .pagination-per-page {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+/* ── Users table thead sticky (reinforce existing) ── */
+.admin-users-page.users-v2 .users-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+/* ── View audit log quick link per row ── */
+.users-audit-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--muted);
+  text-decoration: none;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s;
+}
+
+.users-audit-link:hover {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--cream) 40%, var(--card));
+}
+
+.users-audit-link svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
 }

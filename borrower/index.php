@@ -478,53 +478,6 @@ $extraStyles = [
             <?php endif; ?>
           </div>
 
-          <!-- History -->
-          <div class="rd-section-title">
-            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
-            Loan History
-          </div>
-          <div class="rd-card">
-            <?php if (empty($loan_history)): ?>
-              <p style="color:var(--rd-text-muted); text-align:center;">No past loans on record.</p>
-            <?php else: ?>
-              <div style="overflow-x:auto;">
-                <table class="rd-table-glass">
-                  <thead>
-                    <tr>
-                      <th>Book / Returned</th>
-                      <th style="text-align:right;">Fine</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <?php foreach (array_slice($loan_history, 0, 5) as $h): ?>
-                      <tr>
-                        <td>
-                          <strong><?= htmlspecialchars($h['title'], ENT_QUOTES, 'UTF-8') ?></strong><br>
-                          <small style="color:var(--rd-text-muted);"><?= htmlspecialchars($h['return_date'] ?? 'N/A', ENT_QUOTES, 'UTF-8') ?></small>
-                        </td>
-                        <td style="text-align:right;">
-                          <?php if ((float)$h['fine_amount'] > 0): ?>
-                            <span style="color: <?= $h['fine_paid'] ? 'var(--rd-success)' : 'var(--rd-danger)' ?>; font-weight:600;">
-                              ₱<?= htmlspecialchars(number_format((float) $h['fine_amount'], 2), ENT_QUOTES, 'UTF-8') ?>
-
-                              <br><small><?= $h['fine_paid'] ? '(Paid)' : '(Unpaid)' ?></small>
-                            </span>
-                          <?php else: ?>
-                            <span style="color:var(--rd-text-muted);">-</span>
-                          <?php endif; ?>
-                        </td>
-                      </tr>
-                    <?php endforeach; ?>
-                  </tbody>
-                </table>
-              </div>
-              <?php if (count($loan_history) > 5): ?>
-                <div style="text-align:center; padding-top:1rem; border-top:1px solid rgba(255,255,255,0.05); margin-top:1rem;">
-                  <span style="color:var(--rd-text-muted); font-size:0.85rem;">Showing last 5</span>
-                </div>
-              <?php endif; ?>
-            <?php endif; ?>
-          </div>
         </div>
 
       </div>
