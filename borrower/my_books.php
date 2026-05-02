@@ -336,6 +336,7 @@ $extraStyles = [
                       <form method="POST" action="<?= htmlspecialchars(BASE_URL . 'borrower/renew.php', ENT_QUOTES, 'UTF-8') ?>" style="margin:0;">
                         <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                         <input type="hidden" name="loan_id" value="<?= (int) $loan['id'] ?>">
+                        <input type="hidden" name="redirect_to" value="borrower/my_books.php">
                         <button type="submit" class="rd-btn-action">Renew</button>
                       </form>
                       <?php else: ?>
