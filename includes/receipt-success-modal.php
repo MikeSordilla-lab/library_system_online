@@ -6,6 +6,15 @@ if ($flash_receipt_no === '') {
 }
 
 $receipt_modal_base_url = defined('BASE_URL') ? (string) constant('BASE_URL') : '/';
+$receipt_modal_base_path = '/';
+if ($receipt_modal_base_url !== '') {
+  $parsed_base = parse_url($receipt_modal_base_url);
+  if (is_array($parsed_base) && isset($parsed_base['path'])) {
+    $receipt_modal_base_path = (string) $parsed_base['path'];
+  }
+}
+$receipt_modal_base_path = '/' . ltrim($receipt_modal_base_path, '/');
+$receipt_modal_base_path = rtrim($receipt_modal_base_path, '/') . '/';
 
 $receipt_modal_title = isset($receipt_modal_title) && trim((string) $receipt_modal_title) !== ''
   ? (string) $receipt_modal_title
@@ -15,8 +24,8 @@ $receipt_modal_message = isset($receipt_modal_message) && trim((string) $receipt
   ? (string) $receipt_modal_message
   : 'Your transaction was completed successfully. Review the ticket preview, then press Ctrl+P to print.';
 
-$receipt_modal_preview_url = $receipt_modal_base_url . 'receipt/view.php?no=' . rawurlencode($flash_receipt_no) . '&compact=1';
-$receipt_modal_pdf_url = $receipt_modal_base_url . 'api/receipts/pdf.php?no=' . rawurlencode($flash_receipt_no);
+$receipt_modal_preview_url = $receipt_modal_base_path . 'receipt/view.php?no=' . rawurlencode($flash_receipt_no) . '&compact=1';
+$receipt_modal_pdf_url = $receipt_modal_base_path . 'api/receipts/pdf.php?no=' . rawurlencode($flash_receipt_no);
 $receipt_modal_pdf_filename = 'receipt_' . preg_replace('/[^A-Za-z0-9_-]+/', '_', $flash_receipt_no) . '.pdf';
 
 $receipt_modal_dom_id = 'receipt-success-modal-' . preg_replace('/[^a-zA-Z0-9_-]/', '', $flash_receipt_no);
