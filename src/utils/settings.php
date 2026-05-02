@@ -8,13 +8,15 @@
  */
 
 /**
- * Get a system setting value from the Settings table
- *
- * @param PDO $pdo Database connection
- * @param string $key Setting key to retrieve
- * @param string $default Default value if setting not found (optional)
- * @return string Setting value or default
+ * Returns a reference to the shared request-scoped settings cache.
+ * Both get_setting() and _setting_cache_clear() use this to access the same array.
  */
+function &_settings_cache_ref(): array
+{
+  static $cache = [];
+  return $cache;
+}
+
 /**
  * Get a system setting value from the Settings table
  *
@@ -25,7 +27,7 @@
  */
 function get_setting(PDO $pdo, string $key, string $default = ''): string
 {
-  static $cache = [];
+  $cache = &_settings_cache_ref();
   if (isset($cache[$key])) {
     return $cache[$key];
   }
@@ -37,11 +39,11 @@ function get_setting(PDO $pdo, string $key, string $default = ''): string
 }
 
 /**
- * Clear the settings cache (internal, used by set_setting)
+ * Clear the settings cache for a specific key (internal, used by set_setting)
  */
 function _setting_cache_clear(string $key): void
 {
-  static $cache = [];
+  $cache = &_settings_cache_ref();
   unset($cache[$key]);
 }
 

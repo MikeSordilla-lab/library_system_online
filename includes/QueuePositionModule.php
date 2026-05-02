@@ -51,7 +51,6 @@ class QueuePositionModule
     $bookIds = array_unique(array_column($reservations, 'book_id'));
 
     $placeholders = implode(',', array_fill(0, count($bookIds), '?'));
-    $typesPlaceholders = implode(',', array_fill(0, count($bookIds), 'i'));
 
     $sql = "SELECT id, book_id, reserved_at
               FROM Reservations

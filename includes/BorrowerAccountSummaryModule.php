@@ -47,7 +47,7 @@ class BorrowerAccountSummaryModule
     $activeLoans = $activeStmt->fetchAll();
 
     foreach ($activeLoans as &$loan) {
-      $loan['days_overdue'] = (int) ($loan['days_overdue'] ?? 0);
+      $loan['days_overdue'] = max(0, (int) ($loan['days_overdue'] ?? 0));
       $renewalCount = ($hasRenewalCount && isset($loan['renewal_count'])) ? (int) $loan['renewal_count'] : 0;
       $dueTs = strtotime($loan['due_date']);
       $loan['renewal_eligible'] = $loan['status'] === 'active'

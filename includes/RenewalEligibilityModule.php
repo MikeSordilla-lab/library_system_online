@@ -2,7 +2,9 @@
 
 require_once __DIR__ . '/circulation.php';
 
-define('MAX_RENEWALS', 1);
+if (!defined('MAX_RENEWALS')) {
+  define('MAX_RENEWALS', 1);
+}
 
 class RenewalEligibilityModule
 {
@@ -14,11 +16,12 @@ class RenewalEligibilityModule
    * @param int   $loanId Loan/Circulation ID
    * @return array{eligible: bool, reason_code: string|null, new_due_date: string|null}
    *   reason_code is null when eligible=true; one of the strings below when eligible=false:
+   *     'not_found'             — loan does not exist or belongs to another user
    *     'delinquent'            — borrower has unpaid fines
    *     'overdue'               — loan is past due date
    *     'not_active'            — loan status is not 'active'
    *     'already_renewed'       — loan.renewal_count >= MAX_RENEWALS
-   *     'too_early'            — due date is more than 1 day away
+   *     'too_early'             — due date is more than 1 day away
    *     'competing_reservation' — another user has a pending reservation for the same book
    */
   public static function check(PDO $pdo, int $userId, int $loanId): array

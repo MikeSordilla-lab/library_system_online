@@ -65,9 +65,7 @@ if ($action === 'place') {
 
 if ($action === 'cancel') {
   $reservation_id = (int) ($_POST['reservation_id'] ?? 0);
-  $cancel_redirect = isset($_POST['redirect_to']) && str_starts_with($_POST['redirect_to'], 'borrower/')
-    ? $_POST['redirect_to']
-    : 'borrower/index.php';
+  $cancel_redirect = _sanitize_borrower_redirect((string) ($_POST['redirect_to'] ?? ''));
 
   if ($reservation_id < 1) {
     $_SESSION['flash_error'] = 'Invalid reservation reference.';
@@ -131,4 +129,30 @@ function _reserve_cancel_error(string $reason_code): string
     default:
       return 'Cannot cancel reservation. Please try again.';
   }
+}
+
+/**
+ * Sanitize and validate a borrower-relative redirect path.
+ * Rejects paths with control characters, path traversal, or non-borrower prefixes.
+ */
+function _sanitize_borrower_redirect(string $value): string
+{
+  $default = 'borrower/index.php';
+  $candidate = trim($value);
+  if ($candidate === '') {
+    return $default;
+  }
+  if (preg_match('/[\x00-\x1F\x7F]/', $candidate) === 1) {
+    return $default;
+  }
+  if (preg_match('/^(?:[a-z][a-z0-9+\-.]*:|\/\/|\\\\)/i', $candidate) === 1) {
+    return $default;
+  }
+  if (strpos($candidate, '..') !== false || strpos($candidate, '//') !== false) {
+    return $default;
+  }
+  if (!str_starts_with($candidate, 'borrower/')) {
+    return $default;
+  }
+  return $candidate;
 }

@@ -96,18 +96,24 @@ try {
 
     if (!$check['eligible']) {
         $pdo->rollBack();
+        $reason_messages = [
+            'not_found'             => 'Loan not found. Please try again.',
+            'delinquent'            => 'You have unpaid fines. Please clear your balance before renewing.',
+            'overdue'               => 'This loan is overdue. Please return the book instead of renewing.',
+            'not_active'            => 'This loan is no longer active.',
+            'already_renewed'       => 'This book has already been renewed the maximum number of times.',
+            'too_early'             => 'Renewal is only available within 1 day of the due date.',
+            'competing_reservation' => 'Another borrower has reserved this book. It cannot be renewed.',
+        ];
         $_SESSION['renewal_block'] = [
             'title' => 'Renewal blocked',
-            'message' => $check['reason'] ?? 'This loan cannot be renewed at this time.',
+            'message' => $reason_messages[$check['reason_code']] ?? 'This loan cannot be renewed at this time.',
         ];
         header('Location: ' . BASE_URL . 'borrower/index.php');
         exit;
     }
 
     $new_due_date = $check['new_due_date'];
-
-    // Get loan period from settings
-    $loan_days = get_loan_period($pdo);
 
     // Update the loan - handle renewal_count column gracefully
     $update_sql = 'UPDATE Circulation

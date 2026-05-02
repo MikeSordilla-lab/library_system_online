@@ -28,7 +28,7 @@ $total_pages = max(1, (int) ceil($total_tickets / $per_page));
 $page = min($page, $total_pages);
 $offset = ($page - 1) * $per_page;
 
-if ($viewer_role === 'admin' || $viewer_role === 'librarian') {
+if ($viewer_role === 'librarian') {
   $tickets_stmt = $pdo->prepare(
     'SELECT ' . receipt_select_clause($pdo) . '
      FROM Receipt_Tickets
@@ -174,9 +174,7 @@ $pageStyles = ob_get_clean();
 <body class="dashboard-redesign borrower-dashboard-new">
   <div class="app-shell">
     <?php
-    if ($viewer_role === 'admin') {
-      require_once __DIR__ . '/../includes/sidebar-admin.php';
-    } elseif ($viewer_role === 'librarian') {
+    if ($viewer_role === 'librarian') {
       require_once __DIR__ . '/../includes/sidebar-librarian.php';
     } else {
       require_once __DIR__ . '/../includes/sidebar-borrower.php';
@@ -192,7 +190,7 @@ $pageStyles = ob_get_clean();
 
       <div class="rd-header">
         <div>
-          <h1>Receipts & Tickets</h1>
+          <h1>Receipts &amp; Tickets</h1>
           <p>View and reprint recent transaction tickets.</p>
         </div>
       </div>

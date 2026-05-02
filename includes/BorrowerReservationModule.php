@@ -169,6 +169,10 @@ class BorrowerReservationModule
       ]
     );
 
+    if (!$changed) {
+      return ['success' => false, 'reason_code' => 'not_cancellable'];
+    }
+
     return ['success' => true];
   }
 }
