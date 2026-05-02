@@ -639,6 +639,16 @@ $extraStyles = [
           }
         });
       }
+
+      // Modal close logic
+      var modal = document.getElementById('renewal-block-modal');
+      var modalOkBtn = document.getElementById('renewal-block-modal-ok');
+      var modalBackdrop = document.getElementById('renewal-block-modal-close');
+      if (modal) {
+        var closeModal = function() { modal.style.display = 'none'; };
+        if (modalOkBtn) modalOkBtn.addEventListener('click', closeModal);
+        if (modalBackdrop) modalBackdrop.addEventListener('click', closeModal);
+      }
     }());
   </script>
   </body>
