@@ -1891,13 +1891,12 @@ $has_feedback = $flash_success !== ''
                    </select>
                  </form>
                </div>
-             </nav>
+              </nav>
         <?php endif; ?>
-       </div>
-       </div>
+        </div>
 
-     </main>
-   </div>
+      </main>
+    </div>
 
    <!-- Create User Modal -->
    <div class="modal-overlay" id="create-user-modal-overlay" role="presentation" aria-hidden="true" data-open-on-load="<?= $create_user_error !== '' ? '1' : '0' ?>">
