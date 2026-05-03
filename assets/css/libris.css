@@ -3793,6 +3793,14 @@ a:focus-visible {
   }
 }
 
+/* ── Admin Audit Log Page Button Alignment ────────────────────────── */
+.admin-audit-page .admin-audit-filter-form .btn-primary,
+.admin-audit-page .admin-audit-filter-form .btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+}
+
 /* ── Admin settings form spacing/help states ── */
 .admin-settings-page .admin-settings-form {
   padding: var(--space-6);

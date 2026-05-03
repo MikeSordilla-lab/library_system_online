@@ -462,7 +462,13 @@
   }
 
   function openManageModal(row, trigger) {
-    if (!manageModalOverlay || !manageModal || !row) {
+    if (!manageModalOverlay || !manageModal) {
+      console.error('[admin-users] Manage modal elements not found in DOM');
+      return;
+    }
+
+    if (!row) {
+      console.error('[admin-users] openManageModal called without a valid row element');
       return;
     }
 
@@ -474,6 +480,13 @@
       panelState.row = row;
       panelState.trigger = trigger || panelState.trigger;
       hydrateManagePanel(row);
+
+      if (!manageModalOverlay.classList.contains('active')) {
+        manageModalOverlay.classList.add('active');
+        manageModalOverlay.setAttribute('aria-hidden', 'false');
+        lockBodyScroll();
+      }
+
       var first = getFocusable(manageModal)[0];
       if (first) {
         first.focus();
@@ -497,7 +510,6 @@
 
     hydrateManagePanel(row);
 
-    manageModalOverlay.hidden = false;
     manageModalOverlay.classList.add('active');
     manageModalOverlay.setAttribute('aria-hidden', 'false');
     lockBodyScroll();
@@ -514,15 +526,19 @@
   }
 
   function closeManageModal(restoreFocus) {
-    if (!manageModalOverlay || !panelState.isOpen) {
+    if (!manageModalOverlay) {
       return;
     }
 
+    var wasOpen = panelState.isOpen;
     panelState.isOpen = false;
+    panelState.row = null;
     manageModalOverlay.classList.remove('active');
     manageModalOverlay.setAttribute('aria-hidden', 'true');
-    manageModalOverlay.hidden = true;
-    unlockBodyScroll();
+
+    if (wasOpen) {
+      unlockBodyScroll();
+    }
 
     if (restoreFocus !== false && panelState.trigger && typeof panelState.trigger.focus === 'function') {
       panelState.trigger.focus();
@@ -984,20 +1000,27 @@
 
   function wireManageModal() {
     if (!manageModalOverlay || !manageModal) {
+      console.warn('[admin-users] Manage modal elements not found, modal functionality disabled');
       return;
     }
 
     manageTriggers.forEach(function (trigger) {
       trigger.addEventListener('click', function () {
-        var userId = trigger.getAttribute('data-user-id');
-        if (!userId) {
-          return;
+        try {
+          var userId = trigger.getAttribute('data-user-id');
+          if (!userId) {
+            console.error('[admin-users] Manage trigger missing data-user-id attribute');
+            return;
+          }
+          var row = document.getElementById('user-row-' + userId);
+          if (!row) {
+            console.error('[admin-users] User row not found: user-row-' + userId);
+            return;
+          }
+          openManageModal(row, trigger);
+        } catch (error) {
+          console.error('[admin-users] Error opening manage modal:', error);
         }
-        var row = document.getElementById('user-row-' + userId);
-        if (!row) {
-          return;
-        }
-        openManageModal(row, trigger);
       });
     });
 
