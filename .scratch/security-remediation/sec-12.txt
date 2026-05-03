@@ -1,0 +1,14 @@
+## What to build
+
+Move `log_receipt_ticket_event` call out of the GET handler in `receipt/view.php`. The receipt view page should only log receipt ticket events on POST actions (form submissions), not on every page load via GET. This prevents audit log pollution via image tags or other GET-triggered side effects.
+
+## Acceptance criteria
+
+- [ ] GET request to `receipt/view.php` does not call `log_receipt_ticket_event`
+- [ ] POST action in `receipt/view.php` still logs the event
+- [ ] Audit log cannot be polluted via `<img src="receipt/view.php?receipt_id=X">`
+- [ ] Legitimate receipt views via POST still logged
+
+## Blocked by
+
+None - can start immediately

@@ -1,0 +1,15 @@
+## What to build
+
+Add `realpath()` validation in `delete_user_avatar()` in `includes/avatar.php`. Validate that the resolved path starts with `AVATAR_UPLOAD_DIR` before deletion. This prevents path traversal attacks where `../` payloads could delete arbitrary files.
+
+## Acceptance criteria
+
+- [ ] `delete_user_avatar()` uses `realpath()` to resolve the avatar path
+- [ ] Deletion is rejected if resolved path is outside `AVATAR_UPLOAD_DIR`
+- [ ] Payloads like `../../../etc/passwd` are rejected with appropriate error
+- [ ] Valid avatar filenames within the directory still work
+- [ ] Unit tests cover traversal payloads: `../`, `..\\`, `....//`, null byte injection
+
+## Blocked by
+
+None - can start immediately

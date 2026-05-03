@@ -1,0 +1,17 @@
+## What to build
+
+Two changes to `includes/receipts.php`:
+1. **Table allowlist**: `receipt_table_columns()` validates the table name against `['Receipt_Tickets', 'Receipt_Print_Jobs', 'Receipt_Ticket_Logs']` and throws `InvalidArgumentException` on unknown table
+2. **HMAC strict mode**: Throw `RuntimeException` if the HMAC key cannot be loaded from `APP_KEY` env or `receipt_hmac_key` setting. Remove or deprecate `RECEIPT_SIGNATURE_FALLBACK_KEY`.
+
+## Acceptance criteria
+
+- [ ] `receipt_table_columns()` throws `InvalidArgumentException` for tables not in allowlist
+- [ ] `receipt_table_columns()` allows only `Receipt_Tickets`, `Receipt_Print_Jobs`, `Receipt_Ticket_Logs`
+- [ ] Receipt signing throws `RuntimeException` if HMAC key is not configured
+- [ ] `RECEIPT_SIGNATURE_FALLBACK_KEY` is removed or made to throw
+- [ ] Unit tests verify allowlist rejection and HMAC strict behavior
+
+## Blocked by
+
+None - can start immediately

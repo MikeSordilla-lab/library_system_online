@@ -1,0 +1,20 @@
+## What to build
+
+Two changes:
+1. **Password complexity validation**: Require 1 uppercase, 1 lowercase, 1 digit, 1 special character, min 8 chars. Apply server-side in register, admin/users.php, and admin/change-password.php.
+2. **Generic auth error messages in login.php**: Return identical "Invalid email or password." for unverified accounts, wrong password, and non-existent users. Add timing normalization (random sleep 0-100ms) to normalize response times.
+
+## Acceptance criteria
+
+- [ ] Passwords without uppercase are rejected server-side with clear message
+- [ ] Passwords without lowercase are rejected
+- [ ] Passwords without digit are rejected
+- [ ] Passwords without special character are rejected
+- [ ] Passwords under 8 chars are rejected
+- [ ] Login returns identical message for: non-existent email, wrong password, unverified account
+- [ ] Response time variation within expected range (timing attack mitigated)
+- [ ] Client-side strength meter still works in parallel
+
+## Blocked by
+
+None - can start immediately

@@ -1,0 +1,16 @@
+## What to build
+
+Add account lockout after consecutive failed login attempts. New migration adds `failed_login_attempts INT DEFAULT 0` and `locked_until TIMESTAMP NULL` to the `Users` table. Login flow checks `locked_until < NOW()` before password verification. After 5 failures, account locks for 15 minutes.
+
+## Acceptance criteria
+
+- [ ] Migration adds `failed_login_attempts` and `locked_until` columns to Users table
+- [ ] Login returns "Account locked" error if `locked_until > NOW()`
+- [ ] Failed attempt increments `failed_login_attempts` and updates `locked_until` to 15 min ahead after 5th failure
+- [ ] Successful login resets `failed_login_attempts` to 0 and clears `locked_until`
+- [ ] Locked account can still receive password reset email (do not lock out legitimate users)
+- [ ] Integration test: 5 wrong passwords followed by 6th attempt returns account locked
+
+## Blocked by
+
+None - can start immediately

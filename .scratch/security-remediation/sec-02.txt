@@ -1,0 +1,16 @@
+## What to build
+
+Add an `escape_like_wildcards(string $q)` helper using `addcslashes($q, '%_')` and apply it to all LIKE queries in catalog.php and admin/users.php. This prevents SQL predicate injection via % and _ wildcards.
+
+## Acceptance criteria
+
+- [ ] `escape_like_wildcards()` helper exists and properly escapes %, _, and backslash
+- [ ] catalog.php LIKE queries use the helper (lines ~33-34)
+- [ ] admin/users.php LIKE queries use the helper (lines ~1287-1290)
+- [ ] Input `test%value` is escaped so % is treated as literal
+- [ ] Input `test_value` is escaped so _ is treated as literal
+- [ ] Unit tests cover edge cases: `%%`, `%_`, `\%`, `\\`
+
+## Blocked by
+
+None - can start immediately

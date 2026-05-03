@@ -1,0 +1,17 @@
+## What to build
+
+Implement an in-memory sliding-window rate limiter as a new `src/utils/rate_limit.php` module with functions `rate_limit_check($action, $max_attempts, $window_seconds)` and `rate_limit_headers()`. Apply it to login, register, verify (OTP), and forgot-password endpoints. OTP verify should lock after 5 wrong attempts for 15 minutes.
+
+## Acceptance criteria
+
+- [ ] `src/utils/rate_limit.php` exists with `rate_limit_check()` and `rate_limit_headers()`
+- [ ] Login endpoint is rate limited (e.g. 5 attempts per 15 minutes)
+- [ ] Register endpoint is rate limited
+- [ ] OTP verify endpoint locks after 5 wrong attempts for 15 minutes
+- [ ] Forgot-password endpoint is rate limited
+- [ ] Rate limit headers (`X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`) are set on responses
+- [ ] Existing tests pass; new unit tests cover rate limit logic
+
+## Blocked by
+
+None - can start immediately

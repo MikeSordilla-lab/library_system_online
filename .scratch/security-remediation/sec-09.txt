@@ -1,0 +1,18 @@
+## What to build
+
+Two changes:
+1. **Session cookie flags in `bootstrap.php`**: Add `session_set_cookie_params(['httponly' => true, 'secure' => true, 'samesite' => 'Strict'])`
+2. **Session regeneration on privilege changes**: Add `session_regenerate_id(true)` after password change, role change, and logout
+
+## Acceptance criteria
+
+- [ ] `session_set_cookie_params` sets `httponly`, `secure`, and `samesite` flags
+- [ ] Existing sessions continue to work after cookie param change
+- [ ] `session_regenerate_id(true)` called after successful password change
+- [ ] `session_regenerate_id(true)` called after role change (admin/librarian actions)
+- [ ] `session_regenerate_id(true)` called on logout
+- [ ] Cookie inspect shows `HttpOnly`, `Secure`, `SameSite=Strict` flags
+
+## Blocked by
+
+None - can start immediately

@@ -1,0 +1,16 @@
+## What to build
+
+Restrict the `api/receipts/create.php` endpoint so borrower role can only create receipts where `patron_user_id` equals their own user ID. Admins and librarians can create receipts for any patron. Verify the same restrictions apply to `api/receipts/get.php` and `api/receipts/reprint.php`.
+
+## Acceptance criteria
+
+- [ ] Borrower creating a receipt for another patron returns 403
+- [ ] Borrower creating a receipt for themselves succeeds
+- [ ] Librarian/admin can create receipts for any patron
+- [ ] `api/receipts/get.php` and `api/receipts/reprint.php` enforce same restrictions
+- [ ] Rate limiting is applied to all receipt API endpoints
+- [ ] Integration test: borrower cannot access or reprint another patron's receipt
+
+## Blocked by
+
+None - can start immediately

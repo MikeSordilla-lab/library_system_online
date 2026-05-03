@@ -1,0 +1,16 @@
+## What to build
+
+Replace `receipt_generate_no()` with `bin2hex(random_bytes(16))` format so receipt numbers are non-guessable and non-sequential. Add a database migration that adds a `receipt_no_alias` column to `Receipt_Tickets` for backwards compat. New receipts use UUID format; old receipts remain queryable via alias.
+
+## Acceptance criteria
+
+- [ ] `receipt_generate_no()` returns `bin2hex(random_bytes(16))`
+- [ ] Migration adds `receipt_no_alias` VARCHAR(32) NULL column to Receipt_Tickets
+- [ ] Receipt numbers are non-sequential (verified by sorting 100 generated receipts)
+- [ ] No collisions in 10,000 generated receipt numbers (collision resistance test)
+- [ ] Existing receipt lookup by old sequential ID still works via alias
+- [ ] Tests verify uniqueness and non-sequential property
+
+## Blocked by
+
+None - can start immediately (migration is a separate run step, code change has no deps)

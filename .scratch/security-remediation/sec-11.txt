@@ -1,0 +1,15 @@
+## What to build
+
+Modify `book-cover-public.php` so that both existing and non-existing book IDs return the same HTTP status (200) and the same placeholder image body. This prevents attackers from mapping the catalog via response timing or status code differences.
+
+## Acceptance criteria
+
+- [ ] Request for existing book ID returns HTTP 200 with placeholder image
+- [ ] Request for non-existing book ID returns HTTP 200 with same placeholder image
+- [ ] Response timing difference between existing/non-existing is negligible (< 10ms variance)
+- [ ] Content-Type is consistent for both cases
+- [ ] Integration test verifies both return 200 and identical body
+
+## Blocked by
+
+None - can start immediately

@@ -1,0 +1,19 @@
+## What to build
+
+Two changes:
+1. **New `src/middleware/security_headers.php`** that sets `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Strict-Transport-Security`, and `Content-Security-Policy` on all responses. Include at top of `bootstrap.php`.
+2. **HTTPS enforcement in `config.php`**: in production mode, redirect HTTP to HTTPS and set HSTS header.
+
+## Acceptance criteria
+
+- [ ] `src/middleware/security_headers.php` sets all four headers
+- [ ] `bootstrap.php` includes security_headers.php at top
+- [ ] Production mode: HTTP request to any page redirects to HTTPS
+- [ ] HSTS header is set with appropriate max-age
+- [ ] All API responses also include security headers
+- [ ] CSP header is tested for false positives — existing inline styles/scripts are allowlisted if needed
+- [ ] Security headers present on responses to `/index.php`, `/catalog.php`, `/api/`
+
+## Blocked by
+
+None - can start immediately
