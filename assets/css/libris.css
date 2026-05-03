@@ -3834,10 +3834,9 @@ a:focus-visible {
 .field-label {
   display: block;
   font-size: var(--text-xs);
-  font-weight: 600;
-  text-transform: uppercase;
+  font-weight: 700;
   letter-spacing: 0.06em;
-  color: var(--muted);
+  color: var(--ink);
   margin-bottom: var(--space-2);
   word-break: break-word;
   overflow-wrap: break-word;
@@ -8511,7 +8510,17 @@ img.book-thumb {
 }
 
 .tab-section--danger .tab-section-help {
-  color: color-mix(in srgb, var(--muted) 70%, var(--ink));
+  color: var(--ink);
+}
+
+.tab-section--danger .field-label,
+.tab-section--danger .form-check span {
+  color: var(--ink);
+}
+
+.tab-section--danger .field-input,
+.tab-section--danger .field-select {
+  border-color: var(--border-dark, #374151);
 }
 
 .field-group {
@@ -8557,6 +8566,11 @@ img.book-thumb {
   flex-shrink: 0;
 }
 
+#user-panel-tab-danger {
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
 .danger-zone-actions {
   display: grid;
   gap: var(--space-4);
@@ -8571,7 +8585,7 @@ img.book-thumb {
 .status-action-text {
   margin: 0;
   font-size: var(--text-sm);
-  color: var(--muted);
+  color: var(--ink);
 }
 
 .panel-footer {
