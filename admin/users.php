@@ -1383,62 +1383,42 @@ $has_feedback = $flash_success !== ''
   ];
   require_once __DIR__ . '/../includes/head.php';
 ?>
-  <style>
-    .admin-themed .admin-users-page {
-      color-scheme: dark;
-      --paper: var(--rd-bg);
-      --cream: #2a2723;
-      --card: var(--rd-surface);
-      --ink: var(--rd-text);
-      --muted: var(--rd-text-muted);
-      --border: var(--rd-border);
-      --accent: var(--rd-primary);
-      --accent-dark: #b8942d;
-      --gold: var(--rd-primary);
-      --gold-dark: #b8942d;
-      --sage: var(--rd-success);
-      --sage-dark: #059669;
-      color: var(--rd-text);
-    }
-
-    .admin-themed .admin-users-page .btn-primary {
-      background: linear-gradient(135deg, var(--rd-primary), #b8942d);
-      color: #1c1a17 !important;
-      border: none;
-      box-shadow: 0 8px 16px rgba(201, 168, 76, 0.25);
-    }
-
-    .admin-themed .admin-users-page .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 24px rgba(201, 168, 76, 0.35);
-    }
-
-    .admin-themed .admin-users-page .btn-ghost {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--rd-border);
-      color: var(--rd-text);
-    }
-
-    .admin-themed .admin-users-page .btn-ghost:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: var(--rd-text-bold);
-      border-color: var(--rd-border);
-    }
-
-    .admin-themed .admin-users-page .users-stat-list strong {
-      font-family: var(--rd-font-serif);
-      color: var(--rd-text-bold);
-    }
-
-    .admin-themed .admin-users-page .users-stat-label {
-      color: var(--rd-text-muted);
-    }
-
-    .admin-themed .admin-users-page .users-empty-state__icon {
-      margin: 0 auto var(--space-4);
-      opacity: 1;
-    }
-  </style>
+<style>
+  body.admin-themed {
+    background: #fff !important;
+    color: #1c1a17;
+  }
+  .admin-themed .main-content {
+    background: #fff !important;
+    padding: 2.5rem;
+  }
+  .admin-themed .page-header h1 {
+    color: #1c1a17;
+    text-shadow: none;
+  }
+  .admin-themed .page-header p {
+    color: #666;
+  }
+  .admin-themed .section-card,
+  .admin-themed .card {
+    background: #fff;
+    border: 1px solid #e5e5e5;
+  }
+  .admin-themed .btn-primary {
+    background: linear-gradient(135deg, #c9a84c, #b8942d);
+    color: #fff !important;
+    border: none;
+  }
+  .admin-themed .btn-ghost {
+    background: transparent;
+    border: 1px solid #ddd;
+    color: #333;
+  }
+  .admin-themed .btn-ghost:hover {
+    background: #f5f5f5;
+    border-color: #ccc;
+  }
+</style>
 </head>
 
 <body class="admin-themed">
@@ -1881,7 +1861,7 @@ $has_feedback = $flash_success !== ''
           </div>
 
     <!-- Manage User Modal -->
-    <div class="modal-overlay" id="manage-user-modal-overlay" role="presentation" aria-hidden="true" hidden>
+    <div class="modal-overlay" id="manage-user-modal-overlay" role="presentation" aria-hidden="true">
       <div class="modal-dialog" id="manage-user-modal" role="dialog" aria-modal="true" aria-labelledby="manage-user-modal-title">
         <div class="modal-header">
           <div>

@@ -89,7 +89,7 @@
   text-decoration: none;
   transition: all 0.3s ease;
   background: linear-gradient(135deg, var(--rd-primary), #b8942d);
-  color: #1c1a17 !important;
+  color: #fff !important;
   box-shadow: 0 8px 16px rgba(201, 168, 76, 0.25);
   border: none;
   cursor: pointer;

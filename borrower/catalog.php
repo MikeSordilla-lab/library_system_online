@@ -134,7 +134,7 @@ $buildCatalogUrl = function (int $page) use ($q, $filter_category, $filter_avail
 
 				<section class="catalog-search" aria-label="Search and filter catalog" style="margin-bottom: 2.5rem;">
 					<form class="catalog-search__form catalog-filters rd-card" method="GET" action="" style="display: flex; flex-direction: column; gap: 1.25rem;">
-						<div class="catalog-filters__primary" style="display: flex; gap: 1rem; width: 100%;">
+						<div class="catalog-filters__primary" style="display: flex; gap: 1rem; width: 100%; align-items: center;">
 							<label class="sr-only" for="catalog-search-input">Search by title, author, ISBN</label>
 							<div style="position:relative; flex:1;">
 								<svg style="position:absolute; left:1rem; top:50%; transform:translateY(-50%); color:var(--rd-text-muted);" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
