@@ -10718,7 +10718,8 @@ img.book-thumb {
 }
 
 
-.admin-users-page.users-v2 .users-manage-summary {
+.admin-users-page.users-v2 .users-manage-summary,
+#manage-user-modal .users-manage-summary {
   display: grid;
   gap: 6px;
   padding: var(--space-4);
@@ -10727,7 +10728,8 @@ img.book-thumb {
   background: color-mix(in srgb, var(--paper) 74%, var(--card));
 }
 
-.admin-users-page.users-v2 .users-manage-summary__name {
+.admin-users-page.users-v2 .users-manage-summary__name,
+#manage-user-modal .users-manage-summary__name {
   margin: 0;
   font-size: var(--text-base);
   font-weight: 700;
@@ -10735,20 +10737,24 @@ img.book-thumb {
 }
 
 .admin-users-page.users-v2 .users-manage-summary__email,
-.admin-users-page.users-v2 .users-manage-summary__joined {
+.admin-users-page.users-v2 .users-manage-summary__joined,
+#manage-user-modal .users-manage-summary__email,
+#manage-user-modal .users-manage-summary__joined {
   margin: 0;
   font-size: var(--text-xs);
   color: color-mix(in srgb, var(--muted) 84%, var(--ink));
 }
 
-.admin-users-page.users-v2 .users-manage-summary__chips {
+.admin-users-page.users-v2 .users-manage-summary__chips,
+#manage-user-modal .users-manage-summary__chips {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 2px;
 }
 
-.admin-users-page.users-v2 .users-manage-section {
+.admin-users-page.users-v2 .users-manage-section,
+#manage-user-modal .users-manage-section {
   display: grid;
   gap: var(--space-2);
   padding: var(--space-4);
@@ -10757,7 +10763,8 @@ img.book-thumb {
   background: var(--users-v2-surface);
 }
 
-.admin-users-page.users-v2 .users-manage-section__title {
+.admin-users-page.users-v2 .users-manage-section__title,
+#manage-user-modal .users-manage-section__title {
   margin: 0;
   font-size: var(--text-xs);
   text-transform: uppercase;
@@ -10765,25 +10772,30 @@ img.book-thumb {
   color: color-mix(in srgb, var(--muted) 82%, var(--ink));
 }
 
-.admin-users-page.users-v2 .users-manage-section--danger {
+.admin-users-page.users-v2 .users-manage-section--danger,
+#manage-user-modal .users-manage-section--danger {
   border-color: color-mix(in srgb, var(--accent) 36%, var(--users-v2-border));
   background: color-mix(in srgb, var(--accent) 6%, var(--card));
 }
 
-.admin-users-page.users-v2 .users-manage-section__title--danger {
+.admin-users-page.users-v2 .users-manage-section__title--danger,
+#manage-user-modal .users-manage-section__title--danger {
   color: color-mix(in srgb, var(--accent-dark) 80%, var(--ink));
 }
 
-.admin-users-page.users-v2 .users-manage-form {
+.admin-users-page.users-v2 .users-manage-form,
+#manage-user-modal .users-manage-form {
   display: grid;
   gap: var(--space-2);
 }
 
-.admin-users-page.users-v2 .users-manage-form button[type="submit"] {
+.admin-users-page.users-v2 .users-manage-form button[type="submit"],
+#manage-user-modal .users-manage-form button[type="submit"] {
   justify-self: start;
 }
 
-.admin-users-page.users-v2 .users-manage-status-actions {
+.admin-users-page.users-v2 .users-manage-status-actions,
+#manage-user-modal .users-manage-status-actions {
   display: grid;
   gap: var(--space-2);
 }

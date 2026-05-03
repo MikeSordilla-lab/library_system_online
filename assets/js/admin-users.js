@@ -878,9 +878,15 @@
     clearCreateModalErrors();
     createForm.reset();
     updateCreateRolePolicy();
-    if (createFormError) {
-      createFormError.style.display = 'none';
-    }
+  if (createFormError) {
+    createFormError.style.display = 'none';
+  }
+  if (createUserTrigger) {
+    createUserTrigger.focus();
+  }
+  if (createUserTrigger) {
+    createUserTrigger.focus();
+  }
     if (createUserTrigger) {
       createUserTrigger.focus();
     }

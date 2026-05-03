@@ -1860,133 +1860,6 @@ $has_feedback = $flash_success !== ''
             </table>
           </div>
 
-    <!-- Manage User Modal -->
-    <div class="modal-overlay" id="manage-user-modal-overlay" role="presentation" aria-hidden="true">
-      <div class="modal-dialog" id="manage-user-modal" role="dialog" aria-modal="true" aria-labelledby="manage-user-modal-title">
-        <div class="modal-header">
-          <div>
-            <h2 class="modal-title" id="manage-user-modal-title">Manage User</h2>
-            <p class="modal-subtitle">Update identity, access, verification, and account controls.</p>
-          </div>
-          <button type="button" class="modal-close-btn" id="manage-user-modal-close" aria-label="Close dialog">
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
-        </div>
-        <div class="modal-body">
-          <section class="users-manage-summary" aria-live="polite" aria-atomic="true">
-            <p class="users-manage-summary__name" id="users-manage-name">User account</p>
-            <p class="users-manage-summary__email" id="users-manage-email"></p>
-            <div class="users-manage-summary__chips">
-              <span class="badge" id="users-manage-role-chip"></span>
-              <span class="badge users-state" id="users-manage-verified-chip"></span>
-              <span class="badge users-state" id="users-manage-status-chip"></span>
-            </div>
-            <p class="users-manage-summary__joined" id="users-manage-joined"></p>
-          </section>
-
-          <section class="users-manage-section">
-            <h3 class="users-manage-section__title">Credentials</h3>
-            <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" id="users-manage-credentials-form" class="users-manage-form users-credentials-form">
-              <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-              <input type="hidden" name="action" value="update_user_credentials">
-              <input type="hidden" name="user_id" value="">
-              <label class="sr-only" for="users-manage-full-name">Full name</label>
-              <input id="users-manage-full-name" type="text" name="full_name" class="field-input" required>
-              <label class="sr-only" for="users-manage-email-input">Email address</label>
-              <input id="users-manage-email-input" type="email" name="email" class="field-input" required>
-              <button type="submit" class="btn-ghost">Save credentials</button>
-            </form>
-          </section>
-
-          <section class="users-manage-section">
-            <h3 class="users-manage-section__title">Access Policy</h3>
-            <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" id="users-manage-verification-form" class="users-manage-form users-verification-form">
-              <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-              <input type="hidden" name="action" value="update_user_verification">
-              <input type="hidden" name="user_id" value="">
-              <label class="sr-only" for="users-manage-verification">Verification status</label>
-              <select id="users-manage-verification" name="is_verified" class="field-select users-verification-form__select">
-                <option value="1">Verified</option>
-                <option value="0">Not verified</option>
-              </select>
-              <p class="users-field-help users-verification-help" id="users-manage-verification-help"></p>
-              <button type="submit" class="btn-ghost">Save verification</button>
-            </form>
-
-            <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" id="users-manage-role-form" class="users-manage-form users-role-form">
-              <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-              <input type="hidden" name="action" value="role_change">
-              <input type="hidden" name="user_id" value="">
-              <label class="sr-only" for="users-manage-role">Role</label>
-              <select id="users-manage-role" name="new_role" class="field-select users-role-form__select">
-                <option value="admin" data-role-label="Admin" data-requires-verified="1" data-role-description="<?= htmlspecialchars($role_meta['admin']['description'], ENT_QUOTES, 'UTF-8') ?>">Admin</option>
-                <option value="librarian" data-role-label="Librarian" data-requires-verified="1" data-role-description="<?= htmlspecialchars($role_meta['librarian']['description'], ENT_QUOTES, 'UTF-8') ?>">Librarian</option>
-                <option value="borrower" data-role-label="Borrower" data-requires-verified="0" data-role-description="<?= htmlspecialchars($role_meta['borrower']['description'], ENT_QUOTES, 'UTF-8') ?>">Borrower</option>
-              </select>
-              <p class="users-field-help users-role-help" id="users-manage-role-help"></p>
-              <button type="submit" class="btn-ghost">Save role</button>
-            </form>
-          </section>
-
-          <section class="users-manage-section">
-            <h3 class="users-manage-section__title">Password Reset</h3>
-            <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" id="users-manage-password-form" class="users-manage-form users-password-reset-form">
-              <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-              <input type="hidden" name="action" value="admin_reset_user_password">
-              <input type="hidden" name="user_id" value="">
-              <label class="sr-only" for="users-manage-password-new">New password</label>
-              <input id="users-manage-password-new" type="password" name="new_password" class="field-input" minlength="8" placeholder="New password (8+ chars)" required autocomplete="new-password">
-              <label class="sr-only" for="users-manage-password-confirm">Confirm password</label>
-              <input id="users-manage-password-confirm" type="password" name="confirm_password" class="field-input" minlength="8" placeholder="Confirm password" required autocomplete="new-password">
-              <button type="submit" class="btn-ghost">Update password</button>
-            </form>
-          </section>
-
-          <section class="users-manage-section">
-            <h3 class="users-manage-section__title">Account Status</h3>
-            <div class="users-manage-status-actions">
-              <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" id="users-manage-activate-form" class="users-manage-form users-quick-form" data-quick-action="activate" hidden>
-                <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-                <input type="hidden" name="action" value="activate">
-                <input type="hidden" name="user_id" value="">
-                <input type="hidden" name="user_name" value="">
-                <button type="submit" class="btn-confirm">Reactivate account</button>
-              </form>
-
-              <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" id="users-manage-deactivate-form" class="users-manage-form users-quick-form" data-quick-action="deactivate" hidden>
-                <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-                <input type="hidden" name="action" value="deactivate">
-                <input type="hidden" name="user_id" value="">
-                <input type="hidden" name="user_name" value="">
-                <button type="submit" class="btn-accent">Deactivate account</button>
-              </form>
-            </div>
-          </section>
-
-          <section class="users-manage-section users-manage-section--danger">
-            <h3 class="users-manage-section__title users-manage-section__title--danger">Permanent Delete</h3>
-            <p class="users-actions__note">Delete only when this account should be permanently removed.</p>
-            <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" id="users-manage-delete-form" class="users-manage-form users-delete-form" data-user-role="">
-              <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-              <input type="hidden" name="action" value="delete_user">
-              <input type="hidden" name="user_id" value="">
-              <label class="users-delete-form__confirm">
-                <input type="checkbox" id="users-manage-delete-confirm" name="delete_confirm" value="1" required>
-                Confirm permanent deletion.
-              </label>
-              <button type="submit" class="btn-ghost users-actions__delete">Delete account</button>
-            </form>
-          </section>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn-ghost" id="manage-user-modal-cancel-btn">Close</button>
-        </div>
-      </div>
-    </div>
-
              <nav class="pagination users-pagination" aria-label="User directory pagination">
                <div class="pagination-info">
                  <span class="pagination-current">Page <?= (int) $page ?> of <?= max(1, (int) $total_pages) ?></span>
@@ -2023,118 +1896,245 @@ $has_feedback = $flash_success !== ''
        </div>
        </div>
 
-    <!-- Create User Modal -->
-    <div class="modal-overlay" id="create-user-modal-overlay" role="presentation" aria-hidden="true" data-open-on-load="<?= $create_user_error !== '' ? '1' : '0' ?>">
-      <div class="modal-dialog" id="create-user-modal" role="dialog" aria-modal="true" aria-labelledby="create-user-modal-title">
-        <div class="modal-header">
-          <h2 class="modal-title" id="create-user-modal-title">Add User</h2>
-          <button type="button" class="modal-close-btn" id="create-user-modal-close" aria-label="Close dialog">
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
-        </div>
-        <div class="modal-body">
-          <form id="create-user-form" method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" class="users-create-form-modal" novalidate>
-            <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-            <input type="hidden" name="action" value="create_user">
-
-            <!-- Full Name Field -->
-            <div class="field-group">
-              <label for="modal-full_name" class="field-label">Full Name <span aria-label="required">*</span></label>
-              <input
-                type="text"
-                id="modal-full_name"
-                name="full_name"
-                class="field-input"
-                placeholder="e.g., Jane Smith"
-                value="<?= htmlspecialchars((string) $create_user_old['full_name'], ENT_QUOTES, 'UTF-8') ?>"
-                required
-                aria-required="true"
-                aria-describedby="full_name-error">
-              <span id="full_name-error" class="field-error" role="alert"></span>
-            </div>
-
-            <!-- Email Field -->
-            <div class="field-group">
-              <label for="modal-email" class="field-label">Email Address <span aria-label="required">*</span></label>
-              <input
-                type="email"
-                id="modal-email"
-                name="email"
-                class="field-input"
-                placeholder="e.g., jane@example.com"
-                value="<?= htmlspecialchars((string) $create_user_old['email'], ENT_QUOTES, 'UTF-8') ?>"
-                required
-                aria-required="true"
-                aria-describedby="email-error">
-              <span id="email-error" class="field-error" role="alert"></span>
-            </div>
-
-            <!-- Password Field -->
-            <div class="field-group">
-              <label for="modal-password" class="field-label">Password <span aria-label="required">*</span></label>
-              <input
-                type="password"
-                id="modal-password"
-                name="password"
-                class="field-input"
-                placeholder="8+ characters"
-                required
-                aria-required="true"
-                aria-describedby="password-error password-help">
-              <small id="password-help" class="field-help">Must be at least 8 characters</small>
-              <span id="password-error" class="field-error" role="alert"></span>
-            </div>
-
-            <!-- Role Field -->
-            <div class="field-group">
-              <label for="modal-role" class="field-label">Account Type <span aria-label="required">*</span></label>
-              <select
-                id="modal-role"
-                name="role"
-                class="field-select"
-                required
-                aria-required="true"
-                aria-describedby="role-error role-help">
-                <option value="">Choose an account type</option>
-                <option value="borrower" data-requires-verified="0" <?= $create_user_old['role'] === 'borrower' ? 'selected' : '' ?>>Borrower — Check out books, manage loans</option>
-                <option value="librarian" data-requires-verified="1" <?= $create_user_old['role'] === 'librarian' ? 'selected' : '' ?>>Librarian — Manage catalog and circulation</option>
-                <option value="admin" data-requires-verified="1" <?= $create_user_old['role'] === 'admin' ? 'selected' : '' ?>>Admin — Manage users and system settings</option>
-              </select>
-              <small id="role-help" class="field-help">Admin and Librarian accounts must be verified before access is granted.</small>
-              <span id="role-error" class="field-error" role="alert"></span>
-            </div>
-
-            <!-- Verification Checkbox -->
-            <div class="field-group">
-              <label for="modal-is_verified" class="field-checkbox">
-                <input
-                  type="checkbox"
-                  id="modal-is_verified"
-                  name="is_verified"
-                  value="1"
-                  <?= (int) $create_user_old['is_verified'] === 1 ? 'checked' : '' ?>>
-                <span>Mark email as verified</span>
-              </label>
-            </div>
-
-            <!-- Form Error Message -->
-            <div id="modal-form-error" class="field-error" role="alert" aria-live="polite" style="<?= $create_user_error !== '' ? 'display:block;' : 'display:none;' ?> margin-bottom: var(--space-4);"><?= htmlspecialchars($create_user_error, ENT_QUOTES, 'UTF-8') ?></div>
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn-ghost" id="modal-cancel-btn">Cancel</button>
-          <button type="submit" form="create-user-form" class="btn-primary" id="modal-submit-btn">Add User</button>
-        </div>
-      </div>
-    </div>
-
      </main>
-  </div>
+   </div>
 
-  <script src="<?= htmlspecialchars(BASE_URL . 'assets/js/admin-users.js', ENT_QUOTES, 'UTF-8') ?>"></script>
+   <!-- Create User Modal -->
+   <div class="modal-overlay" id="create-user-modal-overlay" role="presentation" aria-hidden="true" data-open-on-load="<?= $create_user_error !== '' ? '1' : '0' ?>">
+     <div class="modal-dialog" id="create-user-modal" role="dialog" aria-modal="true" aria-labelledby="create-user-modal-title">
+       <div class="modal-header">
+         <h2 class="modal-title" id="create-user-modal-title">Add User</h2>
+         <button type="button" class="modal-close-btn" id="create-user-modal-close" aria-label="Close dialog">
+           <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+             <line x1="18" y1="6" x2="6" y2="18"></line>
+             <line x1="6" y1="6" x2="18" y2="18"></line>
+           </svg>
+         </button>
+       </div>
+       <div class="modal-body">
+         <form id="create-user-form" method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" class="users-create-form-modal" novalidate>
+           <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+           <input type="hidden" name="action" value="create_user">
+
+           <!-- Full Name Field -->
+           <div class="field-group">
+             <label for="modal-full_name" class="field-label">Full Name <span aria-label="required">*</span></label>
+             <input
+               type="text"
+               id="modal-full_name"
+               name="full_name"
+               class="field-input"
+               placeholder="e.g., Jane Smith"
+               value="<?= htmlspecialchars((string) $create_user_old['full_name'], ENT_QUOTES, 'UTF-8') ?>"
+               required
+               aria-required="true"
+               aria-describedby="full_name-error">
+             <span id="full_name-error" class="field-error" role="alert"></span>
+           </div>
+
+           <!-- Email Field -->
+           <div class="field-group">
+             <label for="modal-email" class="field-label">Email Address <span aria-label="required">*</span></label>
+             <input
+               type="email"
+               id="modal-email"
+               name="email"
+               class="field-input"
+               placeholder="e.g., jane@example.com"
+               value="<?= htmlspecialchars((string) $create_user_old['email'], ENT_QUOTES, 'UTF-8') ?>"
+               required
+               aria-required="true"
+               aria-describedby="email-error">
+             <span id="email-error" class="field-error" role="alert"></span>
+           </div>
+
+           <!-- Password Field -->
+           <div class="field-group">
+             <label for="modal-password" class="field-label">Password <span aria-label="required">*</span></label>
+             <input
+               type="password"
+               id="modal-password"
+               name="password"
+               class="field-input"
+               placeholder="8+ characters"
+               required
+               aria-required="true"
+               aria-describedby="password-error password-help">
+             <small id="password-help" class="field-help">Must be at least 8 characters</small>
+             <span id="password-error" class="field-error" role="alert"></span>
+           </div>
+
+           <!-- Role Field -->
+           <div class="field-group">
+             <label for="modal-role" class="field-label">Account Type <span aria-label="required">*</span></label>
+             <select
+               id="modal-role"
+               name="role"
+               class="field-select"
+               required
+               aria-required="true"
+               aria-describedby="role-error role-help">
+               <option value="">Choose an account type</option>
+               <option value="borrower" data-requires-verified="0" <?= $create_user_old['role'] === 'borrower' ? 'selected' : '' ?>>Borrower — Check out books, manage loans</option>
+               <option value="librarian" data-requires-verified="1" <?= $create_user_old['role'] === 'librarian' ? 'selected' : '' ?>>Librarian — Manage catalog and circulation</option>
+               <option value="admin" data-requires-verified="1" <?= $create_user_old['role'] === 'admin' ? 'selected' : '' ?>>Admin — Manage users and system settings</option>
+             </select>
+             <small id="role-help" class="field-help">Admin and Librarian accounts must be verified before access is granted.</small>
+             <span id="role-error" class="field-error" role="alert"></span>
+           </div>
+
+           <!-- Verification Checkbox -->
+           <div class="field-group">
+             <label for="modal-is_verified" class="field-checkbox">
+               <input
+                 type="checkbox"
+                 id="modal-is_verified"
+                 name="is_verified"
+                 value="1"
+                 <?= (int) $create_user_old['is_verified'] === 1 ? 'checked' : '' ?>>
+               <span>Mark email as verified</span>
+             </label>
+           </div>
+
+           <!-- Form Error Message -->
+           <div id="modal-form-error" class="field-error" role="alert" aria-live="polite" style="<?= $create_user_error !== '' ? 'display:block;' : 'display:none;' ?> margin-bottom: var(--space-4);"><?= htmlspecialchars($create_user_error, ENT_QUOTES, 'UTF-8') ?></div>
+         </form>
+       </div>
+       <div class="modal-footer">
+         <button type="button" class="btn-ghost" id="modal-cancel-btn">Cancel</button>
+         <button type="submit" form="create-user-form" class="btn-primary" id="modal-submit-btn">Add User</button>
+       </div>
+     </div>
+   </div>
+
+   <!-- Manage User Modal -->
+   <div class="modal-overlay" id="manage-user-modal-overlay" role="presentation" aria-hidden="true">
+     <div class="modal-dialog" id="manage-user-modal" role="dialog" aria-modal="true" aria-labelledby="manage-user-modal-title">
+       <div class="modal-header">
+         <div>
+           <h2 class="modal-title" id="manage-user-modal-title">Manage User</h2>
+           <p class="modal-subtitle">Update identity, access, verification, and account controls.</p>
+         </div>
+         <button type="button" class="modal-close-btn" id="manage-user-modal-close" aria-label="Close dialog">
+           <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+             <line x1="18" y1="6" x2="6" y2="18"></line>
+             <line x1="6" y1="6" x2="18" y2="18"></line>
+           </svg>
+         </button>
+       </div>
+       <div class="modal-body">
+         <section class="users-manage-summary" aria-live="polite" aria-atomic="true">
+           <p class="users-manage-summary__name" id="users-manage-name">User account</p>
+           <p class="users-manage-summary__email" id="users-manage-email"></p>
+           <div class="users-manage-summary__chips">
+             <span class="badge" id="users-manage-role-chip"></span>
+             <span class="badge users-state" id="users-manage-verified-chip"></span>
+             <span class="badge users-state" id="users-manage-status-chip"></span>
+           </div>
+           <p class="users-manage-summary__joined" id="users-manage-joined"></p>
+         </section>
+
+         <section class="users-manage-section">
+           <h3 class="users-manage-section__title">Credentials</h3>
+           <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" id="users-manage-credentials-form" class="users-manage-form users-credentials-form">
+             <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+             <input type="hidden" name="action" value="update_user_credentials">
+             <input type="hidden" name="user_id" value="">
+             <label class="sr-only" for="users-manage-full-name">Full name</label>
+             <input id="users-manage-full-name" type="text" name="full_name" class="field-input" required>
+             <label class="sr-only" for="users-manage-email-input">Email address</label>
+             <input id="users-manage-email-input" type="email" name="email" class="field-input" required>
+             <button type="submit" class="btn-ghost">Save credentials</button>
+           </form>
+         </section>
+
+         <section class="users-manage-section">
+           <h3 class="users-manage-section__title">Access Policy</h3>
+           <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" id="users-manage-verification-form" class="users-manage-form users-verification-form">
+             <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+             <input type="hidden" name="action" value="update_user_verification">
+             <input type="hidden" name="user_id" value="">
+             <label class="sr-only" for="users-manage-verification">Verification status</label>
+             <select id="users-manage-verification" name="is_verified" class="field-select users-verification-form__select">
+               <option value="1">Verified</option>
+               <option value="0">Not verified</option>
+             </select>
+             <p class="users-field-help users-verification-help" id="users-manage-verification-help"></p>
+             <button type="submit" class="btn-ghost">Save verification</button>
+           </form>
+
+           <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" id="users-manage-role-form" class="users-manage-form users-role-form">
+             <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+             <input type="hidden" name="action" value="role_change">
+             <input type="hidden" name="user_id" value="">
+             <label class="sr-only" for="users-manage-role">Role</label>
+             <select id="users-manage-role" name="new_role" class="field-select users-role-form__select">
+               <option value="admin" data-role-label="Admin" data-requires-verified="1" data-role-description="<?= htmlspecialchars($role_meta['admin']['description'], ENT_QUOTES, 'UTF-8') ?>">Admin</option>
+               <option value="librarian" data-role-label="Librarian" data-requires-verified="1" data-role-description="<?= htmlspecialchars($role_meta['librarian']['description'], ENT_QUOTES, 'UTF-8') ?>">Librarian</option>
+               <option value="borrower" data-role-label="Borrower" data-requires-verified="0" data-role-description="<?= htmlspecialchars($role_meta['borrower']['description'], ENT_QUOTES, 'UTF-8') ?>">Borrower</option>
+             </select>
+             <p class="users-field-help users-role-help" id="users-manage-role-help"></p>
+             <button type="submit" class="btn-ghost">Save role</button>
+           </form>
+         </section>
+
+         <section class="users-manage-section">
+           <h3 class="users-manage-section__title">Password Reset</h3>
+           <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" id="users-manage-password-form" class="users-manage-form users-password-reset-form">
+             <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+             <input type="hidden" name="action" value="admin_reset_user_password">
+             <input type="hidden" name="user_id" value="">
+             <label class="sr-only" for="users-manage-password-new">New password</label>
+             <input id="users-manage-password-new" type="password" name="new_password" class="field-input" minlength="8" placeholder="New password (8+ chars)" required autocomplete="new-password">
+             <label class="sr-only" for="users-manage-password-confirm">Confirm password</label>
+             <input id="users-manage-password-confirm" type="password" name="confirm_password" class="field-input" minlength="8" placeholder="Confirm password" required autocomplete="new-password">
+             <button type="submit" class="btn-ghost">Update password</button>
+           </form>
+         </section>
+
+         <section class="users-manage-section">
+           <h3 class="users-manage-section__title">Account Status</h3>
+           <div class="users-manage-status-actions">
+             <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" id="users-manage-activate-form" class="users-manage-form users-quick-form" data-quick-action="activate" hidden>
+               <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+               <input type="hidden" name="action" value="activate">
+               <input type="hidden" name="user_id" value="">
+               <input type="hidden" name="user_name" value="">
+               <button type="submit" class="btn-confirm">Reactivate account</button>
+             </form>
+
+             <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" id="users-manage-deactivate-form" class="users-manage-form users-quick-form" data-quick-action="deactivate" hidden>
+               <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+               <input type="hidden" name="action" value="deactivate">
+               <input type="hidden" name="user_id" value="">
+               <input type="hidden" name="user_name" value="">
+               <button type="submit" class="btn-accent">Deactivate account</button>
+             </form>
+           </div>
+         </section>
+
+         <section class="users-manage-section users-manage-section--danger">
+           <h3 class="users-manage-section__title users-manage-section__title--danger">Permanent Delete</h3>
+           <p class="users-actions__note">Delete only when this account should be permanently removed.</p>
+           <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" id="users-manage-delete-form" class="users-manage-form users-delete-form" data-user-role="">
+             <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+             <input type="hidden" name="action" value="delete_user">
+             <input type="hidden" name="user_id" value="">
+             <label class="users-delete-form__confirm">
+               <input type="checkbox" id="users-manage-delete-confirm" name="delete_confirm" value="1" required>
+               Confirm permanent deletion.
+             </label>
+             <button type="submit" class="btn-ghost users-actions__delete">Delete account</button>
+           </form>
+         </section>
+       </div>
+       <div class="modal-footer">
+         <button type="button" class="btn-ghost" id="manage-user-modal-cancel-btn">Close</button>
+       </div>
+     </div>
+   </div>
+
+   <script src="<?= htmlspecialchars(BASE_URL . 'assets/js/admin-users.js', ENT_QUOTES, 'UTF-8') ?>"></script>
  </body>
 
 
