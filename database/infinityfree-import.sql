@@ -1,4 +1,4 @@
--- InfinityFree import schema for Library System Online
+-- InfinityFree import schema for LibraLink
 -- Schema-only plus minimal bootstrap seeds (no production/user data dump)
 
 SET NAMES utf8mb4;
@@ -252,7 +252,7 @@ INSERT INTO `Settings` (`key`, `value`) VALUES
   ('max_borrow_limit', '5'),
   ('max_loan_days', '7'),
   ('reservation_expiry_days', '7'),
-  ('library_name', 'Library System'),
+  ('library_name', 'LibraLink'),
   ('receipt_phase1_enabled', '1')
 ON DUPLICATE KEY UPDATE
   `value` = VALUES(`value`),

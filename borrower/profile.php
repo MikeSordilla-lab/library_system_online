@@ -117,7 +117,7 @@ $res_stmt->execute([$user_id]);
 $pending_res = (int)$res_stmt->fetchColumn();
 
 $current_page = 'borrower.profile';
-$pageTitle    = 'My Profile | Library System';
+$pageTitle    = 'My Profile | LibraLink';
 $extraStyles  = [
   'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap',
   BASE_URL . 'assets/css/borrower-redesign.css',

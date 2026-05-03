@@ -100,12 +100,12 @@ foreach ($records as $r) {
     $total_fines += (float) ($r['fine_amount'] ?? 0);
 }
 
-$library_name = get_setting($pdo, 'library_name', 'Library System');
+$library_name = get_setting($pdo, 'library_name', 'LibraLink');
 $prepared_by  = (string) ($_SESSION['full_name'] ?? 'Librarian');
 $generated_at = date('F d, Y h:i A');
 
 $current_page = 'librarian.records';
-$pageTitle    = 'Generate Records | Library System';
+$pageTitle    = 'Generate Records | LibraLink';
 $includeSweetAlert = false;
 $extraStyles = [
   'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap',

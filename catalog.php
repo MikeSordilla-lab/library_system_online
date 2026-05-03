@@ -136,7 +136,7 @@ $unavailable_books = $total_books - $available_books;
 
 $q_escaped = htmlspecialchars($q, ENT_QUOTES, 'UTF-8');
 $category_escaped = htmlspecialchars($category, ENT_QUOTES, 'UTF-8');
-$pageTitle = 'Public Catalog | Library System';
+$pageTitle = 'Public Catalog | LibraLink';
 
 // Determine if we're in search mode
 $is_searching = $q !== '' || $category !== '' || $availability !== 'all' || $sort !== 'title_asc' || $page > 1;
@@ -1244,8 +1244,8 @@ function render_book_section(string $title, array $books): void
 <body>
   <nav class="editorial-nav" aria-label="Main Navigation">
     <a href="index.php" class="brand">
-      <img src="assets/images/library_logo_cropped.png" alt="Library System Logo" width="220" height="48" decoding="async" style="height: 48px; width: auto; object-fit: contain;" onerror="this.onerror=null;this.src='assets/images/logo.svg';">
-      <span>Library System</span>
+      <img src="assets/images/library_logo_cropped.png" alt="LibraLink Logo" width="220" height="48" decoding="async" style="height: 48px; width: auto; object-fit: contain;" onerror="this.onerror=null;this.src='assets/images/logo.svg';">
+      <span>LibraLink</span>
     </a>
 
     <button class="nav-menu-toggle" id="navMenuToggle" type="button" aria-expanded="false" aria-controls="catalogNavLinks catalogNavActions" aria-label="Toggle menu">

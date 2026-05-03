@@ -19,7 +19,7 @@ if ($role && defined('BASE_URL')) {
   $dashboard_url = BASE_URL . htmlspecialchars($role, ENT_QUOTES, 'UTF-8') . '/index.php';
 }
 
-$pageTitle = '403 Forbidden | Library System';
+$pageTitle = '403 Forbidden | LibraLink';
 ?>
 <!DOCTYPE html>
 <html lang="en">

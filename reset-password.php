@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $token_valid) {
   }
 }
 
-$pageTitle = 'Reset Password | Library System';
+$pageTitle = 'Reset Password | LibraLink';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -128,8 +128,8 @@ $pageTitle = 'Reset Password | Library System';
     <!-- Left: hero image panel -->
     <div class="auth-hero" aria-hidden="true">
       <a href="index.php" class="auth-hero__brand auth-hero__brand--linked">
-        <img src="<?= BASE_URL ?>assets/images/library_logo_cropped.png" alt="Library System Logo" class="auth-hero__logo" onerror="this.onerror=null;this.src='<?= BASE_URL ?>assets/images/logo.svg';">
-        <span>Library System</span>
+        <img src="<?= BASE_URL ?>assets/images/library_logo_cropped.png" alt="LibraLink Logo" class="auth-hero__logo" onerror="this.onerror=null;this.src='<?= BASE_URL ?>assets/images/logo.svg';">
+        <span>LibraLink</span>
       </a>
       <hr class="auth-hero__divider">
       <p class="auth-hero__tagline">Your personal library portal</p>

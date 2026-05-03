@@ -130,7 +130,7 @@ $dashboard_url = htmlspecialchars(BASE_URL . 'admin/index.php',    ENT_QUOTES, '
 $logout_url    = htmlspecialchars(BASE_URL . 'logout.php',          ENT_QUOTES, 'UTF-8');
 $self_url      = htmlspecialchars(BASE_URL . 'admin/settings.php',  ENT_QUOTES, 'UTF-8');
 $current_page = 'admin.settings';
-$pageTitle    = 'Global Settings | Library System';
+$pageTitle    = 'Global Settings | LibraLink';
 ?>
 <!DOCTYPE html>
 <html lang="en">

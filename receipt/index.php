@@ -58,7 +58,7 @@ function build_receipt_page_url(int $p): string
 }
 
 $current_page = 'receipt.index';
-$pageTitle = 'Receipts | Library System';
+$pageTitle = 'Receipts | LibraLink';
 $extraStyles = [
   'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap',
   $base_url . 'assets/css/borrower-redesign.css'

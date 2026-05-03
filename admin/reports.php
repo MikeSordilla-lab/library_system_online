@@ -34,7 +34,7 @@ $active_loans = (int) $stmt->fetchColumn();
 $dashboard_url = htmlspecialchars(BASE_URL . 'admin/index.php', ENT_QUOTES, 'UTF-8');
 $logout_url    = htmlspecialchars(BASE_URL . 'logout.php',       ENT_QUOTES, 'UTF-8');
 $current_page = 'admin.reports';
-$pageTitle    = 'Reports | Library System';
+$pageTitle    = 'Reports | LibraLink';
 ?>
 <!DOCTYPE html>
 <html lang="en">

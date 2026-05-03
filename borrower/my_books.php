@@ -58,7 +58,7 @@ $loan_history           = $summary['loan_history'];
 $stats                  = $summary['stats'];
 
 $current_page = 'borrower.my_books';
-$pageTitle    = 'My Books | Library System';
+$pageTitle    = 'My Books | LibraLink';
 $extraStyles = [
   'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap',
   BASE_URL . 'assets/css/borrower-redesign.css'

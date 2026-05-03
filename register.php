@@ -141,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $email_sent = send_smtp_mail(
         $email,
         $full_name,
-        'Verify your Library System account',
+        'Verify your LibraLink account',
         $mail_body,
         $mail_alt,
         $email_error
@@ -179,7 +179,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 }
 
-$pageTitle = 'Create Account | Library System';
+$pageTitle = 'Create Account | LibraLink';
 $extraScripts = [
   ['src' => BASE_URL . 'assets/js/register.js', 'defer' => true],
 ];
@@ -226,8 +226,8 @@ if ($alertType !== '') {
     <!-- Left: hero image panel -->
     <div class="auth-hero" aria-hidden="true">
       <a href="index.php" class="auth-hero__brand auth-hero__brand--linked">
-        <img src="<?= BASE_URL ?>assets/images/library_logo_cropped.png" alt="Library System Logo" class="auth-hero__logo" onerror="this.onerror=null;this.src='<?= BASE_URL ?>assets/images/logo.svg';">
-        <span>Library System</span>
+        <img src="<?= BASE_URL ?>assets/images/library_logo_cropped.png" alt="LibraLink Logo" class="auth-hero__logo" onerror="this.onerror=null;this.src='<?= BASE_URL ?>assets/images/logo.svg';">
+        <span>LibraLink</span>
       </a>
       <hr class="auth-hero__divider">
       <p class="auth-hero__tagline">Join Our Library Community</p>

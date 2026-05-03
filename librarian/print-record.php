@@ -63,11 +63,11 @@ if ($record) {
   }
 }
 
-$library_name = get_setting($pdo, 'library_name', 'Library System');
+$library_name = get_setting($pdo, 'library_name', 'LibraLink');
 $prepared_by = (string) ($_SESSION['full_name'] ?? 'Librarian');
 $base_url = defined('BASE_URL') ? (string) constant('BASE_URL') : '/';
 
-$pageTitle = 'Printable Record | Library System';
+$pageTitle = 'Printable Record | LibraLink';
 $includeSweetAlert = false;
 $extraStyles = [
   'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap',

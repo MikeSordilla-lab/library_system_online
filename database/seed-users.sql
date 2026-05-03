@@ -1,5 +1,5 @@
 -- =============================================================================
--- Library System Online — User Seed Data
+-- LibraLink — User Seed Data
 -- =============================================================================
 -- Generates 80 users: 3 admin + 7 librarian + 70 borrower
 -- All passwords: admin123

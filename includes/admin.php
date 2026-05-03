@@ -262,25 +262,25 @@ function send_account_status_email(string $to_email, string $to_name, string $ac
     $safe_name = htmlspecialchars($to_name, ENT_QUOTES, 'UTF-8');
 
     if ($action === 'suspended') {
-      $mail->Subject = 'Your Library System account has been suspended';
+      $mail->Subject = 'Your LibraLink account has been suspended';
       $mail->Body    = '<!DOCTYPE html><html><body>'
         . '<p>Hello ' . $safe_name . ',</p>'
-        . '<p>Your Library System account has been <strong>suspended</strong> by an administrator.</p>'
+        . '<p>Your LibraLink account has been <strong>suspended</strong> by an administrator.</p>'
         . '<p>You will not be able to log in until your account is reinstated. '
         . 'Please contact the library if you believe this is in error.</p>'
         . '</body></html>';
-      $mail->AltBody = "Hello {$to_name},\n\nYour Library System account has been suspended by an administrator.\n"
+      $mail->AltBody = "Hello {$to_name},\n\nYour LibraLink account has been suspended by an administrator.\n"
         . "You will not be able to log in until your account is reinstated.\n"
         . "Please contact the library if you believe this is in error.";
     } else {
       // reinstated
-      $mail->Subject = 'Your Library System account has been reinstated';
+      $mail->Subject = 'Your LibraLink account has been reinstated';
       $mail->Body    = '<!DOCTYPE html><html><body>'
         . '<p>Hello ' . $safe_name . ',</p>'
-        . '<p>Your Library System account has been <strong>reinstated</strong>. '
+        . '<p>Your LibraLink account has been <strong>reinstated</strong>. '
         . 'You may now log in normally.</p>'
         . '</body></html>';
-      $mail->AltBody = "Hello {$to_name},\n\nYour Library System account has been reinstated.\n"
+      $mail->AltBody = "Hello {$to_name},\n\nYour LibraLink account has been reinstated.\n"
         . "You may now log in normally.";
     }
 

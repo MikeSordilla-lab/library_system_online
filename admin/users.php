@@ -25,7 +25,7 @@ ensure_superadmin_support($pdo);
 $actor_id = (int) ($_SESSION['user_id'] ?? 0);
 $self_url = BASE_URL . 'admin/users.php';
 $current_page = 'admin.users';
-$pageTitle = 'User Management | Library System';
+$pageTitle = 'User Management | LibraLink';
 
 $flash_success = '';
 $flash_error = '';

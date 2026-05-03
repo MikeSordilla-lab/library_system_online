@@ -45,7 +45,7 @@ try {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome | Library System</title>
+  <title>Welcome | LibraLink</title>
   <link rel="stylesheet" href="<?= BASE_URL ?>assets/css/libris.css">
   <style>
     body {
@@ -392,8 +392,8 @@ try {
 
   <nav class="editorial-nav" aria-label="Main Navigation">
     <a href="<?= BASE_URL ?>index.php" class="brand">
-      <img src="<?= BASE_URL ?>assets/images/library_logo_cropped.png" alt="Library System Logo" width="220" height="48" decoding="async" style="height: 48px; width: auto; object-fit: contain;" onerror="this.onerror=null;this.src='<?= BASE_URL ?>assets/images/logo.svg';">
-      <span>Library System</span>
+      <img src="<?= BASE_URL ?>assets/images/library_logo_cropped.png" alt="LibraLink Logo" width="220" height="48" decoding="async" style="height: 48px; width: auto; object-fit: contain;" onerror="this.onerror=null;this.src='<?= BASE_URL ?>assets/images/logo.svg';">
+      <span>LibraLink</span>
     </a>
 
     <div class="nav-links">

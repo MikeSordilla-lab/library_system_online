@@ -3,7 +3,7 @@
     - link [ref=e4] [cursor=pointer]:
       - /url: index.php
       - img [ref=e5]
-      - generic [ref=e6]: Library System
+      - generic [ref=e6]: LibraLink
     - separator [ref=e7]
     - paragraph [ref=e8]: Your personal library portal
     - list [ref=e9]:

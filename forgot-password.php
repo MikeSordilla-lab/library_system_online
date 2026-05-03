@@ -81,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email_sent = send_smtp_mail(
           $user['email'],
           $user['full_name'],
-          'Reset your Library System password',
+          'Reset your LibraLink password',
           $mail_body,
           $mail_alt,
           $email_error
@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 }
 
-$pageTitle = 'Forgot Password | Library System';
+$pageTitle = 'Forgot Password | LibraLink';
 $extraScripts = [
   ['src' => BASE_URL . 'assets/js/forgot-password.js', 'defer' => true],
 ];
@@ -153,8 +153,8 @@ if ($alertType !== '') {
     <!-- Left: hero image panel -->
     <div class="auth-hero" aria-hidden="true">
       <a href="index.php" class="auth-hero__brand auth-hero__brand--linked">
-        <img src="<?= BASE_URL ?>assets/images/library_logo_cropped.png" alt="Library System Logo" class="auth-hero__logo" onerror="this.onerror=null;this.src='<?= BASE_URL ?>assets/images/logo.svg';">
-        <span>Library System</span>
+        <img src="<?= BASE_URL ?>assets/images/library_logo_cropped.png" alt="LibraLink Logo" class="auth-hero__logo" onerror="this.onerror=null;this.src='<?= BASE_URL ?>assets/images/logo.svg';">
+        <span>LibraLink</span>
       </a>
       <hr class="auth-hero__divider">
       <p class="auth-hero__tagline">Your personal library portal</p>

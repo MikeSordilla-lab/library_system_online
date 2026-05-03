@@ -191,7 +191,7 @@ define('DEVELOPER_SPECIALTIES', cfg_env('DEVELOPER_SPECIALTIES', 'Backend Archit
 define('DEVELOPER_STACK', cfg_env('DEVELOPER_STACK', 'PHP, MySQL, JavaScript, CSS, HTML'));
 define('DEVELOPER_FOCUS_AREAS', cfg_env('DEVELOPER_FOCUS_AREAS', 'Secure authentication and role-based access, Clean admin workflows and UX consistency, Data integrity across circulation and reservations'));
 define('DEVELOPER_HIGHLIGHTS', cfg_env('DEVELOPER_HIGHLIGHTS', 'Architected role-protected admin operations with audit logging||Designed a cohesive admin UX with responsive account flows||Built secure account controls for profile and password management'));
-define('DEVELOPER_PROJECT_1_NAME', cfg_env('DEVELOPER_PROJECT_1_NAME', 'Library System Core Platform'));
+define('DEVELOPER_PROJECT_1_NAME', cfg_env('DEVELOPER_PROJECT_1_NAME', 'LibraLink Core Platform'));
 define('DEVELOPER_PROJECT_1_DESC', cfg_env('DEVELOPER_PROJECT_1_DESC', 'End-to-end lending, reservations, and account management platform tailored for modern library operations.'));
 define('DEVELOPER_PROJECT_1_URL', cfg_env('DEVELOPER_PROJECT_1_URL', ''));
 define('DEVELOPER_PROJECT_2_NAME', cfg_env('DEVELOPER_PROJECT_2_NAME', 'Admin Security & Compliance Layer'));
@@ -209,7 +209,7 @@ define('SMTP_SECURE', cfg_env('SMTP_SECURE', 'tls'));
 define('SMTP_USER', cfg_env('SMTP_USER', ''));
 define('SMTP_PASS', cfg_env('SMTP_PASS', ''));
 define('SMTP_FROM_EMAIL', cfg_env('SMTP_FROM_EMAIL', ''));
-define('SMTP_FROM_NAME', cfg_env('SMTP_FROM_NAME', 'Library System'));
+define('SMTP_FROM_NAME', cfg_env('SMTP_FROM_NAME', 'LibraLink'));
 
 // Debug Mode (should be false in production)
 define('DEBUG_MODE', cfg_env_bool('DEBUG_MODE', false));

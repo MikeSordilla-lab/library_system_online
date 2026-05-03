@@ -1,6 +1,6 @@
-# Security Audit Report — Library System Online
+# Security Audit Report — LibraLink
 
-**Project:** Library System Online
+**Project:** LibraLink
 **Auditor:** Automated Security Audit
 **Date:** 2026-05-03
 **PHP Version:** 8.x

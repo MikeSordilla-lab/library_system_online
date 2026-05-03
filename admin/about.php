@@ -5,7 +5,7 @@ require_once __DIR__ . '/../includes/auth_guard.php';
 require_once __DIR__ . '/../includes/avatar.php';
 
 $current_page = 'admin.about';
-$pageTitle = 'Admin Profile | Library System';
+$pageTitle = 'Admin Profile | LibraLink';
 
 $escape = fn($v) => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
 
@@ -49,12 +49,42 @@ $is_active = $admin['status'] === 'Active';
 $skills = ['PHP', 'MySQL', 'CSS'];
 
 $stats = [
-  ['label' => 'Total Users', 'value' => '—', 'stripe' => 'gold'],
-  ['label' => 'Active Loans', 'value' => '—', 'stripe' => 'blue'],
-  ['label' => 'Pending Reservations', 'value' => '—', 'stripe' => 'sage'],
-  ['label' => 'Overdue Books', 'value' => '—', 'stripe' => 'gold'],
-  ['label' => 'System Status', 'value' => 'Active', 'stripe' => 'sage'],
-  ['label' => 'Library Hours', 'value' => '8AM–5PM', 'stripe' => 'blue'],
+  [
+    'label' => 'Total Users',
+    'value' => '—',
+    'stripe' => 'gold',
+    'icon' => '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'
+  ],
+  [
+    'label' => 'Active Loans',
+    'value' => '—',
+    'stripe' => 'blue',
+    'icon' => '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>'
+  ],
+  [
+    'label' => 'Pending Reservations',
+    'value' => '—',
+    'stripe' => 'sage',
+    'icon' => '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>'
+  ],
+  [
+    'label' => 'Overdue Books',
+    'value' => '—',
+    'stripe' => 'red',
+    'icon' => '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'
+  ],
+  [
+    'label' => 'System Status',
+    'value' => 'Active',
+    'stripe' => 'sage',
+    'icon' => '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>'
+  ],
+  [
+    'label' => 'Library Hours',
+    'value' => '8AM–5PM',
+    'stripe' => 'blue',
+    'icon' => '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
+  ],
 ];
 
 try {
@@ -136,6 +166,9 @@ try {
         <?php foreach ($stats as $stat): ?>
           <div class="stat-card">
             <div class="stat-stripe stat-stripe--<?= $escape($stat['stripe']) ?>"></div>
+            <div class="stat-icon stat-icon--<?= $escape($stat['stripe']) ?>">
+              <?= $stat['icon'] ?>
+            </div>
             <div class="stat-value"><?= $escape($stat['value']) ?></div>
             <div class="stat-label"><?= $escape($stat['label']) ?></div>
           </div>
@@ -147,12 +180,12 @@ try {
           <span class="section-card__title">About Developer</span>
         </div>
         <div style="padding: 20px;">
-          <p style="margin: 0 0 16px; color: var(--rd-text-muted); line-height: 1.6;">
+          <p style="margin: 0 0 16px; color: var(--rd-text); line-height: 1.7; font-size: 0.95rem;">
             The admin profile experience is maintained to keep operations reliable, secure, and easy to review for everyday library workflows.
           </p>
-          <div style="display: flex; gap: 8px; flex-wrap: wrap; padding-top: 12px; border-top: 1px dashed var(--rd-border);">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.06);">
             <?php foreach ($skills as $skill): ?>
-              <span style="background: var(--rd-surface); border: 1px solid var(--rd-border); color: var(--rd-text); border-radius: 999px; padding: 4px 12px; font-size: 12px; font-weight: 600;"><?= $escape($skill) ?></span>
+              <span style="background: rgba(201, 168, 76, 0.1); border: 1px solid var(--rd-border); color: var(--rd-primary); border-radius: 999px; padding: 4px 12px; font-size: 12px; font-weight: 600;"><?= $escape($skill) ?></span>
             <?php endforeach; ?>
           </div>
         </div>

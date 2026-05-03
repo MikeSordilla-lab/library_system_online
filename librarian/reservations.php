@@ -149,7 +149,7 @@ $flashInfo = (string) ($_SESSION['flash_info'] ?? '');
 unset($_SESSION['flash_error'], $_SESSION['flash_success'], $_SESSION['flash_info']);
 
 $current_page = 'librarian.reservations';
-$pageTitle = 'Reservations | Library System';
+$pageTitle = 'Reservations | LibraLink';
 $extraStyles = [
   'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap',
   BASE_URL . 'assets/css/borrower-redesign.css',

@@ -268,7 +268,7 @@ function issue_receipt_ticket(PDO $pdo, array $data): array
 
   $library_label = trim((string) ($data['library_label'] ?? ''));
   if ($library_label === '') {
-    $library_label = (string) get_setting($pdo, 'library_name', 'Library System');
+    $library_label = (string) get_setting($pdo, 'library_name', 'LibraLink');
   }
 
   $payload_json = receipt_json($payload);
@@ -694,7 +694,7 @@ function build_receipt_view_model(PDO $pdo, array $receipt, bool $mask_pii = tru
     'type' => $type,
     'type_label' => receipt_type_label($type),
     'section' => $section,
-    'library_label' => (string) ($receipt['library_label'] ?? 'Library System'),
+    'library_label' => (string) ($receipt['library_label'] ?? 'LibraLink'),
     'issued_at' => $issued,
     'issued_at_formatted' => $issued_fmt,
     'status' => (string) ($receipt['status'] ?? 'issued'),

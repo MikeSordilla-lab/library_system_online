@@ -1,6 +1,6 @@
 ## Problem Statement
 
-The Library System Online has been audited and found to contain 5 CRITICAL and 8 HIGH severity vulnerabilities that make it unsafe for public hosting. The most dangerous are: an exposed Gmail app password in version control, SQL injection via unescaped LIKE wildcards, OTP brute force vulnerability, predictable receipt number enumeration, and missing rate limiting on all auth endpoints. These vulnerabilities expose the system to mass account compromise, data exfiltration, and abuse as a phishing relay.
+The LibraLink has been audited and found to contain 5 CRITICAL and 8 HIGH severity vulnerabilities that make it unsafe for public hosting. The most dangerous are: an exposed Gmail app password in version control, SQL injection via unescaped LIKE wildcards, OTP brute force vulnerability, predictable receipt number enumeration, and missing rate limiting on all auth endpoints. These vulnerabilities expose the system to mass account compromise, data exfiltration, and abuse as a phishing relay.
 
 ## Solution
 

@@ -204,7 +204,7 @@ $f = [
   'available_copies' => $_POST['available_copies'] ?? '0',
 ];
 $current_page = 'librarian.catalog';
-$pageTitle    = 'Add Book | Library System';
+$pageTitle    = 'Add Book | LibraLink';
 $extraStyles = [
   'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap',
   BASE_URL . 'assets/css/borrower-redesign.css',

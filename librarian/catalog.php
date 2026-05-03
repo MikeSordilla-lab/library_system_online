@@ -60,7 +60,7 @@ function h(?string $v): string
   return htmlspecialchars($v ?? '', ENT_QUOTES, 'UTF-8');
 }
 $current_page = 'librarian.catalog';
-$pageTitle    = 'Book Catalog | Library System';
+$pageTitle    = 'Book Catalog | LibraLink';
 $extraStyles = [
   'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap',
   BASE_URL . 'assets/css/borrower-redesign.css',

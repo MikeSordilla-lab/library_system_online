@@ -176,7 +176,7 @@ unset($_SESSION['flash_error'], $_SESSION['flash_success'], $_SESSION['flash_pri
 
 $logout_url = htmlspecialchars(BASE_URL . 'logout.php', ENT_QUOTES, 'UTF-8');
 $current_page = 'librarian.checkin';
-$pageTitle    = 'Check In | Library System';
+$pageTitle    = 'Check In | LibraLink';
 $extraStyles = [
   'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap',
   BASE_URL . 'assets/css/borrower-redesign.css',

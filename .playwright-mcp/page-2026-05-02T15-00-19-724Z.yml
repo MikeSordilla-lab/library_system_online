@@ -3,7 +3,7 @@
     - link "Go to admin dashboard" [ref=e4] [cursor=pointer]:
       - /url: http://localhost/library_system_online/admin/index.php
       - img [ref=e6]
-      - generic [ref=e7]: Library System
+      - generic [ref=e7]: LibraLink
     - generic [ref=e8]:
       - link "Dashboard" [ref=e9] [cursor=pointer]:
         - /url: http://localhost/library_system_online/admin/index.php

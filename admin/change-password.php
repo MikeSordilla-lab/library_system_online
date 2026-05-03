@@ -12,7 +12,7 @@ ensure_superadmin_support($pdo);
 
 $actor_id = (int) ($_SESSION['user_id'] ?? 0);
 $current_page = 'admin.change-password';
-$pageTitle = 'Change Password | Library System';
+$pageTitle = 'Change Password | LibraLink';
 $self_url = BASE_URL . 'admin/change-password.php';
 
 $flash_success = $_SESSION['flash_success'] ?? '';

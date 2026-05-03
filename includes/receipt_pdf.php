@@ -412,9 +412,9 @@ function receipt_pdf_render(array $lines, string $title = 'Receipt'): string
     $orderedPairs[] = ['', $line];
   }
 
-  $libraryName = $labelToValue['business info'] ?? 'Library System';
+  $libraryName = $labelToValue['business info'] ?? 'LibraLink';
   if ($libraryName === '') {
-    $libraryName = 'Library System';
+    $libraryName = 'LibraLink';
   }
 
   $receiptNumber = $labelToValue['receipt no'] ?? ($labelToValue['ticket number'] ?? 'N/A');

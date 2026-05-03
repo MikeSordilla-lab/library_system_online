@@ -107,7 +107,7 @@ foreach ($records as $r) {
   }
 }
 
-$library_name = get_setting($pdo, 'library_name', 'Library System');
+$library_name = get_setting($pdo, 'library_name', 'LibraLink');
 $prepared_by  = (string) ($_SESSION['full_name'] ?? 'Librarian');
 $generated_at = date('M d, Y g:i A');
 

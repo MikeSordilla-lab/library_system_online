@@ -1,4 +1,4 @@
-# Library System Online — Agent Guide
+# LibraLink — Agent Guide
 
 ## Stack
 - PHP 8.x, MySQL (PDO, utf8mb4), PHPMailer (bundled in `src/utils/phpmailer/`)

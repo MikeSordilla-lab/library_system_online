@@ -122,7 +122,7 @@ $dashboard_url = htmlspecialchars(BASE_URL . 'admin/index.php', ENT_QUOTES, 'UTF
 $logout_url    = htmlspecialchars(BASE_URL . 'logout.php',       ENT_QUOTES, 'UTF-8');
 $clear_url     = htmlspecialchars(BASE_URL . 'admin/audit-log.php', ENT_QUOTES, 'UTF-8');
 $current_page = 'admin.audit';
-$pageTitle    = 'Audit Log | Library System';
+$pageTitle    = 'Audit Log | LibraLink';
 ?>
 <!DOCTYPE html>
 <html lang="en">

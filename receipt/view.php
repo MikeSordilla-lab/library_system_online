@@ -322,7 +322,7 @@ $pageTitle = 'Receipt ' . (string) ($model['receipt_no'] ?? '');
     <article class="ticket <?= esc($format) ?> <?= esc($section_class) ?>" aria-label="Receipt ticket">
       <header class="head">
         <div>
-          <h1 class="title"><?= esc($model['library_label'] ?? 'Library System') ?></h1>
+          <h1 class="title"><?= esc($model['library_label'] ?? 'LibraLink') ?></h1>
           <p class="sub"><?= esc($model['type_label'] ?? 'Transaction Ticket') ?></p>
         </div>
         <div class="meta">

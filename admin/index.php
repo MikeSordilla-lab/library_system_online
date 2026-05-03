@@ -20,7 +20,7 @@ $active_loans = (int) $pdo->query("SELECT COUNT(*) FROM Circulation WHERE status
 $pending_reservations = (int) $pdo->query("SELECT COUNT(*) FROM Reservations WHERE status = 'pending'")->fetchColumn();
 
 $current_page = 'admin.index';
-$pageTitle = 'Dashboard | Library System';
+$pageTitle = 'Dashboard | LibraLink';
 $includeSweetAlert = false;
 $extraStyles = [
   'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap',
