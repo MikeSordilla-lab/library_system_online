@@ -2007,135 +2007,153 @@ $has_feedback = $flash_success !== ''
      </div>
    </div>
 
-   <!-- Manage User Modal -->
-   <div class="modal-overlay" id="manage-user-modal-overlay" role="presentation" aria-hidden="true">
-     <div class="modal-dialog" id="manage-user-modal" role="dialog" aria-modal="true" aria-labelledby="manage-user-modal-title">
-       <div class="modal-header">
-         <div>
-           <h2 class="modal-title" id="manage-user-modal-title">Manage User</h2>
-           <p class="modal-subtitle">Update identity, access, verification, and account controls.</p>
-         </div>
-         <button type="button" class="modal-close-btn" id="manage-user-modal-close" aria-label="Close dialog">
-           <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
-             <line x1="18" y1="6" x2="6" y2="18"></line>
-             <line x1="6" y1="6" x2="18" y2="18"></line>
-           </svg>
-         </button>
-       </div>
-       <div class="modal-body">
-         <section class="users-manage-summary" aria-live="polite" aria-atomic="true">
-           <p class="users-manage-summary__name" id="users-manage-name">User account</p>
-           <p class="users-manage-summary__email" id="users-manage-email"></p>
-           <div class="users-manage-summary__chips">
-             <span class="badge" id="users-manage-role-chip"></span>
-             <span class="badge users-state" id="users-manage-verified-chip"></span>
-             <span class="badge users-state" id="users-manage-status-chip"></span>
-           </div>
-           <p class="users-manage-summary__joined" id="users-manage-joined"></p>
-         </section>
+<!-- Manage User Side Panel -->
+    <div class="panel-overlay" id="manage-user-panel-overlay" role="presentation" aria-hidden="true">
+      <div class="side-panel" id="manage-user-panel" role="dialog" aria-modal="true" aria-labelledby="manage-user-panel-title">
+        <div class="panel-header">
+          <div class="panel-header-content">
+            <h2 class="panel-title" id="manage-user-panel-title">Manage User</h2>
+            <div class="panel-user-summary" id="user-panel-summary">
+              <p class="panel-user-name" id="users-manage-name">User account</p>
+              <p class="panel-user-email" id="users-manage-email"></p>
+              <div class="panel-user-chips">
+                <span class="badge" id="users-manage-role-chip"></span>
+                <span class="badge users-state" id="users-manage-verified-chip"></span>
+                <span class="badge users-state" id="users-manage-status-chip"></span>
+              </div>
+              <p class="panel-user-joined" id="users-manage-joined"></p>
+            </div>
+          </div>
+          <button type="button" class="panel-close-btn" id="manage-user-panel-close" aria-label="Close panel">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
 
-         <section class="users-manage-section">
-           <h3 class="users-manage-section__title">Credentials</h3>
-           <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" id="users-manage-credentials-form" class="users-manage-form users-credentials-form">
-             <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-             <input type="hidden" name="action" value="update_user_credentials">
-             <input type="hidden" name="user_id" value="">
-             <label class="sr-only" for="users-manage-full-name">Full name</label>
-             <input id="users-manage-full-name" type="text" name="full_name" class="field-input" required>
-             <label class="sr-only" for="users-manage-email-input">Email address</label>
-             <input id="users-manage-email-input" type="email" name="email" class="field-input" required>
-             <button type="submit" class="btn-ghost">Save credentials</button>
-           </form>
-         </section>
+        <nav class="panel-tabs" id="user-panel-tabs" role="tablist" aria-label="User management sections">
+          <button type="button" class="panel-tab active" data-tab="profile" role="tab" aria-selected="true" aria-controls="user-panel-tab-profile" id="tab-profile">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            Profile
+          </button>
+          <button type="button" class="panel-tab" data-tab="permissions" role="tab" aria-selected="false" aria-controls="user-panel-tab-permissions" id="tab-permissions">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            Permissions
+          </button>
+          <button type="button" class="panel-tab" data-tab="security" role="tab" aria-selected="false" aria-controls="user-panel-tab-security" id="tab-security">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M12 7v2m0 6v2"/></svg>
+            Security
+          </button>
+          <button type="button" class="panel-tab panel-tab--danger" data-tab="danger" role="tab" aria-selected="false" aria-controls="user-panel-tab-danger" id="tab-danger">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4m0 4h.01M3 12a9 9 0 1118 0 9 9 0 01-18 0z"/></svg>
+            Danger Zone
+          </button>
+        </nav>
 
-         <section class="users-manage-section">
-           <h3 class="users-manage-section__title">Access Policy</h3>
-           <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" id="users-manage-verification-form" class="users-manage-form users-verification-form">
-             <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-             <input type="hidden" name="action" value="update_user_verification">
-             <input type="hidden" name="user_id" value="">
-             <label class="sr-only" for="users-manage-verification">Verification status</label>
-             <select id="users-manage-verification" name="is_verified" class="field-select users-verification-form__select">
-               <option value="1">Verified</option>
-               <option value="0">Not verified</option>
-             </select>
-             <p class="users-field-help users-verification-help" id="users-manage-verification-help"></p>
-             <button type="submit" class="btn-ghost">Save verification</button>
-           </form>
+        <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" id="users-manage-form" class="users-manage-form">
+          <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+          <input type="hidden" name="action" id="panel-action-input" value="">
+          <input type="hidden" name="user_id" id="panel-user-id" value="">
 
-           <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" id="users-manage-role-form" class="users-manage-form users-role-form">
-             <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-             <input type="hidden" name="action" value="role_change">
-             <input type="hidden" name="user_id" value="">
-             <label class="sr-only" for="users-manage-role">Role</label>
-             <select id="users-manage-role" name="new_role" class="field-select users-role-form__select">
-               <option value="admin" data-role-label="Admin" data-requires-verified="1" data-role-description="<?= htmlspecialchars($role_meta['admin']['description'], ENT_QUOTES, 'UTF-8') ?>">Admin</option>
-               <option value="librarian" data-role-label="Librarian" data-requires-verified="1" data-role-description="<?= htmlspecialchars($role_meta['librarian']['description'], ENT_QUOTES, 'UTF-8') ?>">Librarian</option>
-               <option value="borrower" data-role-label="Borrower" data-requires-verified="0" data-role-description="<?= htmlspecialchars($role_meta['borrower']['description'], ENT_QUOTES, 'UTF-8') ?>">Borrower</option>
-             </select>
-             <p class="users-field-help users-role-help" id="users-manage-role-help"></p>
-             <button type="submit" class="btn-ghost">Save role</button>
-           </form>
-         </section>
+          <div class="panel-body">
+            <div class="tab-content active" id="user-panel-tab-profile" role="tabpanel" aria-labelledby="tab-profile">
+              <div class="tab-section">
+                <h3 class="tab-section-title">Account Credentials</h3>
+                <p class="tab-section-help">Update the user's full name and email address.</p>
+                <div class="field-group">
+                  <label class="field-label" for="users-manage-full-name">Full Name</label>
+                  <input type="text" id="users-manage-full-name" name="full_name" class="field-input" required placeholder="Enter full name">
+                </div>
+                <div class="field-group">
+                  <label class="field-label" for="users-manage-email-input">Email Address</label>
+                  <input type="email" id="users-manage-email-input" name="email" class="field-input" required placeholder="Enter email address">
+                </div>
+              </div>
+            </div>
 
-         <section class="users-manage-section">
-           <h3 class="users-manage-section__title">Password Reset</h3>
-           <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" id="users-manage-password-form" class="users-manage-form users-password-reset-form">
-             <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-             <input type="hidden" name="action" value="admin_reset_user_password">
-             <input type="hidden" name="user_id" value="">
-             <label class="sr-only" for="users-manage-password-new">New password</label>
-             <input id="users-manage-password-new" type="password" name="new_password" class="field-input" minlength="8" placeholder="New password (8+ chars)" required autocomplete="new-password">
-             <label class="sr-only" for="users-manage-password-confirm">Confirm password</label>
-             <input id="users-manage-password-confirm" type="password" name="confirm_password" class="field-input" minlength="8" placeholder="Confirm password" required autocomplete="new-password">
-             <button type="submit" class="btn-ghost">Update password</button>
-           </form>
-         </section>
+            <div class="tab-content" id="user-panel-tab-permissions" role="tabpanel" aria-labelledby="tab-permissions">
+              <div class="tab-section">
+                <h3 class="tab-section-title">Verification Status</h3>
+                <p class="tab-section-help">Control whether this account has been verified.</p>
+                <div class="field-group">
+                  <label class="field-label" for="users-manage-verification">Verification</label>
+                  <select id="users-manage-verification" name="is_verified" class="field-select">
+                    <option value="1">Verified</option>
+                    <option value="0">Not verified</option>
+                  </select>
+                  <p class="field-help" id="users-manage-verification-help"></p>
+                </div>
+              </div>
+              <div class="tab-section">
+                <h3 class="tab-section-title">Role Assignment</h3>
+                <p class="tab-section-help">Assign a role to determine this user's access level.</p>
+                <div class="field-group">
+                  <label class="field-label" for="users-manage-role">Role</label>
+                  <select id="users-manage-role" name="new_role" class="field-select">
+                    <option value="admin" data-role-label="Admin" data-requires-verified="1" data-role-description="<?= htmlspecialchars($role_meta['admin']['description'], ENT_QUOTES, 'UTF-8') ?>">Admin</option>
+                    <option value="librarian" data-role-label="Librarian" data-requires-verified="1" data-role-description="<?= htmlspecialchars($role_meta['librarian']['description'], ENT_QUOTES, 'UTF-8') ?>">Librarian</option>
+                    <option value="borrower" data-role-label="Borrower" data-requires-verified="0" data-role-description="<?= htmlspecialchars($role_meta['borrower']['description'], ENT_QUOTES, 'UTF-8') ?>">Borrower</option>
+                  </select>
+                  <p class="field-help" id="users-manage-role-help"></p>
+                </div>
+              </div>
+            </div>
 
-         <section class="users-manage-section">
-           <h3 class="users-manage-section__title">Account Status</h3>
-           <div class="users-manage-status-actions">
-             <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" id="users-manage-activate-form" class="users-manage-form users-quick-form" data-quick-action="activate" hidden>
-               <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-               <input type="hidden" name="action" value="activate">
-               <input type="hidden" name="user_id" value="">
-               <input type="hidden" name="user_name" value="">
-               <button type="submit" class="btn-confirm">Reactivate account</button>
-             </form>
+            <div class="tab-content" id="user-panel-tab-security" role="tabpanel" aria-labelledby="tab-security">
+              <div class="tab-section">
+                <h3 class="tab-section-title">Password Reset</h3>
+                <p class="tab-section-help">Set a new password for this user. They will need to use this password to log in.</p>
+                <div class="field-group">
+                  <label class="field-label" for="users-manage-password-new">New Password</label>
+                  <input type="password" id="users-manage-password-new" name="new_password" class="field-input" minlength="8" placeholder="Minimum 8 characters" required autocomplete="new-password">
+                </div>
+                <div class="field-group">
+                  <label class="field-label" for="users-manage-password-confirm">Confirm Password</label>
+                  <input type="password" id="users-manage-password-confirm" name="confirm_password" class="field-input" minlength="8" placeholder="Confirm new password" required autocomplete="new-password">
+                </div>
+              </div>
+            </div>
 
-             <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" id="users-manage-deactivate-form" class="users-manage-form users-quick-form" data-quick-action="deactivate" hidden>
-               <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-               <input type="hidden" name="action" value="deactivate">
-               <input type="hidden" name="user_id" value="">
-               <input type="hidden" name="user_name" value="">
-               <button type="submit" class="btn-accent">Deactivate account</button>
-             </form>
-           </div>
-         </section>
+            <div class="tab-content" id="user-panel-tab-danger" role="tabpanel" aria-labelledby="tab-danger">
+              <div class="tab-section tab-section--danger">
+                <h3 class="tab-section-title tab-section-title--danger">Account Status</h3>
+                <p class="tab-section-help">Activate or deactivate this user's account.</p>
+                <div class="danger-zone-actions">
+                  <div class="status-action" id="activate-action" hidden>
+                    <p class="status-action-text">Reactivate this account. The user will be able to log in again.</p>
+                    <button type="button" class="btn-confirm" id="btn-activate">Reactivate Account</button>
+                  </div>
+                  <div class="status-action" id="deactivate-action" hidden>
+                    <p class="status-action-text">Deactivate this account. The user will immediately lose access.</p>
+                    <button type="button" class="btn-accent" id="btn-deactivate">Deactivate Account</button>
+                  </div>
+                </div>
+              </div>
+              <div class="tab-section tab-section--danger">
+                <h3 class="tab-section-title tab-section-title--danger">Delete Account</h3>
+                <p class="tab-section-help">Permanently delete this account. This action cannot be undone.</p>
+                <div class="field-group">
+                  <label class="form-check">
+                    <input type="checkbox" id="users-manage-delete-confirm" name="delete_confirm" value="1" required>
+                    <span>I understand this will permanently delete this account and all associated data.</span>
+                  </label>
+                </div>
+                <button type="button" class="btn-danger" id="btn-delete">Delete Account</button>
+              </div>
+            </div>
+          </div>
 
-         <section class="users-manage-section users-manage-section--danger">
-           <h3 class="users-manage-section__title users-manage-section__title--danger">Permanent Delete</h3>
-           <p class="users-actions__note">Delete only when this account should be permanently removed.</p>
-           <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" id="users-manage-delete-form" class="users-manage-form users-delete-form" data-user-role="">
-             <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-             <input type="hidden" name="action" value="delete_user">
-             <input type="hidden" name="user_id" value="">
-             <label class="users-delete-form__confirm">
-               <input type="checkbox" id="users-manage-delete-confirm" name="delete_confirm" value="1" required>
-               Confirm permanent deletion.
-             </label>
-             <button type="submit" class="btn-ghost users-actions__delete">Delete account</button>
-           </form>
-         </section>
-       </div>
-       <div class="modal-footer">
-         <button type="button" class="btn-ghost" id="manage-user-modal-cancel-btn">Close</button>
-       </div>
-     </div>
-   </div>
+          <div class="panel-footer" id="user-panel-footer">
+            <button type="button" class="btn-ghost" id="manage-user-panel-cancel-btn">Cancel</button>
+            <button type="submit" class="btn-primary" id="manage-user-panel-save-btn">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
 
-   <script src="<?= htmlspecialchars(BASE_URL . 'assets/js/admin-users.js', ENT_QUOTES, 'UTF-8') ?>"></script>
- </body>
+    <script src="<?= htmlspecialchars(BASE_URL . 'assets/js/admin-users.js', ENT_QUOTES, 'UTF-8') ?>"></script>
+  </body>
 
 
  </html>

@@ -34,10 +34,11 @@
   const bulkApply = document.getElementById('apply-bulk-action');
   const bulkSelectedContainer = document.getElementById('users-bulk-selected-container');
 
-  const manageModalOverlay = document.getElementById('manage-user-modal-overlay');
-  const manageModal = document.getElementById('manage-user-modal');
-  const manageCloseBtn = document.getElementById('manage-user-modal-close');
-  const manageCancelBtn = document.getElementById('manage-user-modal-cancel-btn');
+  const managePanelOverlay = document.getElementById('manage-user-panel-overlay');
+  const managePanel = document.getElementById('manage-user-panel');
+  const manageCloseBtn = document.getElementById('manage-user-panel-close');
+  const manageCancelBtn = document.getElementById('manage-user-panel-cancel-btn');
+  const manageSaveBtn = document.getElementById('manage-user-panel-save-btn');
   const manageTriggers = Array.from(document.querySelectorAll('.users-manage-trigger'));
   const manageName = document.getElementById('users-manage-name');
   const manageEmail = document.getElementById('users-manage-email');
@@ -46,17 +47,31 @@
   const manageStatusChip = document.getElementById('users-manage-status-chip');
   const manageJoined = document.getElementById('users-manage-joined');
 
-  const credentialsForm = document.getElementById('users-manage-credentials-form');
-  const verificationForm = document.getElementById('users-manage-verification-form');
-  const roleForm = document.getElementById('users-manage-role-form');
-  const passwordForm = document.getElementById('users-manage-password-form');
-  const deleteForm = document.getElementById('users-manage-delete-form');
-  const activateForm = document.getElementById('users-manage-activate-form');
-  const deactivateForm = document.getElementById('users-manage-deactivate-form');
+  const manageForm = document.getElementById('users-manage-form');
+  const panelActionInput = document.getElementById('panel-action-input');
+  const panelUserId = document.getElementById('panel-user-id');
   const roleHelp = document.getElementById('users-manage-role-help');
   const verificationHelp = document.getElementById('users-manage-verification-help');
   const roleSelect = document.getElementById('users-manage-role');
   const verificationSelect = document.getElementById('users-manage-verification');
+
+  const activateAction = document.getElementById('activate-action');
+  const deactivateAction = document.getElementById('deactivate-action');
+  const btnActivate = document.getElementById('btn-activate');
+  const btnDeactivate = document.getElementById('btn-deactivate');
+  const btnDelete = document.getElementById('btn-delete');
+  const deleteConfirmCheckbox = document.getElementById('users-manage-delete-confirm');
+
+  const panelTabs = document.querySelectorAll('.panel-tab');
+  const tabContents = document.querySelectorAll('.tab-content');
+
+  const credentialsForm = manageForm;
+  const verificationForm = manageForm;
+  const roleForm = manageForm;
+  const passwordForm = manageForm;
+  const deleteForm = manageForm;
+  const activateForm = manageForm;
+  const deactivateForm = manageForm;
 
   const createModalOverlay = document.getElementById('create-user-modal-overlay');
   const createModal = document.getElementById('create-user-modal');
@@ -347,11 +362,11 @@
   }
 
   function updateManageRoleOptionPolicy() {
-    if (!roleForm || !roleSelect) {
+    if (!manageForm || !roleSelect) {
       return;
     }
-    var currentVerified = roleForm.getAttribute('data-current-verified') === '1';
-    var currentRole = roleForm.getAttribute('data-current-role') || '';
+    var currentVerified = manageForm.getAttribute('data-current-verified') === '1';
+    var currentRole = manageForm.getAttribute('data-current-role') || '';
 
     Array.from(roleSelect.options).forEach(function (option) {
       var requiresVerified = option.getAttribute('data-requires-verified') === '1';
@@ -378,8 +393,36 @@
       : 'Borrower accounts may be verified later.';
   }
 
+  function switchTab(tabName) {
+    panelTabs.forEach(function(tab) {
+      var isActive = tab.getAttribute('data-tab') === tabName;
+      tab.classList.toggle('active', isActive);
+      tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+
+    tabContents.forEach(function(content) {
+      var isActive = content.id === 'user-panel-tab-' + tabName;
+      content.classList.toggle('active', isActive);
+    });
+
+    var firstInput = document.querySelector('#user-panel-tab-' + tabName + ' input:not([type="hidden"]), #user-panel-tab-' + tabName + ' select');
+    if (firstInput) {
+      window.setTimeout(function() { firstInput.focus(); }, 100);
+    }
+  }
+
+  function getActiveTab() {
+    var activeTab = document.querySelector('.panel-tab.active');
+    return activeTab ? activeTab.getAttribute('data-tab') : 'profile';
+  }
+
+  function detectActionAndSubmit(expectedAction) {
+    panelActionInput.value = expectedAction;
+    manageForm.submit();
+  }
+
   function hydrateManagePanel(row) {
-    if (!row || !credentialsForm || !verificationForm || !roleForm || !passwordForm || !deleteForm || !activateForm || !deactivateForm) {
+    if (!row || !manageForm) {
       return;
     }
 
@@ -405,70 +448,64 @@
     manageStatusChip.textContent = data.suspended ? 'Deactivated' : 'Active';
     manageStatusChip.classList.add(data.suspended ? 'badge-red' : 'badge-green', data.suspended ? 'users-state--warn' : 'users-state--ok');
 
-    credentialsForm.querySelector('input[name="user_id"]').value = data.id;
-    credentialsForm.querySelector('input[name="full_name"]').value = data.name;
-    credentialsForm.querySelector('input[name="email"]').value = data.email;
-    credentialsForm.setAttribute('data-user-name', data.name);
-    credentialsForm.setAttribute('data-current-name', data.name);
-    credentialsForm.setAttribute('data-current-email', data.email);
+    panelUserId.value = data.id;
 
-    verificationForm.querySelector('input[name="user_id"]').value = data.id;
+    var fullNameInput = manageForm.querySelector('input[name="full_name"]');
+    var emailInput = manageForm.querySelector('input[name="email"]');
+    if (fullNameInput) fullNameInput.value = data.name;
+    if (emailInput) emailInput.value = data.email;
+    manageForm.setAttribute('data-user-name', data.name);
+    manageForm.setAttribute('data-current-name', data.name);
+    manageForm.setAttribute('data-current-email', data.email);
+
     verificationSelect.value = data.verified ? '1' : '0';
-    verificationForm.setAttribute('data-user-name', data.name);
-    verificationForm.setAttribute('data-role', data.role);
-    verificationForm.setAttribute('data-role-label', data.roleLabel);
-    verificationForm.setAttribute('data-role-requires-verified', data.roleRequiresVerified ? '1' : '0');
-    verificationForm.setAttribute('data-current-verified', data.verified ? '1' : '0');
+    manageForm.setAttribute('data-user-name', data.name);
+    manageForm.setAttribute('data-role', data.role);
+    manageForm.setAttribute('data-role-label', data.roleLabel);
+    manageForm.setAttribute('data-role-requires-verified', data.roleRequiresVerified ? '1' : '0');
+    manageForm.setAttribute('data-current-verified', data.verified ? '1' : '0');
 
-    roleForm.querySelector('input[name="user_id"]').value = data.id;
     roleSelect.value = data.role;
-    roleForm.setAttribute('data-user-name', data.name);
-    roleForm.setAttribute('data-current-role', data.role);
-    roleForm.setAttribute('data-current-verified', data.verified ? '1' : '0');
+    manageForm.setAttribute('data-user-name', data.name);
+    manageForm.setAttribute('data-current-role', data.role);
+    manageForm.setAttribute('data-current-verified', data.verified ? '1' : '0');
 
-    passwordForm.querySelector('input[name="user_id"]').value = data.id;
-    passwordForm.querySelector('input[name="new_password"]').value = '';
-    passwordForm.querySelector('input[name="confirm_password"]').value = '';
-    passwordForm.setAttribute('data-user-name', data.name);
+    var newPassInput = manageForm.querySelector('input[name="new_password"]');
+    var confirmPassInput = manageForm.querySelector('input[name="confirm_password"]');
+    if (newPassInput) newPassInput.value = '';
+    if (confirmPassInput) confirmPassInput.value = '';
+    manageForm.setAttribute('data-user-name', data.name);
 
-    deleteForm.querySelector('input[name="user_id"]').value = data.id;
-    var deleteConfirm = deleteForm.querySelector('input[name="delete_confirm"]');
-    if (deleteConfirm) {
-      deleteConfirm.checked = false;
-    }
-    deleteForm.setAttribute('data-user-name', data.name);
-    deleteForm.setAttribute('data-user-role', data.roleLabel);
+    if (deleteConfirmCheckbox) deleteConfirmCheckbox.checked = false;
+    manageForm.setAttribute('data-user-name', data.name);
+    manageForm.setAttribute('data-user-role', data.roleLabel);
 
-    activateForm.querySelector('input[name="user_id"]').value = data.id;
-    activateForm.querySelector('input[name="user_name"]').value = data.name;
-    deactivateForm.querySelector('input[name="user_id"]').value = data.id;
-    deactivateForm.querySelector('input[name="user_name"]').value = data.name;
-
-    activateForm.hidden = !data.suspended;
-    deactivateForm.hidden = data.suspended;
+    if (activateAction) activateAction.hidden = !data.suspended;
+    if (deactivateAction) deactivateAction.hidden = data.suspended;
 
     var isProtected = data.isProtected;
-    var controls = manageModal.querySelectorAll('input, select, button');
+    var controls = managePanel.querySelectorAll('input, select, button');
     controls.forEach(function (control) {
-      if (control === manageCloseBtn || control === manageCancelBtn) {
+      if (control === manageCloseBtn || control === manageCancelBtn || control === manageSaveBtn) {
         return;
       }
       control.disabled = isProtected;
     });
 
+    switchTab('profile');
     updateManageRoleOptionPolicy();
     updateManageVerificationState();
     updateManageRoleHelp();
   }
 
-  function openManageModal(row, trigger) {
-    if (!manageModalOverlay || !manageModal) {
-      console.error('[admin-users] Manage modal elements not found in DOM');
+  function openManagePanel(row, trigger) {
+    if (!managePanelOverlay || !managePanel) {
+      console.error('[admin-users] Manage panel elements not found in DOM');
       return;
     }
 
     if (!row) {
-      console.error('[admin-users] openManageModal called without a valid row element');
+      console.error('[admin-users] openManagePanel called without a valid row element');
       return;
     }
 
@@ -481,13 +518,13 @@
       panelState.trigger = trigger || panelState.trigger;
       hydrateManagePanel(row);
 
-      if (!manageModalOverlay.classList.contains('active')) {
-        manageModalOverlay.classList.add('active');
-        manageModalOverlay.setAttribute('aria-hidden', 'false');
+      if (!managePanelOverlay.classList.contains('active')) {
+        managePanelOverlay.classList.add('active');
+        managePanelOverlay.setAttribute('aria-hidden', 'false');
         lockBodyScroll();
       }
 
-      var first = getFocusable(manageModal)[0];
+      var first = getFocusable(managePanel)[0];
       if (first) {
         first.focus();
       }
@@ -510,12 +547,12 @@
 
     hydrateManagePanel(row);
 
-    manageModalOverlay.classList.add('active');
-    manageModalOverlay.setAttribute('aria-hidden', 'false');
+    managePanelOverlay.classList.add('active');
+    managePanelOverlay.setAttribute('aria-hidden', 'false');
     lockBodyScroll();
 
     window.setTimeout(function () {
-      var focusableItems = getFocusable(manageModal);
+      var focusableItems = getFocusable(managePanel);
       var firstFocusable = focusableItems.find(function (el) {
         return el.id === 'users-manage-full-name' || el.tagName === 'INPUT' || el.tagName === 'SELECT';
       });
@@ -525,16 +562,16 @@
     }, 80);
   }
 
-  function closeManageModal(restoreFocus) {
-    if (!manageModalOverlay) {
+  function closeManagePanel(restoreFocus) {
+    if (!managePanelOverlay) {
       return;
     }
 
     var wasOpen = panelState.isOpen;
     panelState.isOpen = false;
     panelState.row = null;
-    manageModalOverlay.classList.remove('active');
-    manageModalOverlay.setAttribute('aria-hidden', 'true');
+    managePanelOverlay.classList.remove('active');
+    managePanelOverlay.setAttribute('aria-hidden', 'true');
 
     if (wasOpen) {
       unlockBodyScroll();
@@ -614,13 +651,12 @@
     resetSubmitState(form);
   }
 
-  async function handleCredentialsSubmit(e) {
-    var form = e.currentTarget;
-    var userName = form.getAttribute('data-user-name') || 'this user';
-    var currentName = form.getAttribute('data-current-name') || '';
-    var currentEmail = (form.getAttribute('data-current-email') || '').toLowerCase();
-    var fullNameInput = form.querySelector('input[name="full_name"]');
-    var emailInput = form.querySelector('input[name="email"]');
+  async function handlePanelCredentialsSubmit(e) {
+    var userName = manageForm.getAttribute('data-user-name') || 'this user';
+    var currentName = manageForm.getAttribute('data-current-name') || '';
+    var currentEmail = (manageForm.getAttribute('data-current-email') || '').toLowerCase();
+    var fullNameInput = manageForm.querySelector('input[name="full_name"]');
+    var emailInput = manageForm.querySelector('input[name="email"]');
     var nextName = fullNameInput ? fullNameInput.value.trim() : '';
     var nextEmail = emailInput ? emailInput.value.trim().toLowerCase() : '';
 
@@ -628,13 +664,13 @@
 
     if (!nextName || !nextEmail) {
       await maybeShowError('Missing Required Fields', 'Full name and email are required.');
-      resetSubmitState(form);
+      resetSubmitState(manageForm);
       return;
     }
 
     if (nextName === currentName && nextEmail === currentEmail) {
       await maybeShowInfo('No Changes', 'No credential changes were detected for this account.');
-      resetSubmitState(form);
+      resetSubmitState(manageForm);
       return;
     }
 
@@ -646,33 +682,31 @@
     );
 
     if (result && result.isConfirmed) {
-      setSubmitPending(form, 'Saving...');
-      form.submit();
+      setSubmitPending(manageForm, 'Saving...');
+      detectActionAndSubmit('update_user_credentials');
       return;
     }
-    resetSubmitState(form);
+    resetSubmitState(manageForm);
   }
 
-  async function handleVerificationSubmit(e) {
-    var form = e.currentTarget;
-    var userName = form.getAttribute('data-user-name') || 'this user';
-    var roleLabel = form.getAttribute('data-role-label') || 'Current role';
-    var roleRequiresVerified = form.getAttribute('data-role-requires-verified') === '1';
-    var currentVerified = form.getAttribute('data-current-verified') === '1';
-    var select = form.querySelector('select[name="is_verified"]');
-    var nextVerified = select ? select.value === '1' : currentVerified;
+  async function handlePanelVerificationSubmit(e) {
+    var userName = manageForm.getAttribute('data-user-name') || 'this user';
+    var roleLabel = manageForm.getAttribute('data-role-label') || 'Current role';
+    var roleRequiresVerified = manageForm.getAttribute('data-role-requires-verified') === '1';
+    var currentVerified = manageForm.getAttribute('data-current-verified') === '1';
+    var nextVerified = verificationSelect ? verificationSelect.value === '1' : currentVerified;
 
     e.preventDefault();
 
     if (nextVerified === currentVerified) {
       await maybeShowInfo('No Change', 'Verification status is already up to date.');
-      resetSubmitState(form);
+      resetSubmitState(manageForm);
       return;
     }
 
     if (!nextVerified && roleRequiresVerified) {
       await maybeShowError('Policy Restricted', roleLabel + ' accounts must remain verified. Change role first if needed.');
-      resetSubmitState(form);
+      resetSubmitState(manageForm);
       return;
     }
 
@@ -684,36 +718,34 @@
     );
 
     if (result && result.isConfirmed) {
-      setSubmitPending(form, 'Saving...');
-      form.submit();
+      setSubmitPending(manageForm, 'Saving...');
+      detectActionAndSubmit('update_user_verification');
       return;
     }
-    resetSubmitState(form);
+    resetSubmitState(manageForm);
   }
 
-  async function handleRoleSubmit(e) {
-    var form = e.currentTarget;
-    var userName = form.getAttribute('data-user-name') || 'this user';
-    var currentRole = form.getAttribute('data-current-role') || '';
-    var currentVerified = form.getAttribute('data-current-verified') === '1';
-    var select = form.querySelector('select[name="new_role"]');
-    var newRole = select ? select.value : currentRole;
+  async function handlePanelRoleSubmit(e) {
+    var userName = manageForm.getAttribute('data-user-name') || 'this user';
+    var currentRole = manageForm.getAttribute('data-current-role') || '';
+    var currentVerified = manageForm.getAttribute('data-current-verified') === '1';
+    var newRole = roleSelect ? roleSelect.value : currentRole;
 
     e.preventDefault();
 
-    if (!select) {
+    if (!roleSelect) {
       return;
     }
 
     if (newRole === currentRole) {
       await maybeShowInfo('No Change', 'The new role is the same as the current role.');
-      resetSubmitState(form);
+      resetSubmitState(manageForm);
       return;
     }
 
     if (roleRequiresVerification(newRole) && !currentVerified) {
       await maybeShowError('Verification Required', 'Mark this account as verified before assigning Admin or Librarian access.');
-      resetSubmitState(form);
+      resetSubmitState(manageForm);
       return;
     }
 
@@ -723,18 +755,17 @@
       : await maybeConfirmAction('Change User Role', 'Change role for "' + escapeHtml(userName) + '" from ' + escapeHtml(currentRole) + ' to ' + escapeHtml(newRole) + '?', 'Change Role', 'Cancel');
 
     if (result && result.isConfirmed) {
-      setSubmitPending(form, 'Saving...');
-      form.submit();
+      setSubmitPending(manageForm, 'Saving...');
+      detectActionAndSubmit('role_change');
       return;
     }
-    resetSubmitState(form);
+    resetSubmitState(manageForm);
   }
 
-  async function handlePasswordSubmit(e) {
-    var form = e.currentTarget;
-    var userName = form.getAttribute('data-user-name') || 'this user';
-    var newPasswordInput = form.querySelector('input[name="new_password"]');
-    var confirmPasswordInput = form.querySelector('input[name="confirm_password"]');
+  async function handlePanelPasswordSubmit(e) {
+    var userName = manageForm.getAttribute('data-user-name') || 'this user';
+    var newPasswordInput = manageForm.querySelector('input[name="new_password"]');
+    var confirmPasswordInput = manageForm.querySelector('input[name="confirm_password"]');
     var newPassword = newPasswordInput ? newPasswordInput.value : '';
     var confirmPassword = confirmPasswordInput ? confirmPasswordInput.value : '';
 
@@ -742,13 +773,13 @@
 
     if (newPassword.length < 8) {
       await maybeShowError('Invalid Password', 'Password must be at least 8 characters.');
-      resetSubmitState(form);
+      resetSubmitState(manageForm);
       return;
     }
 
     if (newPassword !== confirmPassword) {
       await maybeShowError('Password Mismatch', 'New password and confirmation must match.');
-      resetSubmitState(form);
+      resetSubmitState(manageForm);
       return;
     }
 
@@ -760,30 +791,52 @@
     );
 
     if (result && result.isConfirmed) {
-      setSubmitPending(form, 'Updating...');
-      form.submit();
+      setSubmitPending(manageForm, 'Updating...');
+      detectActionAndSubmit('admin_reset_user_password');
       return;
     }
-    resetSubmitState(form);
+    resetSubmitState(manageForm);
   }
 
-  async function handleDeleteSubmit(e) {
-    var form = e.currentTarget;
-    var userName = form.getAttribute('data-user-name') || 'this user';
-    var userRole = form.getAttribute('data-user-role') || 'User';
-    var confirmCheckbox = form.querySelector('input[name="delete_confirm"]');
+  async function handlePanelDeleteSubmit(e) {
+    var userName = manageForm.getAttribute('data-user-name') || 'this user';
+    var userRole = manageForm.getAttribute('data-user-role') || 'User';
 
     e.preventDefault();
     var result = await maybeConfirmDelete(userName, userRole);
     if (result && result.isConfirmed) {
-      if (confirmCheckbox) {
-        confirmCheckbox.checked = true;
+      if (deleteConfirmCheckbox) {
+        deleteConfirmCheckbox.checked = true;
       }
-      setSubmitPending(form, 'Deleting...');
-      form.submit();
+      setSubmitPending(manageForm, 'Deleting...');
+      detectActionAndSubmit('delete_user');
       return;
     }
-    resetSubmitState(form);
+    resetSubmitState(manageForm);
+  }
+
+  async function handlePanelActivateSubmit(e) {
+    var userName = manageForm.getAttribute('data-user-name') || 'this user';
+    e.preventDefault();
+    var result = await maybeConfirmQuickAction('activate', userName);
+    if (result && result.isConfirmed) {
+      setSubmitPending(manageForm, 'Reactivating...');
+      detectActionAndSubmit('activate');
+      return;
+    }
+    resetSubmitState(manageForm);
+  }
+
+  async function handlePanelDeactivateSubmit(e) {
+    var userName = manageForm.getAttribute('data-user-name') || 'this user';
+    e.preventDefault();
+    var result = await maybeConfirmQuickAction('deactivate', userName);
+    if (result && result.isConfirmed) {
+      setSubmitPending(manageForm, 'Deactivating...');
+      detectActionAndSubmit('deactivate');
+      return;
+    }
+    resetSubmitState(manageForm);
   }
 
   function updateCreateRolePolicy() {
@@ -854,7 +907,7 @@
       return;
     }
 
-    closeManageModal(false);
+    closeManagePanel(false);
     createModalOverlay.classList.add('active');
     createModalOverlay.setAttribute('aria-hidden', 'false');
     lockBodyScroll();
@@ -1004,9 +1057,9 @@
     });
   }
 
-  function wireManageModal() {
-    if (!manageModalOverlay || !manageModal) {
-      console.warn('[admin-users] Manage modal elements not found, modal functionality disabled');
+  function wireManagePanel() {
+    if (!managePanelOverlay || !managePanel) {
+      console.warn('[admin-users] Manage panel elements not found, panel functionality disabled');
       return;
     }
 
@@ -1023,37 +1076,84 @@
             console.error('[admin-users] User row not found: user-row-' + userId);
             return;
           }
-          openManageModal(row, trigger);
+          openManagePanel(row, trigger);
         } catch (error) {
-          console.error('[admin-users] Error opening manage modal:', error);
+          console.error('[admin-users] Error opening manage panel:', error);
         }
       });
     });
 
     if (manageCloseBtn) {
       manageCloseBtn.addEventListener('click', function () {
-        closeManageModal(true);
+        closeManagePanel(true);
       });
     }
     if (manageCancelBtn) {
       manageCancelBtn.addEventListener('click', function () {
-        closeManageModal(true);
+        closeManagePanel(true);
+      });
+    }
+    if (manageSaveBtn) {
+      manageSaveBtn.addEventListener('click', function () {
+        var activeTab = getActiveTab();
+        if (activeTab === 'profile') {
+          manageForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+        } else if (activeTab === 'permissions') {
+          manageForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+        } else if (activeTab === 'security') {
+          manageForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+        } else if (activeTab === 'danger') {
+          if (!deleteConfirmCheckbox.checked) {
+            maybeShowError('Confirmation Required', 'Please confirm the deletion before continuing.');
+            return;
+          }
+          manageForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+        }
       });
     }
 
-    manageModalOverlay.addEventListener('click', function (e) {
-      if (e.target === manageModalOverlay) {
-        closeManageModal(true);
+    panelTabs.forEach(function(tab) {
+      tab.addEventListener('click', function() {
+        var tabName = tab.getAttribute('data-tab');
+        switchTab(tabName);
+      });
+      tab.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+          e.preventDefault();
+          var tabs = Array.from(panelTabs);
+          var currentIndex = tabs.indexOf(tab);
+          var nextIndex = e.key === 'ArrowRight'
+            ? (currentIndex + 1) % tabs.length
+            : (currentIndex - 1 + tabs.length) % tabs.length;
+          tabs[nextIndex].click();
+          tabs[nextIndex].focus();
+        }
+      });
+    });
+
+    if (btnActivate) {
+      btnActivate.addEventListener('click', handlePanelActivateSubmit);
+    }
+    if (btnDeactivate) {
+      btnDeactivate.addEventListener('click', handlePanelDeactivateSubmit);
+    }
+    if (btnDelete) {
+      btnDelete.addEventListener('click', handlePanelDeleteSubmit);
+    }
+
+    managePanelOverlay.addEventListener('click', function (e) {
+      if (e.target === managePanelOverlay) {
+        closeManagePanel(true);
       }
     });
 
-    manageModalOverlay.addEventListener('keydown', function (e) {
+    managePanelOverlay.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') {
         e.preventDefault();
-        closeManageModal(true);
+        closeManagePanel(true);
         return;
       }
-      trapFocus(e, manageModal);
+      trapFocus(e, managePanel);
     });
 
     if (roleSelect) {
@@ -1221,20 +1321,37 @@
       form.addEventListener('submit', handleQuickFormSubmit);
     });
 
-    if (credentialsForm) {
-      credentialsForm.addEventListener('submit', handleCredentialsSubmit);
-    }
-    if (verificationForm) {
-      verificationForm.addEventListener('submit', handleVerificationSubmit);
-    }
-    if (roleForm) {
-      roleForm.addEventListener('submit', handleRoleSubmit);
-    }
-    if (passwordForm) {
-      passwordForm.addEventListener('submit', handlePasswordSubmit);
-    }
-    if (deleteForm) {
-      deleteForm.addEventListener('submit', handleDeleteSubmit);
+    if (manageForm) {
+      manageForm.addEventListener('submit', function(e) {
+        var activeTab = getActiveTab();
+        if (activeTab === 'profile') {
+          handlePanelCredentialsSubmit(e);
+        } else if (activeTab === 'permissions') {
+          e.preventDefault();
+          var currentVerified = manageForm.getAttribute('data-current-verified') === '1';
+          var nextVerified = verificationSelect ? verificationSelect.value === '1' : currentVerified;
+          var currentRole = manageForm.getAttribute('data-current-role') || '';
+          var newRole = roleSelect ? roleSelect.value : currentRole;
+          if (newRole !== currentRole) {
+            handlePanelRoleSubmit(e);
+          } else if (nextVerified !== currentVerified) {
+            handlePanelVerificationSubmit(e);
+          } else {
+            maybeShowInfo('No Change', 'No changes detected in the permissions section.');
+            resetSubmitState(manageForm);
+          }
+        } else if (activeTab === 'security') {
+          handlePanelPasswordSubmit(e);
+        } else if (activeTab === 'danger') {
+          e.preventDefault();
+          if (!deleteConfirmCheckbox.checked) {
+            maybeShowError('Confirmation Required', 'Please confirm the deletion before continuing.');
+            resetSubmitState(manageForm);
+            return;
+          }
+          handlePanelDeleteSubmit(e);
+        }
+      });
     }
   }
 
@@ -1317,7 +1434,7 @@
   // Initialize everything
   wireBulkSelection();
   wireBulkForm();
-  wireManageModal();
+  wireManagePanel();
   wireCreateModal();
   wireKeyboardAndOnboarding();
   wireActionForms();
