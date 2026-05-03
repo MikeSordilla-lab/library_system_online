@@ -10,9 +10,22 @@
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/includes/auth-helpers.php';
+require_once __DIR__ . '/src/utils/rate_limit.php';
 
 if (session_status() === PHP_SESSION_NONE) {
+  $isHttps = (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off')
+      || ((string) ($_SERVER['SERVER_PORT'] ?? '')) === '443';
+  session_set_cookie_params([
+      'httponly' => true,
+      'secure' => $isHttps,
+      'samesite' => 'Lax',
+  ]);
   session_start();
+}
+
+if (!rate_limit('login', 5, 900)) {
+  http_response_code(429);
+  exit('Too many login attempts. Please try again later.');
 }
 
 // FR-020: Redirect already-logged-in users to their role landing page
@@ -52,15 +65,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       // FR-021: Lookup by email using prepared statement
       $stmt = $pdo->prepare(
-        'SELECT id, full_name, email, password_hash, role, is_verified, is_suspended
-                 FROM Users
-                WHERE email = ? OR full_name = ?
-                LIMIT 1'
+        'SELECT id, full_name, email, password_hash, role, is_verified, is_suspended,
+                failed_login_attempts, locked_until
+         FROM Users
+         WHERE email = ? OR full_name = ?
+         LIMIT 1'
       );
       $stmt->execute([$identifier, $identifier]);
       $user = $stmt->fetch();
 
       $auth_ok = false;
+
+      // Check if account is locked due to too many failed attempts
+      if ($user && $user['locked_until'] !== null) {
+        $lock_time = strtotime($user['locked_until']);
+        if ($lock_time !== false && $lock_time > time()) {
+          $error = 'Account locked. Please try again later.';
+          log_event($pdo, 'LOGIN_BLOCKED_LOCKED', (int) $user['id'], 'Users', (int) $user['id'], 'FAILURE', $user['role'], $identifier);
+          $user = null;
+        }
+      }
 
       if ($user && password_verify($password, $user['password_hash'])) {
 
@@ -79,12 +103,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           header('Location: ' . BASE_URL . 'login.php');
           exit;
         } else {
+          // Reset failed login attempts on successful auth
+          $reset_stmt = $pdo->prepare('UPDATE Users SET failed_login_attempts = 0, locked_until = NULL WHERE id = ?');
+          $reset_stmt->execute([(int) $user['id']]);
           $auth_ok = true;
         }
       } else {
+        // Timing normalization to prevent timing attacks
+        usleep(random_int(0, 100000));
+
         // Wrong password OR non-existent email — FR-025: generic message, no leakage
         $error = 'Invalid email or password.';
         log_event($pdo, 'LOGIN_FAILED', null, null, null, 'FAILURE', null, $identifier);
+
+        // Increment failed login attempts and lock if needed
+        if ($user) {
+          $attempts = (int) ($user['failed_login_attempts'] ?? 0) + 1;
+          if ($attempts >= 5) {
+            $unlock_time = date('Y-m-d H:i:s', strtotime('+15 minutes'));
+            $lock_stmt = $pdo->prepare('UPDATE Users SET failed_login_attempts = ?, locked_until = ? WHERE id = ?');
+            $lock_stmt->execute([$attempts, $unlock_time, (int) $user['id']]);
+          } else {
+            $attemp_stmt = $pdo->prepare('UPDATE Users SET failed_login_attempts = ? WHERE id = ?');
+            $attemp_stmt->execute([$attempts, (int) $user['id']]);
+          }
+        }
       }
 
       if ($auth_ok) {

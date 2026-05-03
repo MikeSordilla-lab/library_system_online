@@ -23,6 +23,20 @@ if ($envMode === '') {
     $envMode = $isLocalHost ? 'local' : 'production';
 }
 
+// HTTPS enforcement in production mode
+if ($envMode === 'production') {
+    $isHttps = (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off')
+        || ((string) ($_SERVER['SERVER_PORT'] ?? '')) === '443';
+    if (!$isHttps) {
+        $host = (string) ($_SERVER['HTTP_HOST'] ?? 'localhost');
+        $uri = (string) ($_SERVER['REQUEST_URI'] ?? '/');
+        header('Location: https://' . $host . $uri, true, 301);
+        exit;
+    }
+    // HSTS header for production
+    header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+}
+
 $env_candidates = [];
 if ($envMode === 'local') {
     $env_candidates[] = __DIR__ . '/.env.local';

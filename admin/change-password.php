@@ -5,6 +5,7 @@ require_once __DIR__ . '/../includes/auth_guard.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/admin.php';
 require_once __DIR__ . '/../includes/csrf.php';
+require_once __DIR__ . '/../src/utils/helpers.php';
 
 $pdo = get_db();
 ensure_superadmin_support($pdo);
@@ -33,6 +34,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   if (strlen($new_password) < 8) {
     $_SESSION['flash_error_msg'] = 'New password must be at least 8 characters.';
+    header('Location: ' . $self_url);
+    exit;
+  }
+
+  $pw_validation = validate_password_complexity($new_password);
+  if (!$pw_validation['valid']) {
+    $_SESSION['flash_error_msg'] = 'Password does not meet complexity requirements.';
     header('Location: ' . $self_url);
     exit;
   }
@@ -78,6 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ]);
 
     $pdo->commit();
+    session_regenerate_id(true);
     $_SESSION['flash_success'] = 'Password updated successfully.';
   } catch (PDOException $e) {
     if ($pdo->inTransaction()) {

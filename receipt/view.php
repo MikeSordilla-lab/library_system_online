@@ -91,6 +91,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       'target' => 'browser_print',
       'channel' => 'web',
     ]);
+    log_receipt_ticket_event($pdo, (int) $receipt['id'], $viewer_id, $viewer_role, 'reprint', [
+      'source' => 'receipt/view.php',
+      'ua'     => substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255),
+      'compact' => $compact ? '1' : '0',
+    ], [
+      'channel' => 'web',
+    ]);
     $_SESSION['flash_success'] = 'Reprint request logged.';
   } catch (InvalidArgumentException $e) {
     $_SESSION['flash_error'] = $e->getMessage();
@@ -109,16 +116,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   header('Location: ' . $base_url . 'receipt/view.php?' . http_build_query($redirect_params));
   exit;
 }
-
-$event = (string) ($_GET['event'] ?? 'view');
-$event = $event === 'reprint' ? 'reprint' : 'view';
-log_receipt_ticket_event($pdo, (int) $receipt['id'], $viewer_id, $viewer_role, $event, [
-  'source' => 'receipt/view.php',
-  'ua'     => substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255),
-  'compact' => $compact ? '1' : '0',
-], [
-  'channel' => 'web',
-]);
 
 $flash_error = (string) ($_SESSION['flash_error'] ?? '');
 $flash_success = (string) ($_SESSION['flash_success'] ?? '');

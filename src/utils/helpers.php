@@ -106,3 +106,45 @@ function format_date($date, $format = 'M d, Y') {
     $timestamp = is_numeric($date) ? $date : strtotime($date);
     return $timestamp ? date($format, $timestamp) : $date;
 }
+
+/**
+ * Escape LIKE query wildcards (%, _, \) in user input to prevent predicate injection.
+ *
+ * @param string $q The raw search string
+ * @return string The escaped string safe for use in LIKE patterns
+ */
+function escape_like_wildcards(string $q): string {
+    return addcslashes($q, '%_\\');
+}
+
+/**
+ * Validate password complexity requirements.
+ * Requires: 1 uppercase, 1 lowercase, 1 digit, 1 special char, min 8 chars.
+ *
+ * @param string $password The password to validate
+ * @return array{valid: bool, errors: string[]} List of validation errors if invalid
+ */
+function validate_password_complexity(string $password): array {
+    $errors = [];
+
+    if (strlen($password) < 8) {
+        $errors[] = 'Password must be at least 8 characters.';
+    }
+    if (!preg_match('/[A-Z]/', $password)) {
+        $errors[] = 'Password must contain at least 1 uppercase letter.';
+    }
+    if (!preg_match('/[a-z]/', $password)) {
+        $errors[] = 'Password must contain at least 1 lowercase letter.';
+    }
+    if (!preg_match('/\d/', $password)) {
+        $errors[] = 'Password must contain at least 1 digit.';
+    }
+    if (!preg_match('/[!@#$%^&*()_+\-=\[\]{};:\'",.<>\/?\\\\`|~]/', $password)) {
+        $errors[] = 'Password must contain at least 1 special character.';
+    }
+
+    return [
+        'valid' => empty($errors),
+        'errors' => $errors,
+    ];
+}

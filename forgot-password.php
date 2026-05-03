@@ -11,9 +11,15 @@ require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/includes/auth-helpers.php';
 require_once __DIR__ . '/includes/mailer.php';
+require_once __DIR__ . '/src/utils/rate_limit.php';
 
 if (session_status() === PHP_SESSION_NONE) {
   session_start();
+}
+
+if (!rate_limit('forgot_password', 5, 900)) {
+  http_response_code(429);
+  exit('Too many password reset attempts. Please try again later.');
 }
 
 // Redirect logged-in users to their dashboard

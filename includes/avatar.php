@@ -164,12 +164,28 @@ function delete_user_avatar($avatar_url)
     return true;
   }
 
-  $filepath = AVATAR_UPLOAD_DIR . basename($avatar_url);
-  if (file_exists($filepath)) {
-    return @unlink($filepath);
+  $filename = basename($avatar_url);
+  if ($filename === '' || $filename === '.' || $filename === '..') {
+    return false;
   }
 
-  return true;
+  $upload_dir = realpath(AVATAR_UPLOAD_DIR);
+  if ($upload_dir === false) {
+    return false;
+  }
+
+  $filepath = $upload_dir . DIRECTORY_SEPARATOR . $filename;
+  $real_filepath = realpath($filepath);
+
+  if ($real_filepath === false) {
+    return true;
+  }
+
+  if (strpos($real_filepath, $upload_dir . DIRECTORY_SEPARATOR) !== 0) {
+    return false;
+  }
+
+  return @unlink($real_filepath);
 }
 
 /**

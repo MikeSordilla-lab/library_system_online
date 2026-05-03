@@ -1,8 +1,17 @@
 <?php
 
 require_once __DIR__ . '/_bootstrap.php';
+require_once __DIR__ . '/../../src/utils/rate_limit.php';
 
 receipt_api_require_method('GET');
+
+$result = rate_limit_check('api_receipts_get', 30, 60);
+rate_limit_headers($result, 30);
+if (!$result['allowed']) {
+  receipt_api_json(429, false, 'Too many requests. Please try again later.', [], [
+    'retry_after' => $result['retry_after'],
+  ]);
+}
 
 $pdo = get_db();
 receipt_api_phase1_guard($pdo);

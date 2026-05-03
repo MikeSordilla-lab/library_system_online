@@ -2,10 +2,10 @@
 
 /**
  * bootstrap.php — Application Bootstrap & Initialization
- * 
+ *
  * Central entry point for all application includes and initialization.
  * This file loads all necessary configuration, middleware, and utilities.
- * 
+ *
  * Usage: In entry point files (public/index.php, public/login.php, etc.)
  * require_once __DIR__ . '/bootstrap.php';
  */
@@ -19,7 +19,12 @@ define('PUBLIC_PATH', ROOT_PATH . '/public');
 define('DATABASE_PATH', ROOT_PATH . '/database');
 
 // ============================================================================
-// 2. LOAD CONFIGURATION
+// 2. SECURITY HEADERS (before any output)
+// ============================================================================
+require_once SRC_PATH . '/middleware/security_headers.php';
+
+// ============================================================================
+// 3. LOAD CONFIGURATION
 // ============================================================================
 // Load main configuration (handles .env file parsing)
 require_once SRC_PATH . '/config/config.php';
@@ -48,7 +53,13 @@ require_once SRC_PATH . '/middleware/csrf.php';
 // 5. SESSION INITIALIZATION
 // ============================================================================
 if (session_status() === PHP_SESSION_NONE) {
-    // Session hasn't started yet — start it now
+    $isHttps = (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off')
+        || ((string) ($_SERVER['SERVER_PORT'] ?? '')) === '443';
+    session_set_cookie_params([
+        'httponly' => true,
+        'secure' => $isHttps,
+        'samesite' => 'Lax',
+    ]);
     session_start();
 }
 

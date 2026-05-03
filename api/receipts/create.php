@@ -1,8 +1,13 @@
 <?php
 
 require_once __DIR__ . '/_bootstrap.php';
+require_once __DIR__ . '/../../src/utils/rate_limit.php';
 
 receipt_api_require_method('POST');
+
+if (!rate_limit('api_receipts_create', 20, 60)) {
+  receipt_api_json(429, false, 'Too many requests. Please try again later.');
+}
 
 $pdo = get_db();
 receipt_api_phase1_guard($pdo);
@@ -15,8 +20,8 @@ if ($actor['role'] !== 'admin' && $actor['role'] !== 'librarian' && $actor['role
 $body = receipt_api_read_json_body();
 
 $patron_user_id = isset($body['patron_user_id']) ? (int) $body['patron_user_id'] : $actor['id'];
-if ($actor['role'] === 'borrower') {
-  $patron_user_id = $actor['id'];
+if ($actor['role'] === 'borrower' && $patron_user_id !== $actor['id']) {
+  receipt_api_json(403, false, 'Borrowers can only create receipts for themselves.');
 }
 
 $type = trim((string) ($body['type'] ?? ''));

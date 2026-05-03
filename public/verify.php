@@ -13,6 +13,55 @@ require_once __DIR__ . '/../includes/constants.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/mailer.php';
+require_once __DIR__ . '/../src/utils/rate_limit.php';
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+define('OTP_MAX_FAILURES', 5);
+define('OTP_LOCKOUT_SECONDS', 900);
+
+function otp_rate_limit_key(string $email): string {
+    return 'otp_lockout_' . md5($email);
+}
+
+function otp_is_locked(string $email): bool {
+    $key = otp_rate_limit_key($email);
+    $lock = $_SESSION[$key] ?? null;
+    if ($lock === null) {
+        return false;
+    }
+    if (time() > $lock['until']) {
+        unset($_SESSION[$key]);
+        return false;
+    }
+    return true;
+}
+
+function otp_get_lockout_remaining(string $email): int {
+    $key = otp_rate_limit_key($email);
+    $lock = $_SESSION[$key] ?? null;
+    if ($lock === null) {
+        return 0;
+    }
+    return max(0, $lock['until'] - time());
+}
+
+function otp_record_failure(string $email): void {
+    $key = otp_rate_limit_key($email);
+    $lock = $_SESSION[$key] ?? ['attempts' => 0, 'until' => 0];
+    $lock['attempts']++;
+    if ($lock['attempts'] >= OTP_MAX_FAILURES) {
+        $lock['until'] = time() + OTP_LOCKOUT_SECONDS;
+    }
+    $_SESSION[$key] = $lock;
+}
+
+function otp_clear_failures(string $email): void {
+    $key = otp_rate_limit_key($email);
+    unset($_SESSION[$key]);
+}
 
 $error = '';
 $notice = '';
@@ -135,6 +184,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
       $error = 'Please enter the same email address you used during registration.';
+    } elseif (otp_is_locked($email)) {
+      $remaining = otp_get_lockout_remaining($email);
+      $minutes = (int) ceil($remaining / 60);
+      $error = "Too many failed attempts. Please try again in {$minutes} minute(s).";
     } elseif (!ctype_digit($otp) || strlen($otp) !== OTP_LENGTH) {
       $error = 'Please enter a valid 6-digit verification code.';
     } else {
@@ -147,8 +200,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           header('Location: ' . BASE_URL . 'login.php?message=verified');
           exit;
         } elseif (!hash_equals((string) ($user['verification_token'] ?? ''), $otp)) {
-          $error = 'The code you entered is incorrect. Please try again.';
+          otp_record_failure($email);
+          $lockout_remaining = otp_get_lockout_remaining($email);
+          if ($lockout_remaining > 0) {
+            $minutes = (int) ceil($lockout_remaining / 60);
+            $error = "The code you entered is incorrect. Too many failed attempts. Please try again in {$minutes} minute(s).";
+          } else {
+            $error = 'The code you entered is incorrect. Please try again.';
+          }
         } else {
+          otp_clear_failures($email);
           $update = $pdo->prepare(
             'UPDATE Users
               SET is_verified = 1,

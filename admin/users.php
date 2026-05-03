@@ -17,6 +17,7 @@ require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/admin.php';
 require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/avatar.php';
+require_once __DIR__ . '/../src/utils/helpers.php';
 
 $pdo = get_db();
 ensure_superadmin_support($pdo);
@@ -473,6 +474,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if (strlen($password) < 8) {
       $persist_create_user_state('Password must be at least 8 characters.', $old_create_user_input);
+      header('Location: ' . $self_url);
+      exit;
+    }
+
+    $pw_validation = validate_password_complexity($password);
+    if (!$pw_validation['valid']) {
+      $persist_create_user_state('Password does not meet complexity requirements.', $old_create_user_input);
       header('Location: ' . $self_url);
       exit;
     }
@@ -1284,7 +1292,7 @@ if ($q !== '' && strlen($q) > 100) {
 $where_parts = [];
 $query_params = [];
 if ($q !== '' && $flash_error === '') {
-  $escaped_q = addcslashes($q, '\\%_');
+  $escaped_q = escape_like_wildcards($q);
   $where_parts[] = "(full_name LIKE :q_name ESCAPE '\\\\' OR email LIKE :q_email ESCAPE '\\\\')";
   $query_params[':q_name'] = '%' . $escaped_q . '%';
   $query_params[':q_email'] = '%' . $escaped_q . '%';

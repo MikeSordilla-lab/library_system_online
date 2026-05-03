@@ -22,6 +22,9 @@ if (!empty($_SESSION['user_id'])) {
     }
 }
 
+// Regenerate session ID before destroying to prevent fixation
+session_regenerate_id(true);
+
 // FR-027: Clear session variables and destroy the session
 session_unset();
 session_destroy();

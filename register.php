@@ -11,10 +11,17 @@ require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/includes/auth-helpers.php';
 require_once __DIR__ . '/includes/mailer.php';
+require_once __DIR__ . '/src/utils/helpers.php';
+require_once __DIR__ . '/src/utils/rate_limit.php';
 
 // Start session only to preserve flash messages across redirect (not for auth here)
 if (session_status() === PHP_SESSION_NONE) {
   session_start();
+}
+
+if (!rate_limit('register', 5, 900)) {
+  http_response_code(429);
+  exit('Too many registration attempts. Please try again later.');
 }
 
 // Redirect already-authenticated users away from this page
@@ -53,8 +60,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   if ($password === '') {
     $errors[] = 'Password is required.';
-  } elseif (strlen($password) < 8) {
-    $errors[] = 'Password must be at least 8 characters.';
+  } else {
+    $pw_validation = validate_password_complexity($password);
+    if (!$pw_validation['valid']) {
+      foreach ($pw_validation['errors'] as $err) {
+        $errors[] = $err;
+      }
+    }
   }
 
   if ($confirm_password === '') {

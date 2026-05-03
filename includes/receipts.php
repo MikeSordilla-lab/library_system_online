@@ -19,6 +19,12 @@ function receipt_table_columns(PDO $pdo, string $table): array
 {
   static $cache = [];
   $key = strtolower($table);
+
+  $allowlist = ['Receipt_Tickets', 'Receipt_Print_Jobs', 'Receipt_Ticket_Logs'];
+  if (!in_array($table, $allowlist, true)) {
+    throw new InvalidArgumentException("Invalid table name: {$table}");
+  }
+
   if (isset($cache[$key])) {
     return $cache[$key];
   }
@@ -144,11 +150,10 @@ function receipt_hmac_key(?PDO $pdo = null): string
         return $from_settings;
       }
     } catch (Throwable $e) {
-      // Ignore settings lookup errors and use fallback.
     }
   }
 
-  return RECEIPT_SIGNATURE_FALLBACK_KEY;
+  throw new RuntimeException('Receipt HMAC key is not configured. Set APP_KEY env or receipt_hmac_key setting.');
 }
 
 function receipt_canonical_payload(array $receipt, array $payload): string
@@ -181,16 +186,14 @@ function receipt_generate_integrity(array $receipt, array $payload, ?PDO $pdo = 
 }
 
 /**
- * Create a readable receipt number.
+ * Create a non-guessable receipt number using cryptographically secure random bytes.
+ *
+ * @param int $receipt_id Unused, kept for backwards compatibility
+ * @param string|null $issued_at Unused, kept for backwards compatibility
  */
-function receipt_generate_no(int $receipt_id, ?string $issued_at = null): string
+function receipt_generate_no(int $receipt_id = 0, ?string $issued_at = null): string
 {
-  $stamp = $issued_at !== null ? strtotime($issued_at) : time();
-  if ($stamp === false) {
-    $stamp = time();
-  }
-
-  return 'RCP-' . date('Ymd', $stamp) . '-' . str_pad((string) $receipt_id, 4, '0', STR_PAD_LEFT);
+  return bin2hex(random_bytes(16));
 }
 
 /**

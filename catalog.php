@@ -8,6 +8,7 @@
  */
 
 require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/src/utils/helpers.php';
 
 $pdo = get_db();
 
@@ -31,7 +32,7 @@ $params = [];
 
 if ($q !== '') {
   $where_parts[] = '(b.title LIKE :q OR b.author LIKE :q OR b.isbn LIKE :q OR b.category LIKE :q)';
-  $params[':q'] = '%' . $q . '%';
+  $params[':q'] = '%' . escape_like_wildcards($q) . '%';
 }
 
 if ($category !== '') {
