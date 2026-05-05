@@ -115,14 +115,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   ?>
   <style>
     .admin-form-field { margin-bottom: 20px; }
-    .field-label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--ink); }
+    .field-label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--rd-text); }
     .field-shell { position: relative; display: flex; align-items: center; }
-    .field-icon { position: absolute; left: 12px; color: #888; display: flex; }
+    .field-icon { position: absolute; left: 14px; color: var(--rd-primary); display: flex; opacity: 0.7; pointer-events: none; }
     .field-icon svg { width: 18px; height: 18px; }
-    .field-input { width: 100%; padding: 12px 12px 12px 42px; border: 1px solid var(--rd-border); border-radius: 10px; font-size: 15px; background: var(--rd-surface); }
-    .field-input:focus { outline: 2px solid var(--rd-primary); border-color: var(--rd-primary); }
-    .toggle-password { position: absolute; right: 8px; background: none; border: none; cursor: pointer; padding: 8px; color: #666; display: flex; }
+    .field-input { width: 100%; padding: 13px 44px 13px 50px; border: 1px solid var(--rd-border); border-radius: 10px; font-size: 15px; background: rgba(255,255,255,0.04); color: var(--rd-text); box-sizing: border-box; }
+    .field-input:focus { outline: 2px solid var(--rd-primary); border-color: var(--rd-primary); box-shadow: 0 0 0 3px rgba(201,168,76,0.15); }
+    .field-input::placeholder { color: var(--rd-text-muted); opacity: 0.7; }
+    .toggle-password { position: absolute; right: 10px; background: none; border: none; cursor: pointer; padding: 8px; color: var(--rd-text-muted); display: flex; transition: color 0.2s; }
     .toggle-password:hover { color: var(--rd-primary); }
+    .toggle-password svg { width: 20px; height: 20px; }
     @media (max-width: 768px) {
       .admin-password-page > div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
     }
@@ -158,11 +160,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <label class="field-label" for="current_password">Current Password</label>
               <div class="field-shell">
                 <span class="field-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24"><path d="M17 8h-1V6a4 4 0 0 0-8 0v2H7a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2zM10 6a2 2 0 1 1 4 0v2h-4V6zm2 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                  </svg>
                 </span>
                 <input class="field-input" type="password" id="current_password" name="current_password" required placeholder="Enter current password" autocomplete="current-password">
-                <button type="button" class="toggle-password" aria-label="Show password" style="background:none;border:none;cursor:pointer;padding:8px;color:#666;">
-                  <svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 5c-5.6 0-9.7 4.7-10.9 6.3-.1.2-.1.4 0 .6C2.3 13.5 6.4 18.2 12 18.2s9.7-4.7 10.9-6.3c.1-.2.1-.4 0-.6C21.7 9.7 17.6 5 12 5zm0 11a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/></svg>
+                <button type="button" class="toggle-password" aria-label="Show password">
+                  <svg class="icon-show" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                  <svg class="icon-hide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                  </svg>
                 </button>
               </div>
             </div>
@@ -171,39 +183,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <label class="field-label" for="new_password">New Password</label>
               <div class="field-shell">
                 <span class="field-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24"><path d="M17 8h-1V6a4 4 0 0 0-8 0v2H7a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2zM10 6a2 2 0 1 1 4 0v2h-4V6zm2 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                  </svg>
                 </span>
                 <input class="field-input" type="password" id="new_password" name="new_password" required placeholder="Create new password (min 8 chars)" minlength="8" autocomplete="new-password">
-                <button type="button" class="toggle-password" aria-label="Show password" style="background:none;border:none;cursor:pointer;padding:8px;color:#666;">
-                  <svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 5c-5.6 0-9.7 4.7-10.9 6.3-.1.2-.1.4 0 .6C2.3 13.5 6.4 18.2 12 18.2s9.7-4.7 10.9-6.3c.1-.2.1-.4 0-.6C21.7 9.7 17.6 5 12 5zm0 11a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/></svg>
+                <button type="button" class="toggle-password" aria-label="Show password">
+                  <svg class="icon-show" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                  <svg class="icon-hide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                  </svg>
                 </button>
               </div>
               <div class="strength" style="margin-top: 8px;">
-                <div class="strength-bar" id="strengthBar" style="height: 4px; background: #eee; border-radius: 2px; overflow: hidden;">
+                <div class="strength-bar" id="strengthBar" style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;">
                   <div style="height: 100%; width: 0%; background: #c53030; transition: all 0.3s;"></div>
                 </div>
               </div>
-              <small class="strength-text" id="strengthText" style="color: #666; font-size: 12px;">Enter a password</small>
+              <small class="strength-text" id="strengthText" style="color: var(--rd-text-muted); font-size: 12px;">Enter a password</small>
             </div>
 
             <div class="admin-form-field">
               <label class="field-label" for="confirm_password">Confirm Password</label>
               <div class="field-shell">
                 <span class="field-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24"><path d="M17 8h-1V6a4 4 0 0 0-8 0v2H7a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2zM10 6a2 2 0 1 1 4 0v2h-4V6zm2 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                  </svg>
                 </span>
                 <input class="field-input" type="password" id="confirm_password" name="confirm_password" required placeholder="Confirm new password" minlength="8" autocomplete="new-password">
-                <button type="button" class="toggle-password" aria-label="Show password" style="background:none;border:none;cursor:pointer;padding:8px;color:#666;">
-                  <svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 5c-5.6 0-9.7 4.7-10.9 6.3-.1.2-.1.4 0 .6C2.3 13.5 6.4 18.2 12 18.2s9.7-4.7 10.9-6.3c.1-.2.1-.4 0-.6C21.7 9.7 17.6 5 12 5zm0 11a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/></svg>
+                <button type="button" class="toggle-password" aria-label="Show password">
+                  <svg class="icon-show" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                  <svg class="icon-hide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                  </svg>
                 </button>
               </div>
             </div>
 
             <div style="display: flex; gap: 12px; margin-top: 24px;">
-              <button type="submit" class="btn-primary" id="submitBtn" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; border-radius: 10px; background: linear-gradient(135deg, #c9a84c, #b8942d); color: #fff; border: none; font-weight: 600; font-size: 15px; cursor: pointer;">
+              <button type="submit" class="btn-primary" id="submitBtn">
                 <span class="btn-text">Update Password</span>
               </button>
-              <a href="<?= BASE_URL ?>admin/about.php" class="btn-ghost" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 10px; background: transparent; border: 1px solid #ddd; color: #333; text-decoration: none; font-weight: 600;">Cancel</a>
+              <a href="<?= BASE_URL ?>admin/about.php" class="btn-ghost">Cancel</a>
             </div>
           </form>
         </section>
@@ -213,21 +245,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <span class="section-card__title">Security Tips</span>
           </div>
           <div style="padding: 16px 20px;">
-            <p style="color: #555; margin: 0 0 16px;">Use a memorable passphrase that is hard to guess but easy for you to recall.</p>
+            <p style="color: var(--rd-text-muted); margin: 0 0 16px;">Use a memorable passphrase that is hard to guess but easy for you to recall.</p>
             <ul style="list-style: none; padding: 0; margin: 0 0 16px;">
-              <li style="display: flex; align-items: center; gap: 10px; padding: 8px 0; color: #555; font-size: 14px;">
-                <span style="color: #2f855a;">&#10003;</span> Use at least 8 to 12 characters
+              <li style="display: flex; align-items: center; gap: 10px; padding: 8px 0; color: var(--rd-text-muted); font-size: 14px;">
+                <span style="color: var(--rd-success);">&#10003;</span> Use at least 8 to 12 characters
               </li>
-              <li style="display: flex; align-items: center; gap: 10px; padding: 8px 0; color: #555; font-size: 14px;">
-                <span style="color: #2f855a;">&#10003;</span> Combine uppercase, numbers & symbols
+              <li style="display: flex; align-items: center; gap: 10px; padding: 8px 0; color: var(--rd-text-muted); font-size: 14px;">
+                <span style="color: var(--rd-success);">&#10003;</span> Combine uppercase, numbers & symbols
               </li>
-              <li style="display: flex; align-items: center; gap: 10px; padding: 8px 0; color: #555; font-size: 14px;">
-                <span style="color: #2f855a;">&#10003;</span> Avoid names, birthdays, or patterns
+              <li style="display: flex; align-items: center; gap: 10px; padding: 8px 0; color: var(--rd-text-muted); font-size: 14px;">
+                <span style="color: var(--rd-success);">&#10003;</span> Avoid names, birthdays, or patterns
               </li>
             </ul>
             <details style="margin-top: 12px;">
               <summary style="cursor: pointer; color: var(--rd-primary); font-weight: 600; font-size: 14px;">One more tip</summary>
-              <p style="margin-top: 10px; color: #555; font-size: 14px;">Use a password manager for unique passwords across all accounts.</p>
+              <p style="margin-top: 10px; color: var(--rd-text-muted); font-size: 14px;">Use a password manager for unique passwords across all accounts.</p>
             </details>
           </div>
         </aside>
@@ -236,19 +268,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </div>
 
   <script>
-    document.querySelectorAll('.toggle-password').forEach((icon) => {
-      const toggle = () => {
-        const fieldShell = icon.closest('.field-shell');
+    document.querySelectorAll('.toggle-password').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const fieldShell = btn.closest('.field-shell');
         const input = fieldShell ? fieldShell.querySelector('input') : null;
         if (!input) return;
 
-        input.type = input.type === 'password' ? 'text' : 'password';
-        icon.setAttribute('aria-pressed', input.type === 'text' ? 'true' : 'false');
-        icon.setAttribute('aria-label', input.type === 'text' ? 'Hide password' : 'Show password');
-        icon.title = input.type === 'text' ? 'Hide password' : 'Show password';
-      };
+        const isPassword = input.type === 'password';
+        input.type = isPassword ? 'text' : 'password';
 
-      icon.addEventListener('click', toggle);
+        const showIcon = btn.querySelector('.icon-show');
+        const hideIcon = btn.querySelector('.icon-hide');
+        if (showIcon && hideIcon) {
+          showIcon.style.display = isPassword ? 'none' : 'block';
+          hideIcon.style.display = isPassword ? 'block' : 'none';
+        }
+
+        btn.setAttribute('aria-pressed', isPassword ? 'true' : 'false');
+        btn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+      });
     });
 
     const passwordInput = document.getElementById('new_password');
@@ -265,14 +303,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (/[0-9]/.test(val)) strength++;
         if (/[^A-Za-z0-9]/.test(val)) strength++;
 
-        const colors = ['#c53030', '#d69e2e', '#b7791f', '#2f855a'];
+        const colors = ['#ef4444', '#f59e0b', '#eab308', '#22c55e'];
         const labels = ['Weak', 'Fair', 'Good', 'Strong'];
-        const classes = ['strength-weak', 'strength-fair', 'strength-good', 'strength-strong'];
 
-        strengthBar.querySelector('div').style.width = (strength * 25) + '%';
-        strengthBar.querySelector('div').style.background = colors[strength - 1] || '#c53030';
-        strengthText.textContent = (labels[strength - 1] || 'Weak') + ' password';
-        strengthText.className = 'strength-text ' + (classes[strength - 1] || 'strength-weak');
+        const bar = strengthBar.querySelector('div');
+        bar.style.width = (strength * 25) + '%';
+        bar.style.background = colors[strength - 1] || '#ef4444';
+        strengthText.textContent = (labels[strength - 1] || 'Enter a password');
+        strengthText.style.color = strength > 0 ? colors[strength - 1] : '#b0a99f';
       });
     }
 

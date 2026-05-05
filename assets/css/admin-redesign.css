@@ -1022,6 +1022,39 @@
 .admin-themed .stat-stripe--sage {
   background: #22c55e;
 }
+.admin-themed .stat-stripe--red {
+  background: #ef4444;
+}
+
+.admin-themed .stat-icon {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.85;
+}
+
+.admin-themed .stat-icon--gold {
+  background: rgba(201, 168, 76, 0.15);
+  color: var(--rd-primary);
+}
+.admin-themed .stat-icon--blue {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+.admin-themed .stat-icon--sage {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+.admin-themed .stat-icon--red {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
 
 /* ── Quick Action Cards (Dashboard) ──────────────────────────────────── */
 .admin-themed .quick-grid {

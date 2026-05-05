@@ -134,26 +134,32 @@ try {
         <div class="section-card__header">
           <span class="section-card__title">Profile Details</span>
         </div>
-        <div style="display: grid; grid-template-columns: auto 1fr; gap: 24px; align-items: start; padding: 20px;">
+        <div style="display: grid; grid-template-columns: auto 1fr; gap: 32px; align-items: start; padding: 24px;">
           <div style="text-align: center;">
             <?php if ($avatar['type'] === 'image' && !empty($avatar['url'])): ?>
-              <img src="<?= $escape($avatar['url']) ?>" alt="<?= $escape($admin['name']) ?> profile photo" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid var(--rd-primary, #c9a84c);">
+              <img src="<?= $escape($avatar['url']) ?>" alt="<?= $escape($admin['name']) ?> profile photo" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid var(--rd-primary); box-shadow: 0 8px 24px rgba(201, 168, 76, 0.2);">
             <?php else: ?>
-              <div style="width: 120px; height: 120px; border-radius: 50%; background: linear-gradient(135deg, var(--rd-primary, #c9a84c), #b8942d); display: flex; align-items: center; justify-content: center; font-size: 48px; font-weight: 700; color: #fff;"><?= $escape($initials) ?></div>
+              <div style="width: 120px; height: 120px; border-radius: 50%; background: linear-gradient(135deg, var(--rd-primary), #b8942d); display: flex; align-items: center; justify-content: center; font-size: 48px; font-weight: 700; color: #fff; box-shadow: 0 8px 24px rgba(201, 168, 76, 0.2);"><?= $escape($initials) ?></div>
             <?php endif; ?>
-            <p style="margin-top: 12px; font-size: 14px; color: #666;">Admin</p>
+            <p style="margin-top: 12px; font-size: 14px; color: var(--rd-text-muted); font-weight: 600;"><?= $escape($admin['role']) ?></p>
+            <?php if (!empty($admin['joined'])): ?>
+            <p style="margin-top: 4px; font-size: 12px; color: var(--rd-text-muted);">Since <?= $escape($admin['joined']) ?></p>
+            <?php endif; ?>
           </div>
           <div>
-            <h2 style="margin: 0 0 8px; font-size: 28px; color: var(--ink, #1c1a17);"><?= $escape($admin['name']) ?></h2>
-            <p style="margin: 0 0 8px; color: #666;"><?= $escape($admin['email']) ?></p>
-            <span style="display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; <?= $is_active ? 'background: #ebf7ef; color: #2f855a;' : 'background: #fef2f2; color: #c53030;' ?>"><?= $escape($admin['status']) ?></span>
-            <p style="margin-top: 16px; color: #555;"><?= $escape($admin['bio']) ?></p>
+            <h2 style="margin: 0 0 8px; font-size: 1.75rem; font-weight: 700; color: var(--rd-text-bold);"><?= $escape($admin['name']) ?></h2>
+            <p style="margin: 0 0 12px; color: var(--rd-text); font-size: 0.95rem;"><?= $escape($admin['email']) ?></p>
+            <span style="display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; <?= $is_active ? 'background: rgba(34, 197, 94, 0.12); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.25);' : 'background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.25);' ?>">
+              <span style="width: 6px; height: 6px; border-radius: 50%; background: currentColor;"></span>
+              <?= $escape($admin['status']) ?>
+            </span>
+            <p style="margin-top: 16px; color: var(--rd-text); line-height: 1.6; font-size: 0.95rem;"><?= $escape($admin['bio']) ?></p>
             <div style="margin-top: 20px; display: flex; gap: 12px; flex-wrap: wrap;">
-              <a href="<?= BASE_URL ?>admin/change-password.php" class="btn-primary" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 10px; background: linear-gradient(135deg, #c9a84c, #b8942d); color: #fff; text-decoration: none; font-weight: 600;">
+              <a href="<?= BASE_URL ?>admin/change-password.php" class="btn-primary" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 10px; background: linear-gradient(135deg, var(--rd-primary), #b8942d); color: #fff; text-decoration: none; font-weight: 600; box-shadow: 0 4px 12px rgba(201, 168, 76, 0.25);">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 8h-1V6a4 4 0 0 0-8 0v2H7a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2z"/><circle cx="12" cy="15" r="1.5"/></svg>
                 Change Password
               </a>
-              <a href="<?= BASE_URL ?>admin/users.php" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 10px; background: transparent; border: 1px solid var(--rd-border); color: var(--rd-text); text-decoration: none; font-weight: 600;">
+              <a href="<?= BASE_URL ?>admin/users.php" class="btn-ghost" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 10px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--rd-border); color: var(--rd-text); text-decoration: none; font-weight: 600;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 Manage Users
               </a>
