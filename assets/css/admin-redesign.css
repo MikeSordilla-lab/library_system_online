@@ -1162,3 +1162,171 @@
 .admin-themed .borrower-dashboard-new {
   /* Inherit admin-themed styles */
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Admin Users Management — Mobile Responsive Fixes
+   ═══════════════════════════════════════════════════════════════════
+
+   Root causes addressed:
+   1. `.users-row { height: 58px }` (libris.css) caps every <tr> at
+      58 px when the card layout switches it to display:block at
+      ≤760 px.  Combined with `overflow:hidden` on the card, only the
+      first checkbox cell is visible — everything else is clipped.
+   2. Inline `<style>` in users.php sets `padding: 2.5rem` on
+      .main-content, which wastes ~80 px of horizontal space on
+      phones.  We use a 3-class selector to outweigh its specificity
+      without needing !important.
+   3. `overflow-x: hidden` on .users-table-shell must be lifted on
+      mobile so the block-displayed card grid is not clipped.
+   4. `.admin-themed .tbl td` inherits `color: var(--rd-text)` which
+      is #ece8db (near-white cream, designed for the dark borrower
+      dashboard).  On white card backgrounds this makes content
+      invisible; we override it for the card context.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Reduce page-level padding on small screens ──────────────────
+   Specificity (0,3,0) beats the inline <style>'s (0,2,0) rule.       */
+@media (max-width: 767px) {
+  .admin-themed .main-content.admin-users-page {
+    padding: 1rem;
+  }
+
+  /* Un-clip the card grid — cards don't overflow horizontally. */
+  .admin-themed .admin-users-page .users-table-shell {
+    overflow-x: visible;
+  }
+
+  /* Tighten the table-wrapper padding so cards have more room. */
+  .admin-themed .tbl-wrapper.users-table-shell {
+    padding: 0.25rem;
+  }
+
+  /* Section-card padding is also too generous on phones. */
+  .admin-themed .admin-users-page .section-card,
+  .admin-themed .admin-users-page .card {
+    padding: 0;
+  }
+}
+
+/* ── 2. Card layout fixes (mirrors libris.css breakpoint: 760 px) ───
+   Must sit in admin-redesign.css (loaded after libris.css) so the
+   higher-specificity .admin-themed prefix ensures these rules win.   */
+@media (max-width: 760px) {
+  /* ── CRITICAL: reset the fixed row height ──────────────────────
+     Without this, every user card is capped at 58 px and all
+     Identity / Access / Trust / Operations content is clipped.   */
+  .admin-themed .admin-users-page .users-row {
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  /* ── Fix text colour inside cards ──────────────────────────────
+     .admin-themed .tbl td inherits --rd-text (#ece8db, near-white).
+     Override it with the dark ink token so inherited text is
+     readable on the white card background.                        */
+  .admin-themed .admin-users-page.users-v2 .users-table tbody td {
+    color: var(--ink, #0f0e0c);
+  }
+
+  /* Divider lines between cells in a card (was rgba-white, invisible). */
+  .admin-themed .admin-users-page.users-v2 .users-table tbody td {
+    border-bottom-color: var(--border, #d5cfc4);
+  }
+
+  /* ── Operations cell: 2-col grid, full-width tap targets ───────── */
+  .admin-themed .admin-users-page.users-v2 .users-ops {
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+
+  .admin-themed .admin-users-page.users-v2 .users-row-action-btn,
+  .admin-themed .admin-users-page.users-v2 .users-manage-trigger {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+    text-align: center;
+  }
+
+  /* ── Checkbox cell: easier tap target ──────────────────────────── */
+  .admin-themed .admin-users-page .users-select-touch {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 44px;
+  }
+
+  .admin-themed .admin-users-page .users-select-row,
+  .admin-themed .admin-users-page #users-select-all {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  /* ── Bulk-action toolbar controls ──────────────────────────────── */
+  .admin-themed .admin-users-page .users-bulk-toolbar__controls {
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .admin-themed .admin-users-page .users-bulk-toolbar__controls .field-select,
+  .admin-themed .admin-users-page #apply-bulk-action {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  /* ── Pagination controls ────────────────────────────────────────── */
+  .admin-themed .admin-users-page .pagination-controls {
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .admin-themed .admin-users-page .pagination-btn {
+    flex: 1;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .admin-themed .admin-users-page .pagination-per-page-form {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .admin-themed .admin-users-page .pagination-per-page-select {
+    flex: 1;
+    min-height: 44px;
+  }
+
+  /* ── Stats overview card: always single column on phones ────────── */
+  .admin-themed .admin-users-page .users-stat-list {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* ── Filter bar: search input full-width, easier to interact ────── */
+  .admin-themed .admin-users-page .users-filter-input-wrapper {
+    width: 100%;
+  }
+
+  .admin-themed .admin-users-page .users-filter-input {
+    min-height: 44px;
+    font-size: 1rem; /* prevent iOS zoom-on-focus (must be ≥16px or close) */
+  }
+
+  .admin-themed .admin-users-page .users-filter-selects .field-select {
+    min-height: 44px;
+    width: 100%;
+  }
+
+  .admin-themed .admin-users-page .users-filter-actions .btn-primary,
+  .admin-themed .admin-users-page .users-filter-actions .btn-ghost {
+    min-height: 44px;
+    width: 100%;
+    justify-content: center;
+  }
+}

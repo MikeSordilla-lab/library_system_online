@@ -1,104 +1,120 @@
 <?php
 
-$allowed_roles = ['admin'];
-require_once __DIR__ . '/../includes/auth_guard.php';
-require_once __DIR__ . '/../includes/db.php';
-require_once __DIR__ . '/../includes/admin.php';
-require_once __DIR__ . '/../includes/csrf.php';
-require_once __DIR__ . '/../src/utils/helpers.php';
+$allowed_roles = ["admin"];
+require_once __DIR__ . "/../includes/auth_guard.php";
+require_once __DIR__ . "/../includes/db.php";
+require_once __DIR__ . "/../includes/admin.php";
+require_once __DIR__ . "/../includes/csrf.php";
+require_once __DIR__ . "/../src/utils/helpers.php";
 
 $pdo = get_db();
 ensure_superadmin_support($pdo);
 
-$actor_id = (int) ($_SESSION['user_id'] ?? 0);
-$current_page = 'admin.change-password';
-$pageTitle = 'Change Password | LibraLink';
-$self_url = BASE_URL . 'admin/change-password.php';
+$actor_id = (int) ($_SESSION["user_id"] ?? 0);
+$current_page = "admin.change-password";
+$pageTitle = "Change Password | LibraLink";
+$self_url = BASE_URL . "admin/change-password.php";
 
-$flash_success = $_SESSION['flash_success'] ?? '';
-$flash_error = $_SESSION['flash_error_msg'] ?? '';
-unset($_SESSION['flash_success'], $_SESSION['flash_error_msg']);
+$flash_success = $_SESSION["flash_success"] ?? "";
+$flash_error = $_SESSION["flash_error_msg"] ?? "";
+unset($_SESSION["flash_success"], $_SESSION["flash_error_msg"]);
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
   csrf_verify();
 
-  $current_password = (string) ($_POST['current_password'] ?? '');
-  $new_password = (string) ($_POST['new_password'] ?? '');
-  $confirm_password = (string) ($_POST['confirm_password'] ?? '');
+  $current_password = (string) ($_POST["current_password"] ?? "");
+  $new_password = (string) ($_POST["new_password"] ?? "");
+  $confirm_password = (string) ($_POST["confirm_password"] ?? "");
 
-  if ($current_password === '' || $new_password === '' || $confirm_password === '') {
-    $_SESSION['flash_error_msg'] = 'All password fields are required.';
-    header('Location: ' . $self_url);
-    exit;
+  if (
+    $current_password === "" ||
+    $new_password === "" ||
+    $confirm_password === ""
+  ) {
+    $_SESSION["flash_error_msg"] = "All password fields are required.";
+    header("Location: " . $self_url);
+    exit();
   }
 
   if (strlen($new_password) < 8) {
-    $_SESSION['flash_error_msg'] = 'New password must be at least 8 characters.';
-    header('Location: ' . $self_url);
-    exit;
+    $_SESSION["flash_error_msg"] =
+      "New password must be at least 8 characters.";
+    header("Location: " . $self_url);
+    exit();
   }
 
   $pw_validation = validate_password_complexity($new_password);
-  if (!$pw_validation['valid']) {
-    $_SESSION['flash_error_msg'] = 'Password does not meet complexity requirements.';
-    header('Location: ' . $self_url);
-    exit;
+  if (!$pw_validation["valid"]) {
+    $_SESSION["flash_error_msg"] =
+      "Password does not meet complexity requirements.";
+    header("Location: " . $self_url);
+    exit();
   }
 
   if ($new_password !== $confirm_password) {
-    $_SESSION['flash_error_msg'] = 'New password and confirmation do not match.';
-    header('Location: ' . $self_url);
-    exit;
+    $_SESSION["flash_error_msg"] =
+      "New password and confirmation do not match.";
+    header("Location: " . $self_url);
+    exit();
   }
 
   try {
     $pdo->beginTransaction();
 
-    $stmt = $pdo->prepare('SELECT id, password_hash FROM Users WHERE id = ? FOR UPDATE');
+    $stmt = $pdo->prepare(
+      "SELECT id, password_hash FROM Users WHERE id = ? FOR UPDATE",
+    );
     $stmt->execute([$actor_id]);
     $user = $stmt->fetch();
 
-    if (!$user || !password_verify($current_password, $user['password_hash'])) {
+    if (!$user || !password_verify($current_password, $user["password_hash"])) {
       $pdo->rollBack();
-      $_SESSION['flash_error_msg'] = 'Current password is incorrect.';
-      header('Location: ' . $self_url);
-      exit;
+      $_SESSION["flash_error_msg"] = "Current password is incorrect.";
+      header("Location: " . $self_url);
+      exit();
     }
 
-    if (password_verify($new_password, $user['password_hash'])) {
+    if (password_verify($new_password, $user["password_hash"])) {
       $pdo->rollBack();
-      $_SESSION['flash_error_msg'] = 'New password must be different from current password.';
-      header('Location: ' . $self_url);
-      exit;
+      $_SESSION["flash_error_msg"] =
+        "New password must be different from current password.";
+      header("Location: " . $self_url);
+      exit();
     }
 
     $new_hash = password_hash($new_password, PASSWORD_BCRYPT);
-    $upd = $pdo->prepare('UPDATE Users SET password_hash = ?, updated_at = NOW() WHERE id = ? LIMIT 1');
+    $upd = $pdo->prepare(
+      "UPDATE Users SET password_hash = ?, updated_at = NOW() WHERE id = ? LIMIT 1",
+    );
     $upd->execute([$new_hash, $actor_id]);
 
     log_admin_action($pdo, [
-      'actor_id' => $actor_id,
-      'actor_role' => 'admin',
-      'action_type' => 'password_change',
-      'target_entity' => 'Users',
-      'target_id' => $actor_id,
-      'outcome' => 'success',
+      "actor_id" => $actor_id,
+      "actor_role" => "admin",
+      "action_type" => "password_change",
+      "target_entity" => "Users",
+      "target_id" => $actor_id,
+      "outcome" => "success",
     ]);
 
     $pdo->commit();
     session_regenerate_id(true);
-    $_SESSION['flash_success'] = 'Password updated successfully.';
+    $_SESSION["flash_success"] = "Password updated successfully.";
   } catch (PDOException $e) {
     if ($pdo->inTransaction()) {
       $pdo->rollBack();
     }
 
-    error_log('[admin/change-password.php] change_password DB error: ' . $e->getMessage());
-    $_SESSION['flash_error_msg'] = 'A server error occurred while changing password.';
+    error_log(
+      "[admin/change-password.php] change_password DB error: " .
+        $e->getMessage(),
+    );
+    $_SESSION["flash_error_msg"] =
+      "A server error occurred while changing password.";
   }
 
-  header('Location: ' . $self_url);
-  exit;
+  header("Location: " . $self_url);
+  exit();
 }
 ?>
 <!DOCTYPE html>
@@ -107,11 +123,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
   <?php
   $extraStyles = [
-    'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap',
-    BASE_URL . 'assets/css/borrower-redesign.css',
-    BASE_URL . 'assets/css/admin-redesign.css'
+    "https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap",
+    BASE_URL . "assets/css/borrower-redesign.css",
+    BASE_URL . "assets/css/admin-redesign.css",
   ];
-  require_once __DIR__ . '/../includes/head.php';
+  require_once __DIR__ . "/../includes/head.php";
   ?>
   <style>
     .admin-form-field { margin-bottom: 20px; }
@@ -119,9 +135,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .field-shell { position: relative; display: flex; align-items: center; }
     .field-icon { position: absolute; left: 14px; color: var(--rd-primary); display: flex; opacity: 0.7; pointer-events: none; }
     .field-icon svg { width: 18px; height: 18px; }
-    .field-input { width: 100%; padding: 13px 44px 13px 50px; border: 1px solid var(--rd-border); border-radius: 10px; font-size: 15px; background: rgba(255,255,255,0.04); color: var(--rd-text); box-sizing: border-box; }
-    .field-input:focus { outline: 2px solid var(--rd-primary); border-color: var(--rd-primary); box-shadow: 0 0 0 3px rgba(201,168,76,0.15); }
-    .field-input::placeholder { color: var(--rd-text-muted); opacity: 0.7; }
+    .admin-password-page .field-input { width: 100%; padding: 13px 44px 13px 50px; border: 1px solid var(--rd-border); border-radius: 10px; font-size: 15px; background: rgba(255,255,255,0.04); color: var(--rd-text); box-sizing: border-box; }
+    .admin-password-page .field-input:focus { outline: 2px solid var(--rd-primary); border-color: var(--rd-primary); box-shadow: 0 0 0 3px rgba(201,168,76,0.15); }
+    .admin-password-page .field-input::placeholder { color: var(--rd-text-muted); opacity: 0.7; }
     .toggle-password { position: absolute; right: 10px; background: none; border: none; cursor: pointer; padding: 8px; color: var(--rd-text-muted); display: flex; transition: color 0.2s; }
     .toggle-password:hover { color: var(--rd-primary); }
     .toggle-password svg { width: 20px; height: 20px; }
@@ -133,7 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <body class="admin-themed">
   <div class="app-shell">
-    <?php require_once __DIR__ . '/../includes/sidebar-admin.php'; ?>
+    <?php require_once __DIR__ . "/../includes/sidebar-admin.php"; ?>
 
     <main class="main-content admin-password-page">
       <div class="page-header">
@@ -141,11 +157,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <p class="page-header__lede">Keep your account secure by using a strong password.</p>
       </div>
 
-      <?php if ($flash_success !== ''): ?>
-        <div class="flash-success"><?= htmlspecialchars($flash_success, ENT_QUOTES, 'UTF-8') ?></div>
+      <?php if ($flash_success !== ""): ?>
+        <div class="flash-success"><?= htmlspecialchars(
+          $flash_success,
+          ENT_QUOTES,
+          "UTF-8",
+        ) ?></div>
       <?php endif; ?>
-      <?php if ($flash_error !== ''): ?>
-        <div class="flash-error"><?= htmlspecialchars($flash_error, ENT_QUOTES, 'UTF-8') ?></div>
+      <?php if ($flash_error !== ""): ?>
+        <div class="flash-error"><?= htmlspecialchars(
+          $flash_error,
+          ENT_QUOTES,
+          "UTF-8",
+        ) ?></div>
       <?php endif; ?>
 
       <div style="display: grid; grid-template-columns: 1fr 340px; gap: 20px; align-items: start;">
@@ -153,14 +177,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div class="section-card__header">
             <span class="section-card__title">Update Your Password</span>
           </div>
-          <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" id="passwordForm" style="padding: 20px;">
+          <form method="post" action="<?= htmlspecialchars(
+            $self_url,
+            ENT_QUOTES,
+            "UTF-8",
+          ) ?>" id="passwordForm" style="padding: 20px;">
             <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
 
             <div class="admin-form-field">
               <label class="field-label" for="current_password">Current Password</label>
               <div class="field-shell">
                 <span class="field-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                     <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                   </svg>
@@ -183,7 +211,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <label class="field-label" for="new_password">New Password</label>
               <div class="field-shell">
                 <span class="field-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                     <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                   </svg>
@@ -212,7 +240,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <label class="field-label" for="confirm_password">Confirm Password</label>
               <div class="field-shell">
                 <span class="field-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                     <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                   </svg>
