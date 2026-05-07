@@ -35,7 +35,7 @@ class BorrowerAccountSummaryModule
     $approvedAtSelect = $hasApprovedAt ? 'r.approved_at AS approved_at' : 'NULL AS approved_at';
 
     $activeStmt = $pdo->prepare(
-      "SELECT c.id, c.checkout_date, c.due_date, c.status{$renewalSelect},
+      "SELECT c.id, c.book_id, c.checkout_date, c.due_date, c.status{$renewalSelect},
               b.title, b.author,
               DATEDIFF(NOW(), c.due_date) AS days_overdue
          FROM Circulation c

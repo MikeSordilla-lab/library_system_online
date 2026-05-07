@@ -35,29 +35,79 @@ $key === ($current_page ?? '') ? 'sidebar-item active' : 'sidebar-item';
 
   <div class="sidebar__nav-links">
     <a href="<?= BASE_URL ?>librarian/index.php" class="<?= $_sb_nav('librarian.index') ?>">
-      Dashboard
+      <span class="sidebar-item__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 11.5L12 4l9 7.5" />
+          <path d="M5 10.5V20h14v-9.5" />
+          <path d="M10 20v-5h4v5" />
+        </svg>
+      </span>
+      <span>Dashboard</span>
     </a>
 
     <div class="sidebar__section-label">Catalog</div>
     <a href="<?= BASE_URL ?>librarian/catalog.php" class="<?= $_sb_nav('librarian.catalog') ?>">
-      Book Catalog
+      <span class="sidebar-item__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v17H6.5A2.5 2.5 0 0 0 4 22V5.5Z" />
+          <path d="M4 18.5A2.5 2.5 0 0 1 6.5 16H20" />
+        </svg>
+      </span>
+      <span>Book Catalog</span>
     </a>
 
     <div class="sidebar__section-label">Circulation</div>
     <a href="<?= BASE_URL ?>librarian/checkout.php" class="<?= $_sb_nav('librarian.checkout') ?>">
-      Process Check-Out
+      <span class="sidebar-item__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 7h14a4 4 0 0 1 0 8H3" />
+          <path d="M15 11l3 3-3 3" />
+          <path d="M3 7V5" />
+          <path d="M3 15v2" />
+        </svg>
+      </span>
+      <span>Process Check-Out</span>
     </a>
     <a href="<?= BASE_URL ?>librarian/checkin.php" class="<?= $_sb_nav('librarian.checkin') ?>">
-      Process Returns
+      <span class="sidebar-item__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 7H7a4 4 0 0 0 0 8h14" />
+          <path d="M9 11l-3 3 3 3" />
+          <path d="M21 7V5" />
+          <path d="M21 15v2" />
+        </svg>
+      </span>
+      <span>Process Returns</span>
     </a>
     <a href="<?= BASE_URL ?>librarian/reservations.php" class="<?= $_sb_nav('librarian.reservations') ?>">
-      Reservations
+      <span class="sidebar-item__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="5" width="18" height="16" rx="2" />
+          <path d="M8 3v4M16 3v4M3 10h18" />
+          <path d="M8 14h3M13 14h3M8 18h3" />
+        </svg>
+      </span>
+      <span>Reservations</span>
     </a>
     <a href="<?= BASE_URL ?>receipt/index.php" class="<?= $_sb_nav('receipt.index') ?>">
-      Receipts
+      <span class="sidebar-item__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M7 3h10l1 2h3v3h-1v13l-2-1.5L16 21l-2-1.5L12 21l-2-1.5L8 21l-2-1.5L4 21V8H3V5h3l1-2Z" />
+          <path d="M8 10h8" />
+          <path d="M8 14h8" />
+        </svg>
+      </span>
+      <span>Receipts</span>
     </a>
     <a href="<?= BASE_URL ?>librarian/records.php" class="<?= $_sb_nav('librarian.records') ?>">
-      Generate Records
+      <span class="sidebar-item__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 4h14v16H5z" />
+          <path d="M8 9h8M8 13h8M8 17h5" />
+          <path d="M14 4v4h4" />
+        </svg>
+      </span>
+      <span>Generate Records</span>
     </a>
   </div>
 

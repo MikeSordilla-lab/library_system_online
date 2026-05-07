@@ -95,6 +95,11 @@ $user = $stmt->fetch();
 
 $full_name  = $user['full_name']  ?? $_SESSION['full_name'] ?? '';
 $email      = $user['email']      ?? '';
+$display_name = trim((string)$full_name);
+if ($display_name === '') {
+  $email_local = (string)strtok((string)$email, '@');
+  $display_name = $email_local !== '' ? $email_local : 'Borrower';
+}
 $joined     = !empty($user['created_at']) ? date('F j, Y', strtotime($user['created_at'])) : 'Unknown';
 $avatar_url = $user['avatar_url'] ?? null;
 $avatar     = get_avatar_display($avatar_url, $full_name);
@@ -137,8 +142,13 @@ $extraStyles  = [
     .prof-banner {
       height: 120px;
       border-radius: var(--rd-radius) var(--rd-radius) 0 0;
-      background: linear-gradient(120deg, #1c1a17 0%, #2a2720 40%, rgba(201,168,76,0.35) 100%),
-                  repeating-linear-gradient(45deg, rgba(255,255,255,0.03) 0 10px, transparent 10px 20px);
+      background:
+        linear-gradient(120deg, rgba(201,168,76,0.26) 0%, rgba(201,168,76,0.18) 48%, rgba(201,168,76,0.34) 100%),
+        linear-gradient(180deg, rgba(28,26,23,0) 58%, rgba(28,26,23,0.16) 100%);
+    }
+
+    .prof-banner::after {
+      display: none;
     }
 
     .prof-hero {
@@ -227,10 +237,18 @@ $extraStyles  = [
       margin: 0 0 0.25rem;
       font-size: 1.6rem;
       font-weight: 800;
-      color: var(--rd-text-bold, #ffffff);
-      text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+      color: #fff;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.75);
       min-height: 1.6rem;
       line-height: 1.2;
+      display: inline-block;
+      padding: 0.24rem 0.72rem;
+      border-radius: 10px;
+      background:
+        linear-gradient(120deg, rgba(201,168,76,0.34) 0%, rgba(201,168,76,0.14) 48%, rgba(201,168,76,0.30) 100%),
+        linear-gradient(180deg, rgba(0,0,0,0.34) 0%, rgba(0,0,0,0.52) 100%);
+      border: 1px solid rgba(201, 168, 76, 0.42);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
     }
 
     .prof-name-block p {
@@ -511,7 +529,7 @@ $extraStyles  = [
             </form>
 
             <div class="prof-name-block">
-              <h2><?= $escape($full_name) ?></h2>
+              <h2><?= $escape($display_name) ?></h2>
               <p><?= $escape($email) ?></p>
               <span class="prof-badge">Active Borrower</span>
             </div>

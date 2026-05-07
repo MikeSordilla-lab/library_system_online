@@ -180,7 +180,17 @@ $extraStyles = [
                     $days_left    = (int)ceil(($due_ts - time()) / 86400);
                   ?>
                   <tr class="<?= $is_overdue ? 'rd-row-overdue' : '' ?>">
-                    <td><strong><?= htmlspecialchars($loan['title'], ENT_QUOTES, 'UTF-8') ?></strong></td>
+                    <td>
+                      <div style="display: flex; gap: 12px; align-items: flex-start;">
+                        <img src="<?= htmlspecialchars(BASE_URL . 'public/book-cover.php?book_id=' . (int)$loan['book_id'], ENT_QUOTES, 'UTF-8') ?>"
+                             alt="Cover"
+                             onerror="this.onerror=null;this.src='<?= htmlspecialchars(BASE_URL . 'assets/images/placeholder-book.png', ENT_QUOTES, 'UTF-8') ?>';"
+                             style="width: 40px; height: 60px; object-fit: cover; border-radius: 4px; flex-shrink: 0; border: 1px solid var(--rd-border, #e2e8f0);">
+                        <div>
+                          <strong><?= htmlspecialchars($loan['title'], ENT_QUOTES, 'UTF-8') ?></strong>
+                        </div>
+                      </div>
+                    </td>
                     <td><?= htmlspecialchars($loan['author'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
                     <td><?= htmlspecialchars(date('d M Y', strtotime($loan['checkout_date'])), ENT_QUOTES, 'UTF-8') ?></td>
                     <td><strong><?= htmlspecialchars(date('d M Y', strtotime($loan['due_date'])), ENT_QUOTES, 'UTF-8') ?></strong></td>
@@ -341,7 +351,17 @@ $extraStyles = [
               <tbody>
                 <?php foreach ($pending_reservations as $res): ?>
                   <tr>
-                    <td><strong><?= htmlspecialchars($res['title'], ENT_QUOTES, 'UTF-8') ?></strong></td>
+                    <td>
+                      <div style="display: flex; gap: 12px; align-items: flex-start;">
+                        <img src="<?= htmlspecialchars(BASE_URL . 'public/book-cover.php?book_id=' . (int)$res['book_id'], ENT_QUOTES, 'UTF-8') ?>"
+                             alt="Cover"
+                             onerror="this.onerror=null;this.src='<?= htmlspecialchars(BASE_URL . 'assets/images/placeholder-book.png', ENT_QUOTES, 'UTF-8') ?>';"
+                             style="width: 40px; height: 60px; object-fit: cover; border-radius: 4px; flex-shrink: 0; border: 1px solid var(--rd-border, #e2e8f0);">
+                        <div>
+                          <strong><?= htmlspecialchars($res['title'], ENT_QUOTES, 'UTF-8') ?></strong>
+                        </div>
+                      </div>
+                    </td>
                     <td><?= htmlspecialchars($res['author'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
                     <td><?= htmlspecialchars(date('d M Y', strtotime($res['reserved_at'])), ENT_QUOTES, 'UTF-8') ?></td>
                     <td><?= htmlspecialchars(date('d M Y', strtotime($res['expires_at'])), ENT_QUOTES, 'UTF-8') ?></td>

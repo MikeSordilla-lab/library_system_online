@@ -146,19 +146,53 @@ $key === ($current_page ?? '') ? 'sidebar-item active' : 'sidebar-item';
 
   <div class="sidebar__nav-links">
     <a href="<?= BASE_URL ?>borrower/index.php" class="<?= $_sb_nav('borrower.index') ?>">
-      My Dashboard
+      <span class="sidebar-item__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 11.5L12 4l9 7.5" />
+          <path d="M5 10.5V20h14v-9.5" />
+          <path d="M10 20v-5h4v5" />
+        </svg>
+      </span>
+      <span>My Dashboard</span>
     </a>
     <a href="<?= BASE_URL ?>borrower/catalog.php" class="<?= $_sb_nav('borrower.catalog') ?>">
-      Browse Catalog
+      <span class="sidebar-item__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v17H6.5A2.5 2.5 0 0 0 4 22V5.5Z" />
+          <path d="M4 18.5A2.5 2.5 0 0 1 6.5 16H20" />
+        </svg>
+      </span>
+      <span>Browse Catalog</span>
     </a>
     <a href="<?= BASE_URL ?>borrower/my_books.php" class="<?= $_sb_nav('borrower.my_books') ?>">
-      My Books
+      <span class="sidebar-item__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 4h6v16H4z" />
+          <path d="M10 4h10v16H10" />
+          <path d="M7 8h1" />
+          <path d="M14 8h4" />
+        </svg>
+      </span>
+      <span>My Books</span>
     </a>
     <a href="<?= BASE_URL ?>receipt/index.php" class="<?= $_sb_nav('receipt.index') ?>">
-      My Receipts
+      <span class="sidebar-item__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M7 3h10l1 2h3v3h-1v13l-2-1.5L16 21l-2-1.5L12 21l-2-1.5L8 21l-2-1.5L4 21V8H3V5h3l1-2Z" />
+          <path d="M8 10h8" />
+          <path d="M8 14h8" />
+        </svg>
+      </span>
+      <span>My Receipts</span>
     </a>
     <a href="<?= BASE_URL ?>borrower/profile.php" class="<?= $_sb_nav('borrower.profile') ?>">
-      My Profile
+      <span class="sidebar-item__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="8" r="4" />
+          <path d="M4 20c1.8-3.5 4.6-5 8-5s6.2 1.5 8 5" />
+        </svg>
+      </span>
+      <span>My Profile</span>
     </a>
   </div>
 

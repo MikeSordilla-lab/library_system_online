@@ -313,7 +313,18 @@ $extraStyles = [
                   <tbody>
                     <?php foreach ($active_loans as $loan): ?>
                       <tr>
-                        <td><strong><?= htmlspecialchars($loan['title'], ENT_QUOTES, 'UTF-8') ?></strong><br><small style="color:var(--rd-text-muted);">#<?= (int) $loan['id'] ?></small></td>
+                        <td>
+                          <div style="display: flex; gap: 12px; align-items: flex-start;">
+                            <img src="<?= htmlspecialchars(BASE_URL . 'public/book-cover.php?book_id=' . (int)$loan['book_id'], ENT_QUOTES, 'UTF-8') ?>"
+                                 alt="Cover"
+                                 onerror="this.onerror=null;this.src='<?= htmlspecialchars(BASE_URL . 'assets/images/placeholder-book.png', ENT_QUOTES, 'UTF-8') ?>';"
+                                 style="width: 40px; height: 60px; object-fit: cover; border-radius: 4px; flex-shrink: 0; border: 1px solid var(--rd-border, #e2e8f0);">
+                            <div>
+                              <strong><?= htmlspecialchars($loan['title'], ENT_QUOTES, 'UTF-8') ?></strong><br>
+                              <small style="color:var(--rd-text-muted);">#<?= (int) $loan['id'] ?></small>
+                            </div>
+                          </div>
+                        </td>
                         <td><?= htmlspecialchars($loan['checkout_date'], ENT_QUOTES, 'UTF-8') ?></td>
                         <td><?= htmlspecialchars($loan['due_date'], ENT_QUOTES, 'UTF-8') ?></td>
                         <td>
@@ -375,7 +386,17 @@ $extraStyles = [
                   <tbody>
                     <?php foreach ($pending_reservations as $res): ?>
                       <tr>
-                        <td><strong><?= htmlspecialchars($res['title'], ENT_QUOTES, 'UTF-8') ?></strong></td>
+                        <td>
+                          <div style="display: flex; gap: 12px; align-items: flex-start;">
+                            <img src="<?= htmlspecialchars(BASE_URL . 'public/book-cover.php?book_id=' . (int)$res['book_id'], ENT_QUOTES, 'UTF-8') ?>"
+                                 alt="Cover"
+                                 onerror="this.onerror=null;this.src='<?= htmlspecialchars(BASE_URL . 'assets/images/placeholder-book.png', ENT_QUOTES, 'UTF-8') ?>';"
+                                 style="width: 40px; height: 60px; object-fit: cover; border-radius: 4px; flex-shrink: 0; border: 1px solid var(--rd-border, #e2e8f0);">
+                            <div>
+                              <strong><?= htmlspecialchars($res['title'], ENT_QUOTES, 'UTF-8') ?></strong>
+                            </div>
+                          </div>
+                        </td>
                         <td><?= htmlspecialchars($res['reserved_at'], ENT_QUOTES, 'UTF-8') ?></td>
                         <td><?= htmlspecialchars($res['expires_at'], ENT_QUOTES, 'UTF-8') ?></td>
                         <td><span class="rd-badge rd-b-orange">#<?= (int) $res['queue_position'] ?></span></td>
