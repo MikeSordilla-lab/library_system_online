@@ -398,7 +398,6 @@ try {
 
     <div class="nav-links">
       <a href="<?= BASE_URL ?>index.php" class="active">Index</a>
-      <a href="<?= BASE_URL ?>catalog.php">Catalog</a>
     </div>
 
     <div class="nav-actions">
