@@ -1426,6 +1426,19 @@ $has_feedback = $flash_success !== ''
     background: #f5f5f5;
     border-color: #ccc;
   }
+  /* Fix hard-to-see input text in modals/panels */
+  .admin-themed .modal-overlay .field-input,
+  .admin-themed .modal-overlay .field-select,
+  .admin-themed .panel-overlay .field-input,
+  .admin-themed .panel-overlay .field-select {
+    color: #1c1a17 !important;
+    background: #fff !important;
+    border: 1px solid #ddd !important;
+  }
+  .admin-themed .modal-overlay .field-input::placeholder,
+  .admin-themed .panel-overlay .field-input::placeholder {
+    color: #999 !important;
+  }
 </style>
 </head>
 
