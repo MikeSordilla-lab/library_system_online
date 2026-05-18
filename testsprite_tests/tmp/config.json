@@ -4,5 +4,16 @@
   "scope": "codebase",
   "localEndpoint": "http://localhost:8000/admin/",
   "loginUser": "admin@library.local",
-  "loginPassword": "admin123"
+  "loginPassword": "admin123",
+  "executionArgs": {
+    "projectName": "library_system_online",
+    "projectPath": "c:\\xampp\\htdocs\\library_system_online",
+    "testIds": [],
+    "additionalInstruction": "Use admin credentials for LOGIN_USER: admin@library.local and LOGIN_PASSWORD: admin123",
+    "serverMode": "development",
+    "envs": {
+      "API_KEY": "sk-user-BsGNQPQFf8IUKqyXmpOyfLw7DgfZwTzYrDUGs_1sbC4bYNHdoYgGPUbb6LNetCHs_ZlWhbKVD4okIJuryIxGiMO-D2R3UqB6FvChv_fXiLhHLKtvCsP6WJzIRQ52IE5uOP0"
+    }
+  },
+  "serverPort": 6395
 }

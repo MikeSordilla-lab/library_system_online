@@ -1,9 +1,9 @@
 [
   {
     "id": "TC001",
-    "title": "Checkout a book and see the receipt modal",
-    "description": "This verifies a librarian can enter patron and book IDs, complete a checkout, and view the receipt modal.",
-    "category": "Librarian Circulation",
+    "title": "Access the admin dashboard after signing in",
+    "description": "An administrator can sign in and reach the dashboard to review system status.",
+    "category": "Admin Dashboard",
     "steps": [
       {
         "type": "action",
@@ -11,7 +11,7 @@
       },
       {
         "type": "action",
-        "description": "Fill in the email field with {{LOGIN_USER}}"
+        "description": "Fill in the username field with {{LOGIN_USER}}"
       },
       {
         "type": "action",
@@ -23,36 +23,24 @@
       },
       {
         "type": "action",
-        "description": "Open the librarian dashboard"
-      },
-      {
-        "type": "action",
-        "description": "Enter a valid user ID"
-      },
-      {
-        "type": "action",
-        "description": "Enter a valid book ID"
-      },
-      {
-        "type": "action",
-        "description": "Choose checkout"
-      },
-      {
-        "type": "action",
-        "description": "Submit the circulation transaction"
+        "description": "Navigate to /admin/index.php"
       },
       {
         "type": "assertion",
-        "description": "Verify a checkout receipt modal is displayed"
+        "description": "Verify dashboard statistics are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the admin overview page is shown"
       }
     ],
     "priority": "High"
   },
   {
     "id": "TC002",
-    "title": "Check in a book and see the receipt modal",
-    "description": "This verifies a librarian can enter patron and book IDs, complete a checkin, and view the receipt modal.",
-    "category": "Librarian Circulation",
+    "title": "Create a new user",
+    "description": "An administrator can create a new user from the users page and see the new user appear in the list.",
+    "category": "Manage Users",
     "steps": [
       {
         "type": "action",
@@ -60,7 +48,7 @@
       },
       {
         "type": "action",
-        "description": "Fill in the email field with {{LOGIN_USER}}"
+        "description": "Fill in the username field with {{LOGIN_USER}}"
       },
       {
         "type": "action",
@@ -72,36 +60,36 @@
       },
       {
         "type": "action",
-        "description": "Open the librarian dashboard"
+        "description": "Navigate to /admin/users.php"
       },
       {
         "type": "action",
-        "description": "Enter a valid user ID"
+        "description": "Fill in a unique username in the create user form"
       },
       {
         "type": "action",
-        "description": "Enter a valid book ID"
+        "description": "Fill in the remaining required user details in the create user form"
       },
       {
         "type": "action",
-        "description": "Choose checkin"
-      },
-      {
-        "type": "action",
-        "description": "Submit the circulation transaction"
+        "description": "Submit the create user form"
       },
       {
         "type": "assertion",
-        "description": "Verify a checkin receipt modal is displayed"
+        "description": "Verify the new user appears in the users list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the users list is displayed"
       }
     ],
     "priority": "High"
   },
   {
     "id": "TC003",
-    "title": "Sign in and reach the borrower dashboard",
-    "description": "This verifies a borrower can sign in with valid credentials and land on the borrower portal.",
-    "category": "User Login",
+    "title": "Update and persist system settings",
+    "description": "An administrator can change global settings, save them, and see the saved values remain on the settings page.",
+    "category": "System Settings",
     "steps": [
       {
         "type": "action",
@@ -109,7 +97,7 @@
       },
       {
         "type": "action",
-        "description": "Fill in the email field with {{LOGIN_USER}}"
+        "description": "Fill in the username field with {{LOGIN_USER}}"
       },
       {
         "type": "action",
@@ -120,17 +108,37 @@
         "description": "Submit the login form"
       },
       {
+        "type": "action",
+        "description": "Navigate to /admin/settings.php"
+      },
+      {
+        "type": "action",
+        "description": "Change one or more setting values"
+      },
+      {
+        "type": "action",
+        "description": "Save the settings"
+      },
+      {
+        "type": "action",
+        "description": "Refresh the page"
+      },
+      {
         "type": "assertion",
-        "description": "Verify the borrower dashboard is displayed"
+        "description": "Verify the updated settings are shown on the page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a successful save confirmation is visible"
       }
     ],
     "priority": "High"
   },
   {
     "id": "TC004",
-    "title": "Sign in and reach the librarian dashboard",
-    "description": "This verifies a librarian can sign in with valid credentials and land on the librarian portal.",
-    "category": "User Login",
+    "title": "Edit an existing user",
+    "description": "An administrator can update an existing user and see the edited values reflected in the users list.",
+    "category": "Manage Users",
     "steps": [
       {
         "type": "action",
@@ -138,7 +146,7 @@
       },
       {
         "type": "action",
-        "description": "Fill in the email field with {{LOGIN_USER}}"
+        "description": "Fill in the username field with {{LOGIN_USER}}"
       },
       {
         "type": "action",
@@ -149,26 +157,34 @@
         "description": "Submit the login form"
       },
       {
+        "type": "action",
+        "description": "Navigate to /admin/users.php"
+      },
+      {
+        "type": "action",
+        "description": "Select a user to edit"
+      },
+      {
+        "type": "action",
+        "description": "Update the selected user's details"
+      },
+      {
+        "type": "action",
+        "description": "Submit the changes"
+      },
+      {
         "type": "assertion",
-        "description": "Verify the librarian dashboard is displayed"
+        "description": "Verify the updated user information is shown in the users list"
       }
     ],
     "priority": "High"
   },
   {
     "id": "TC005",
-    "title": "Access the borrower portal only after login",
-    "description": "An unauthenticated user is blocked from the borrower portal until they sign in and then can reach the dashboard successfully.",
-    "category": "Borrower Reservations",
+    "title": "Delete a user with confirmation",
+    "description": "An administrator can delete a user after confirming the destructive action and the user is removed from the list.",
+    "category": "Manage Users",
     "steps": [
-      {
-        "type": "action",
-        "description": "Navigate to /borrower/index.php"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify access is blocked or redirected to login"
-      },
       {
         "type": "action",
         "description": "Navigate to /login.php"
@@ -187,20 +203,28 @@
       },
       {
         "type": "action",
-        "description": "Click the borrower portal link"
+        "description": "Navigate to /admin/users.php"
+      },
+      {
+        "type": "action",
+        "description": "Select a user to delete"
+      },
+      {
+        "type": "action",
+        "description": "Confirm the deletion"
       },
       {
         "type": "assertion",
-        "description": "Verify the borrower dashboard is displayed"
+        "description": "Verify the user is removed from the users list"
       }
     ],
     "priority": "High"
   },
   {
     "id": "TC006",
-    "title": "Handle direct access to the librarian portal after sign-in",
-    "description": "An authenticated librarian can reach the librarian dashboard from login and begin circulation tasks.",
-    "category": "Borrower Reservations",
+    "title": "View dashboard statistics",
+    "description": "An authenticated administrator can open the dashboard and see system summary information.",
+    "category": "Admin Dashboard",
     "steps": [
       {
         "type": "action",
@@ -220,107 +244,143 @@
       },
       {
         "type": "action",
-        "description": "Click the librarian portal link"
+        "description": "Navigate to /admin/index.php"
       },
       {
         "type": "assertion",
-        "description": "Verify the librarian dashboard is displayed"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify circulation controls are visible"
+        "description": "Verify dashboard statistics are displayed"
       }
     ],
-    "priority": "High"
+    "priority": "Medium"
   },
   {
     "id": "TC007",
-    "title": "Open the public catalog and search for a book",
-    "description": "This verifies a guest can search the public catalog and see matching results.",
-    "category": "Browse Catalog",
+    "title": "Persist user changes after refresh",
+    "description": "An administrator can save a user change and the updated value remains visible after the page is refreshed.",
+    "category": "Manage Users",
     "steps": [
       {
         "type": "action",
-        "description": "Navigate to /catalog.php"
+        "description": "Navigate to /login.php"
       },
       {
         "type": "action",
-        "description": "Enter a valid search term into the search field"
+        "description": "Fill in the username field with {{LOGIN_USER}}"
       },
       {
         "type": "action",
-        "description": "Submit the search"
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /admin/users.php"
+      },
+      {
+        "type": "action",
+        "description": "Select a user to edit"
+      },
+      {
+        "type": "action",
+        "description": "Update the selected user's details"
+      },
+      {
+        "type": "action",
+        "description": "Submit the changes"
+      },
+      {
+        "type": "action",
+        "description": "Refresh the page"
       },
       {
         "type": "assertion",
-        "description": "Verify matching catalog results are displayed"
+        "description": "Verify the updated user information remains visible in the users list"
       }
     ],
-    "priority": "High"
+    "priority": "Medium"
   },
   {
     "id": "TC008",
-    "title": "Browse the public catalog and open a book detail",
-    "description": "A guest can search the public catalog for a title or author and open a book detail view from the results.",
-    "category": "Borrower Reservations",
+    "title": "View audit logs",
+    "description": "An authenticated administrator can open the audit log page and review recorded activity.",
+    "category": "View Audit Logs",
     "steps": [
       {
         "type": "action",
-        "description": "Navigate to /catalog.php"
+        "description": "Navigate to /login.php"
       },
       {
         "type": "action",
-        "description": "Search for a title or author"
+        "description": "Fill in the username field with {{LOGIN_USER}}"
       },
       {
         "type": "action",
-        "description": "Open a book from the search results"
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /admin/audit-log.php"
       },
       {
         "type": "assertion",
-        "description": "Verify matching catalog results are visible"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify the book details view is displayed"
+        "description": "Verify audit log entries are displayed"
       }
     ],
-    "priority": "High"
+    "priority": "Medium"
   },
   {
     "id": "TC009",
-    "title": "View a book's details from catalog results",
-    "description": "This verifies a guest can open a catalog item and view its book details.",
-    "category": "Browse Catalog",
+    "title": "Keep a user when deletion is cancelled",
+    "description": "An administrator can cancel a delete action and the selected user remains in the list.",
+    "category": "Manage Users",
     "steps": [
       {
         "type": "action",
-        "description": "Navigate to /catalog.php"
+        "description": "Navigate to /login.php"
       },
       {
         "type": "action",
-        "description": "Enter a valid search term into the search field"
+        "description": "Fill in the username field with {{LOGIN_USER}}"
       },
       {
         "type": "action",
-        "description": "Submit the search"
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
       },
       {
         "type": "action",
-        "description": "Open a book from the results"
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /admin/users.php"
+      },
+      {
+        "type": "action",
+        "description": "Select a user to delete"
+      },
+      {
+        "type": "action",
+        "description": "Cancel the deletion"
       },
       {
         "type": "assertion",
-        "description": "Verify the book details are displayed"
+        "description": "Verify the user remains in the users list"
       }
     ],
-    "priority": "High"
+    "priority": "Low"
   },
   {
     "id": "TC010",
-    "title": "Reserve an unavailable book",
-    "description": "An authenticated borrower can find an out-of-stock book and submit a reservation that is confirmed in the UI.",
-    "category": "Borrower Reservations",
+    "title": "Show validation when saving incomplete settings",
+    "description": "An administrator sees validation feedback when required settings are left blank and the current settings remain unchanged.",
+    "category": "System Settings",
     "steps": [
       {
         "type": "action",
@@ -340,110 +400,32 @@
       },
       {
         "type": "action",
-        "description": "Click the borrower portal link"
+        "description": "Navigate to /admin/settings.php"
       },
       {
         "type": "action",
-        "description": "Search for an out-of-stock book"
+        "description": "Clear a required setting value"
       },
       {
         "type": "action",
-        "description": "Click the reserve action for the book"
-      },
-      {
-        "type": "action",
-        "description": "Confirm the reservation"
+        "description": "Save the settings"
       },
       {
         "type": "assertion",
-        "description": "Verify a reservation confirmation is visible"
+        "description": "Verify a settings validation error is visible"
       },
       {
         "type": "assertion",
-        "description": "Verify the reservation appears in the borrower portal"
+        "description": "Verify the existing settings remain displayed"
       }
     ],
-    "priority": "High"
+    "priority": "Low"
   },
   {
     "id": "TC011",
-    "title": "Reserve an unavailable book from the borrower portal",
-    "description": "This verifies a borrower can reserve an out-of-stock book and receive confirmation.",
-    "category": "Borrower Reservation",
-    "steps": [
-      {
-        "type": "action",
-        "description": "Navigate to /login.php"
-      },
-      {
-        "type": "action",
-        "description": "Fill in the email field with {{LOGIN_USER}}"
-      },
-      {
-        "type": "action",
-        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
-      },
-      {
-        "type": "action",
-        "description": "Submit the login form"
-      },
-      {
-        "type": "action",
-        "description": "Open the borrower dashboard"
-      },
-      {
-        "type": "action",
-        "description": "Find an unavailable book in the borrower area"
-      },
-      {
-        "type": "action",
-        "description": "Submit a reservation for the selected book"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify a reservation confirmation is displayed"
-      }
-    ],
-    "priority": "High"
-  },
-  {
-    "id": "TC012",
-    "title": "Open the borrower portal after sign-in",
-    "description": "A signed-in borrower is taken to the borrower portal and can see their reservation workspace after login.",
-    "category": "Borrower Reservations",
-    "steps": [
-      {
-        "type": "action",
-        "description": "Navigate to /login.php"
-      },
-      {
-        "type": "action",
-        "description": "Fill in the username field with {{LOGIN_USER}}"
-      },
-      {
-        "type": "action",
-        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
-      },
-      {
-        "type": "action",
-        "description": "Submit the login form"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify the borrower dashboard is displayed"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify reservation management controls are visible"
-      }
-    ],
-    "priority": "High"
-  },
-  {
-    "id": "TC013",
-    "title": "Keep reservation controls available after search refinement",
-    "description": "An authenticated borrower can refine a search from an unavailable book to another result and still reserve from the updated list.",
-    "category": "Borrower Reservations",
+    "title": "Show validation when creating a user with missing required details",
+    "description": "An administrator sees validation feedback when attempting to create a user without required information and no user is added.",
+    "category": "Manage Users",
     "steps": [
       {
         "type": "action",
@@ -463,282 +445,23 @@
       },
       {
         "type": "action",
-        "description": "Click the borrower portal link"
+        "description": "Navigate to /admin/users.php"
       },
       {
         "type": "action",
-        "description": "Search for an out-of-stock book"
+        "description": "Leave the required create user fields empty"
       },
       {
         "type": "action",
-        "description": "Change the search to a different out-of-stock book"
-      },
-      {
-        "type": "action",
-        "description": "Click the reserve action for the updated result"
-      },
-      {
-        "type": "action",
-        "description": "Confirm the reservation"
+        "description": "Submit the create user form"
       },
       {
         "type": "assertion",
-        "description": "Verify the reservation confirmation is visible"
-      }
-    ],
-    "priority": "Medium"
-  },
-  {
-    "id": "TC014",
-    "title": "Show validation for missing circulation inputs",
-    "description": "This verifies the librarian circulation form shows validation when required user or book IDs are missing.",
-    "category": "Librarian Circulation",
-    "steps": [
-      {
-        "type": "action",
-        "description": "Navigate to /login.php"
-      },
-      {
-        "type": "action",
-        "description": "Fill in the email field with {{LOGIN_USER}}"
-      },
-      {
-        "type": "action",
-        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
-      },
-      {
-        "type": "action",
-        "description": "Submit the login form"
-      },
-      {
-        "type": "action",
-        "description": "Open the librarian dashboard"
-      },
-      {
-        "type": "action",
-        "description": "Leave the required circulation inputs empty"
-      },
-      {
-        "type": "action",
-        "description": "Submit the circulation transaction"
+        "description": "Verify a user validation error is visible"
       },
       {
         "type": "assertion",
-        "description": "Verify a circulation validation message is displayed"
-      }
-    ],
-    "priority": "Medium"
-  },
-  {
-    "id": "TC015",
-    "title": "Prevent duplicate reservation attempts",
-    "description": "This verifies the borrower portal prevents reserving the same unavailable book twice.",
-    "category": "Borrower Reservation",
-    "steps": [
-      {
-        "type": "action",
-        "description": "Navigate to /login.php"
-      },
-      {
-        "type": "action",
-        "description": "Fill in the email field with {{LOGIN_USER}}"
-      },
-      {
-        "type": "action",
-        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
-      },
-      {
-        "type": "action",
-        "description": "Submit the login form"
-      },
-      {
-        "type": "action",
-        "description": "Open the borrower dashboard"
-      },
-      {
-        "type": "action",
-        "description": "Find an unavailable book in the borrower area"
-      },
-      {
-        "type": "action",
-        "description": "Submit a reservation for the selected book"
-      },
-      {
-        "type": "action",
-        "description": "Attempt to reserve the same book again"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify a duplicate reservation warning is displayed"
-      }
-    ],
-    "priority": "Medium"
-  },
-  {
-    "id": "TC016",
-    "title": "Block duplicate reservation attempts",
-    "description": "An authenticated borrower cannot reserve the same unavailable book twice and the UI shows that the book is already reserved.",
-    "category": "Borrower Reservations",
-    "steps": [
-      {
-        "type": "action",
-        "description": "Navigate to /login.php"
-      },
-      {
-        "type": "action",
-        "description": "Fill in the username field with {{LOGIN_USER}}"
-      },
-      {
-        "type": "action",
-        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
-      },
-      {
-        "type": "action",
-        "description": "Submit the login form"
-      },
-      {
-        "type": "action",
-        "description": "Click the borrower portal link"
-      },
-      {
-        "type": "action",
-        "description": "Search for an out-of-stock book"
-      },
-      {
-        "type": "action",
-        "description": "Click the reserve action for the book"
-      },
-      {
-        "type": "action",
-        "description": "Confirm the reservation"
-      },
-      {
-        "type": "action",
-        "description": "Search for the same book again"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify the already reserved state is visible"
-      }
-    ],
-    "priority": "Medium"
-  },
-  {
-    "id": "TC017",
-    "title": "Search the catalog with an unusual but valid term",
-    "description": "This verifies the catalog still returns usable results for a short or partial search term.",
-    "category": "Browse Catalog",
-    "steps": [
-      {
-        "type": "action",
-        "description": "Navigate to /catalog.php"
-      },
-      {
-        "type": "action",
-        "description": "Enter a short partial search term into the search field"
-      },
-      {
-        "type": "action",
-        "description": "Submit the search"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify catalog results or a valid empty state are displayed"
-      }
-    ],
-    "priority": "Medium"
-  },
-  {
-    "id": "TC018",
-    "title": "Keep browsing after an empty search result",
-    "description": "An authenticated borrower can search for a title with no matches and see an empty-state message without losing access to the portal.",
-    "category": "Borrower Reservations",
-    "steps": [
-      {
-        "type": "action",
-        "description": "Navigate to /login.php"
-      },
-      {
-        "type": "action",
-        "description": "Fill in the username field with {{LOGIN_USER}}"
-      },
-      {
-        "type": "action",
-        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
-      },
-      {
-        "type": "action",
-        "description": "Submit the login form"
-      },
-      {
-        "type": "action",
-        "description": "Click the borrower portal link"
-      },
-      {
-        "type": "action",
-        "description": "Search for a title that has no matches"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify an empty-state message is visible"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify the borrower portal remains accessible"
-      }
-    ],
-    "priority": "Low"
-  },
-  {
-    "id": "TC019",
-    "title": "Reject invalid login credentials",
-    "description": "This verifies invalid credentials are rejected and an error message is shown.",
-    "category": "User Login",
-    "steps": [
-      {
-        "type": "action",
-        "description": "Navigate to /login.php"
-      },
-      {
-        "type": "action",
-        "description": "Fill in the email field with fake.user@example.com"
-      },
-      {
-        "type": "action",
-        "description": "Fill in the password field with an incorrect password"
-      },
-      {
-        "type": "action",
-        "description": "Submit the login form"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify a login error message is displayed"
-      }
-    ],
-    "priority": "Low"
-  },
-  {
-    "id": "TC020",
-    "title": "See an empty state for a search with no matches",
-    "description": "This verifies the catalog shows an empty state when a search returns no results.",
-    "category": "Browse Catalog",
-    "steps": [
-      {
-        "type": "action",
-        "description": "Navigate to /catalog.php"
-      },
-      {
-        "type": "action",
-        "description": "Enter a search term that should not match any books"
-      },
-      {
-        "type": "action",
-        "description": "Submit the search"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify an empty state message is displayed"
+        "description": "Verify no new user is added to the users list"
       }
     ],
     "priority": "Low"
