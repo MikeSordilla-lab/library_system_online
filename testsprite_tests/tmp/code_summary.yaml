@@ -1,0 +1,84 @@
+version: "2"
+type: frontend
+tech_stack:
+  - php
+  - vanilla js
+  - vanilla css
+  - mysql
+routes:
+  - path: /login.php
+    file: public/login.php
+    auth_required: false
+    description: User login page
+  - path: /register.php
+    file: public/register.php
+    auth_required: false
+    description: User registration page
+  - path: /catalog.php
+    file: public/catalog.php
+    auth_required: false
+    description: Public book catalog page
+  - path: /borrower/index.php
+    file: public/borrower/index.php
+    auth_required: true
+    description: Borrower dashboard
+  - path: /librarian/index.php
+    file: public/librarian/index.php
+    auth_required: true
+    description: Librarian dashboard
+features:
+  - name: User Login
+    description: Login with email and password credentials
+    files:
+      - public/login.php
+    entry_route: /login.php
+    user_interactions:
+      - Fill email input field
+      - Fill password input field
+      - Click Login button to submit
+      - See error message on invalid credentials
+    api_calls:
+      - method: POST
+        endpoint: /login.php
+    auth_required: false
+  - name: Browse Catalog
+    description: Browse and search for books
+    files:
+      - public/catalog.php
+    entry_route: /catalog.php
+    user_interactions:
+      - Enter search term in input field
+      - Click search button
+      - View book details
+    api_calls:
+      - method: GET
+        endpoint: /catalog.php
+    auth_required: false
+  - name: Librarian Circulation
+    description: Checkout and checkin books for patrons
+    files:
+      - public/librarian/index.php
+    entry_route: /librarian/index.php
+    user_interactions:
+      - Enter user ID
+      - Enter book ID
+      - Click Checkout or Checkin
+      - View receipt modal
+    api_calls:
+      - method: POST
+        endpoint: /librarian/index.php
+    auth_required: true
+  - name: Borrower Reservations
+    description: Reserve books that are currently checked out
+    files:
+      - public/borrower/index.php
+    entry_route: /borrower/index.php
+    user_interactions:
+      - Search for a book that is out of stock
+      - Click Reserve button
+      - Confirm reservation
+    api_calls:
+      - method: POST
+        endpoint: /borrower/index.php
+    auth_required: true
+known_limitations: []

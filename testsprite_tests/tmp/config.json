@@ -1,0 +1,8 @@
+{
+  "status": "commited",
+  "type": "frontend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:8000/admin/",
+  "loginUser": "admin@library.local",
+  "loginPassword": "admin123"
+}
