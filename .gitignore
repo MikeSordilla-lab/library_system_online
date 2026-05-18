@@ -36,3 +36,5 @@ Desktop.ini
 # Composer (not used in this project yet, but precautionary)
 vendor/
 composer.lock
+.testsprite_tests
+testsprite_tests/

@@ -8839,7 +8839,7 @@ img.book-thumb {
    ═══════════════════════════════════════════════════════════════ */
 
 .swal-container {
-  z-index: 1200;
+  z-index: 10500 !important;
 }
 
 .swal-popup {

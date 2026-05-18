@@ -82,7 +82,7 @@ async function confirmAction(title, message, confirmText = 'Confirm', cancelText
     cancelButtonText: cancelText,
     cancelButtonColor: SWAL_THEME.cancelButtonColor,
     showCancelButton: true,
-    focusConfirm: false,
+    focusConfirm: true,
     allowOutsideClick: false,
     allowEscapeKey: true,
     customClass: {
@@ -257,7 +257,7 @@ async function confirmLogout() {
     cancelButtonText: 'Stay Logged In',
     cancelButtonColor: SWAL_THEME.cancelButtonColor,
     showCancelButton: true,
-    focusConfirm: false,
+    focusConfirm: true,
     allowOutsideClick: false,
     allowEscapeKey: true,
     customClass: {
@@ -386,7 +386,7 @@ async function confirmChangeRole(userName, oldRole, newRole) {
     cancelButtonText: 'Cancel',
     cancelButtonColor: SWAL_THEME.cancelButtonColor,
     showCancelButton: true,
-    focusConfirm: false,
+    focusConfirm: true,
     allowOutsideClick: false,
     allowEscapeKey: true,
     customClass: {
@@ -421,7 +421,7 @@ async function confirmResendEmail(userEmail) {
     cancelButtonText: 'Cancel',
     cancelButtonColor: SWAL_THEME.cancelButtonColor,
     showCancelButton: true,
-    focusConfirm: false,
+    focusConfirm: true,
     allowOutsideClick: false,
     allowEscapeKey: true,
     customClass: {
