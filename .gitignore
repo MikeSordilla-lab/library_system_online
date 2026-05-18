@@ -10,6 +10,7 @@
 error_log
 *.cache
 .env*
+!.env.production
 *.tmp
 *.swp
 testsprite_execution.log
