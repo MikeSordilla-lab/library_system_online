@@ -54,8 +54,6 @@ $due_soon_count      = $stats['due_soon_count'];
 $next_return         = $stats['next_return'];
 $approved_count      = count($approved_reservations);
 
-$has_renewal_count = !empty($active_loans) && array_key_exists('renewal_count', $active_loans[0]);
-
 // Q5: Category distribution for donut chart
 $q5 = $pdo->prepare(
   "SELECT b.category, COUNT(*) AS cnt
@@ -336,11 +334,7 @@ $extraStyles = [
                         </td>
                         <td>
                           <?php
-                            $renew_count = $has_renewal_count && isset($loan['renewal_count']) ? (int)$loan['renewal_count'] : 0;
-                            $renew_eligible = $loan['status'] === 'active'
-                                && strtotime($loan['due_date']) - time() <= 86400
-                                && strtotime($loan['due_date']) > time()
-                                && $renew_count < 1;
+                            $renew_eligible = !empty($loan['renewal_eligible']);
                           ?>
                           <?php if ($renew_eligible): ?>
                           <form method="POST" action="<?= htmlspecialchars(BASE_URL . 'borrower/renew.php', ENT_QUOTES, 'UTF-8') ?>" style="margin:0;">

@@ -3,6 +3,7 @@
 require_once __DIR__ . '/QueuePositionModule.php';
 require_once __DIR__ . '/circulation.php';
 require_once __DIR__ . '/constants.php';
+require_once __DIR__ . '/RenewalEligibilityModule.php';
 
 class BorrowerAccountSummaryModule
 {
@@ -48,12 +49,8 @@ class BorrowerAccountSummaryModule
 
     foreach ($activeLoans as &$loan) {
       $loan['days_overdue'] = max(0, (int) ($loan['days_overdue'] ?? 0));
-      $renewalCount = ($hasRenewalCount && isset($loan['renewal_count'])) ? (int) $loan['renewal_count'] : 0;
-      $dueTs = strtotime($loan['due_date']);
-      $loan['renewal_eligible'] = $loan['status'] === 'active'
-        && $dueTs !== false && $dueTs <= (time() + 86400)
-        && $dueTs > time()
-        && $renewalCount < 1;
+      $eligibility = RenewalEligibilityModule::check($pdo, $userId, (int) $loan['id']);
+      $loan['renewal_eligible'] = (bool) ($eligibility['eligible'] ?? false);
     }
     unset($loan);
 

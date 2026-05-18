@@ -11,7 +11,7 @@
  */
 
 // RBAC guard — must appear before any HTML output (FR-034)
-$allowed_roles = ['librarian'];
+$allowed_roles = ['admin', 'librarian'];
 require_once __DIR__ . '/../includes/auth_guard.php';
 require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/circulation.php';

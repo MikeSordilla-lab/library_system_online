@@ -13,7 +13,7 @@
  * Protected: Librarian role only.
  */
 
-$allowed_roles = ['librarian'];
+$allowed_roles = ['admin', 'librarian'];
 require_once __DIR__ . '/../includes/auth_guard.php';
 require_once __DIR__ . '/../includes/circulation.php';
 

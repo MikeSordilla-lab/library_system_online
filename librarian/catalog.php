@@ -26,7 +26,7 @@ if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'borrower') {
 }
 
 // RBAC guard — handles unauthenticated (→ login.php) and other unauthorised roles (→ 403)
-$allowed_roles = ['librarian'];
+$allowed_roles = ['admin', 'librarian'];
 require_once __DIR__ . '/../includes/auth_guard.php';
 
 // CSRF helper (needed for per-row delete forms on this page)
