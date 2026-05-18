@@ -1234,14 +1234,14 @@ body {
         
         <div class="coverage-summary">
           <ul class="coverage-list text-body">
-            <li><span class="coverage-highlight">8/11</span> of tests passed</li>
+            <li><span class="coverage-highlight">10/15</span> of tests passed</li>
             <li><span class="coverage-highlight">Key gaps / risks:</span>
             
-              <ul>
-<li><strong>Modal Accessibility Issues:</strong> Automated test agent cannot interact with the confirmation buttons inside the 'Save Credential Changes?' and 'Delete User' modals. This suggests that the buttons might lack appropriate ARIA roles, might be obscured by a DOM overlay with a higher z-index, or might reside within an inaccessible shadow boundary. This is a risk not only for automated testability but potentially for accessibility, meaning screen-reader or keyboard-only users could encounter the same blockers.</li>
-<li><strong>Keyboard Navigation Missing on Modals:</strong> The test observations noted that pressing Enter while the delete modal was open did not confirm the deletion. It's a standard practice for critical modals to capture focus and respond to keyboard interactions, suggesting a usability enhancement opportunity.</li>
-</ul>
-<hr>
+              <ol>
+<li><strong>Missing Dashboard Elements:</strong> The 'Fines' statistic is completely absent from the Borrower Dashboard (<code>borrower/index.php</code>). This is a critical gap as users cannot see their outstanding balances.</li>
+<li><strong>Broken Renewal Functionality:</strong> The 'Renew' action is completely missing from the <code>borrower/my_books.php</code> page. All items simply show 'Not available' in the action column, preventing any users from extending their loans.</li>
+<li><strong>Test Data State Dependency:</strong> The automated tests for reservations (<code>TC006</code>, <code>TC012</code>) are currently blocked because the default test user account has overdue books. To accurately test the reservation happy-path, the seed data must be adjusted or the test runner must clear user fines/overdue states before executing these specific tests.</li>
+</ol>
 
             </li>
 </ul>
@@ -1266,33 +1266,41 @@ body {
           <div class="table-rows">
             
             <div class="table-row">
-              <div class="table-cell"><span class="text-body">Requirement: Admin Dashboard</span></div>
-              <div class="table-cell"><span class="text-body">2</span></div>
-              <div class="table-cell"><span class="text-body">2</span></div>
+              <div class="table-cell"><span class="text-body">User Authentication & Authorization</span></div>
+              <div class="table-cell"><span class="text-body">4</span></div>
+              <div class="table-cell"><span class="text-body">4</span></div>
               <div class="table-cell"><span class="text-body">0</span></div>
             </div>
         
 
             <div class="table-row">
-              <div class="table-cell"><span class="text-body">Requirement: Manage Users</span></div>
-              <div class="table-cell"><span class="text-body">6</span></div>
-              <div class="table-cell"><span class="text-body">3</span></div>
-              <div class="table-cell"><span class="text-body">0</span></div>
-            </div>
-        
-
-            <div class="table-row">
-              <div class="table-cell"><span class="text-body">Requirement: System Settings</span></div>
-              <div class="table-cell"><span class="text-body">2</span></div>
-              <div class="table-cell"><span class="text-body">2</span></div>
-              <div class="table-cell"><span class="text-body">0</span></div>
-            </div>
-        
-
-            <div class="table-row">
-              <div class="table-cell"><span class="text-body">Requirement: Audit Logs</span></div>
+              <div class="table-cell"><span class="text-body">Borrower Dashboard</span></div>
               <div class="table-cell"><span class="text-body">1</span></div>
+              <div class="table-cell"><span class="text-body">0</span></div>
               <div class="table-cell"><span class="text-body">1</span></div>
+            </div>
+        
+
+            <div class="table-row">
+              <div class="table-cell"><span class="text-body">Catalog & Reservations</span></div>
+              <div class="table-cell"><span class="text-body">4</span></div>
+              <div class="table-cell"><span class="text-body">2</span></div>
+              <div class="table-cell"><span class="text-body">1</span></div>
+            </div>
+        
+
+            <div class="table-row">
+              <div class="table-cell"><span class="text-body">Active Loans & Renewals</span></div>
+              <div class="table-cell"><span class="text-body">4</span></div>
+              <div class="table-cell"><span class="text-body">2</span></div>
+              <div class="table-cell"><span class="text-body">1</span></div>
+            </div>
+        
+
+            <div class="table-row">
+              <div class="table-cell"><span class="text-body">Profile Management</span></div>
+              <div class="table-cell"><span class="text-body">2</span></div>
+              <div class="table-cell"><span class="text-body">2</span></div>
               <div class="table-cell"><span class="text-body">0</span></div>
             </div>
         
@@ -1316,13 +1324,13 @@ body {
           <div class="accordion-header" onclick="toggleAccordion(this)">
             <div class="requirement-content">
                                           <div class="requirement-title-row">
-              <h3 class="title-requirement">Requirement: Admin Dashboard</h3>
+              <h3 class="title-requirement">User Authentication & Authorization</h3>
                 <div class="requirement-status-tag status-success">
               <svg width="18" height="18" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="7.99961" cy="7.99998" r="6.4" fill="#10A363" fill-opacity="0.2"/>
                 <path d="M5.59961 8.00002L7.19961 9.60002L10.3996 6.40002" stroke="#19C379" stroke-width="1.28" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
-              <span>2/2</span>
+              <span>4/4</span>
             </div>
               </div>
               <p class="text-body-medium requirement-description">Proper error handling for API calls and invalid data scenarios.</p>
@@ -1338,13 +1346,13 @@ body {
             <div class="test-wrapper">
 <div class="test-card">
                 <div class="test-header">
-                  <h4 class="text-body-medium">TC001 Access the admin dashboard after signing in</h4>
+                  <h4 class="text-body-medium">TC001 Borrower signs in and reaches the dashboard</h4>
                 </div>
                 <div class="test-content">
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Code</div>
                     <div class="test-field-value text-body">
-                      <a href="./TC001_Access_the_admin_dashboard_after_signing_in.py" class="text-link">TC001_Access_the_admin_dashboard_after_signing_in.py</a>
+                      <a href="./TC001_Borrower_signs_in_and_reaches_the_dashboard.py" class="text-link">TC001_Borrower_signs_in_and_reaches_the_dashboard.py</a>
                     </div>
                   </div>
                   <div class="test-field">
@@ -1354,7 +1362,7 @@ body {
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Visualization and Result</div>
                     <div class="test-field-value text-body">
-                      <a href="https://www.testsprite.com/dashboard/mcp/tests/2c053129-7cb9-40ff-8259-66ac64898d7d/fda8d0e9-bf7b-4afd-b5f3-79de55de9882" class="text-link">View Results</a>
+                      <a href="null" class="text-link">View Results</a>
                     </div>
                   </div>
                   <div class="test-field">
@@ -1377,19 +1385,19 @@ body {
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Analysis / Findings</div>
-                    <div class="test-field-value text-body">Test executed perfectly, functionality verified. Admin dashboard is accessible post-login.</div>
+                    <div class="test-field-value text-body">Authentication flow is working correctly. User successfully transitions to the borrower dashboard after login.</div>
                   </div>
                 </div>
               </div>
 <div class="test-card">
                 <div class="test-header">
-                  <h4 class="text-body-medium">TC006 View dashboard statistics</h4>
+                  <h4 class="text-body-medium">TC002 Borrower logs in and reaches the dashboard</h4>
                 </div>
                 <div class="test-content">
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Code</div>
                     <div class="test-field-value text-body">
-                      <a href="./TC006_View_dashboard_statistics.py" class="text-link">TC006_View_dashboard_statistics.py</a>
+                      <a href="./TC002_Borrower_logs_in_and_reaches_the_dashboard.py" class="text-link">TC002_Borrower_logs_in_and_reaches_the_dashboard.py</a>
                     </div>
                   </div>
                   <div class="test-field">
@@ -1399,7 +1407,7 @@ body {
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Visualization and Result</div>
                     <div class="test-field-value text-body">
-                      <a href="https://www.testsprite.com/dashboard/mcp/tests/2c053129-7cb9-40ff-8259-66ac64898d7d/1dc1c65d-4682-4c97-b9d2-0110c83a4150" class="text-link">View Results</a>
+                      <a href="null" class="text-link">View Results</a>
                     </div>
                   </div>
                   <div class="test-field">
@@ -1422,7 +1430,97 @@ body {
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Analysis / Findings</div>
-                    <div class="test-field-value text-body">Test executed perfectly, functionality verified. Dashboard statistics load correctly.</div>
+                    <div class="test-field-value text-body">Core account statistics are visible immediately after login, validating the initial dashboard load.</div>
+                  </div>
+                </div>
+              </div>
+<div class="test-card">
+                <div class="test-header">
+                  <h4 class="text-body-medium">TC003 Borrower is blocked from protected pages without signing in</h4>
+                </div>
+                <div class="test-content">
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Test Code</div>
+                    <div class="test-field-value text-body">
+                      <a href="./TC003_Borrower_is_blocked_from_protected_pages_without_signing_in.py" class="text-link">TC003_Borrower_is_blocked_from_protected_pages_without_signing_in.py</a>
+                    </div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Test Error</div>
+                    <div class="test-field-value text-body">N/A</div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Test Visualization and Result</div>
+                    <div class="test-field-value text-body">
+                      <a href="null" class="text-link">View Results</a>
+                    </div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Status</div>
+                    <div class="test-field-value">
+                      <div class="status-wrapper">
+                <div class="status-icon">
+                    <svg width="18" height="18" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="7.99961" cy="7.99998" r="6.4" fill="#10A363" fill-opacity="0.2"/>
+                        <path d="M5.59961 8.00002L7.19961 9.60002L10.3996 6.40002" stroke="#19C379" stroke-width="1.28" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <span class="text-body status-pass">Pass</span>
+            </div>
+                    </div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Severity</div>
+                    <div class="test-field-value text-body">N/A</div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Analysis / Findings</div>
+                    <div class="test-field-value text-body">Auth guard middleware successfully intercepts unauthorized access to protected dashboard and profile routes.</div>
+                  </div>
+                </div>
+              </div>
+<div class="test-card">
+                <div class="test-header">
+                  <h4 class="text-body-medium">TC004 Protected borrower pages require sign-in</h4>
+                </div>
+                <div class="test-content">
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Test Code</div>
+                    <div class="test-field-value text-body">
+                      <a href="./TC004_Protected_borrower_pages_require_sign_in.py" class="text-link">TC004_Protected_borrower_pages_require_sign_in.py</a>
+                    </div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Test Error</div>
+                    <div class="test-field-value text-body">N/A</div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Test Visualization and Result</div>
+                    <div class="test-field-value text-body">
+                      <a href="null" class="text-link">View Results</a>
+                    </div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Status</div>
+                    <div class="test-field-value">
+                      <div class="status-wrapper">
+                <div class="status-icon">
+                    <svg width="18" height="18" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="7.99961" cy="7.99998" r="6.4" fill="#10A363" fill-opacity="0.2"/>
+                        <path d="M5.59961 8.00002L7.19961 9.60002L10.3996 6.40002" stroke="#19C379" stroke-width="1.28" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <span class="text-body status-pass">Pass</span>
+            </div>
+                    </div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Severity</div>
+                    <div class="test-field-value text-body">N/A</div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Analysis / Findings</div>
+                    <div class="test-field-value text-body">Direct URL navigation to protected catalog and loan pages redirects unauthenticated users to the login screen.</div>
                   </div>
                 </div>
               </div>
@@ -1434,13 +1532,13 @@ body {
           <div class="accordion-header" onclick="toggleAccordion(this)">
             <div class="requirement-content">
                                           <div class="requirement-title-row">
-              <h3 class="title-requirement">Requirement: Manage Users</h3>
+              <h3 class="title-requirement">Borrower Dashboard</h3>
                 <div class="requirement-status-tag status-error">
               <svg width="18" height="18" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="7.99961" cy="7.99998" r="6.4" fill="#C23539" fill-opacity="0.2"/>
                 <path d="M8 5.59998V7.99698" stroke="#EF4146" stroke-width="1.38478" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 10.394V10.3995" stroke="#EF4146" stroke-width="1.38478" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
-              <span>3/6</span>
+              <span>0/1</span>
             </div>
               </div>
               <p class="text-body-medium requirement-description">Proper error handling for API calls and invalid data scenarios.</p>
@@ -1456,13 +1554,13 @@ body {
             <div class="test-wrapper">
 <div class="test-card">
                 <div class="test-header">
-                  <h4 class="text-body-medium">TC002 Create a new user</h4>
+                  <h4 class="text-body-medium">TC005 Borrower sees dashboard stats after signing in</h4>
                 </div>
                 <div class="test-content">
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Code</div>
                     <div class="test-field-value text-body">
-                      <a href="./TC002_Create_a_new_user.py" class="text-link">TC002_Create_a_new_user.py</a>
+                      <a href="./TC005_Borrower_sees_dashboard_stats_after_signing_in.py" class="text-link">TC005_Borrower_sees_dashboard_stats_after_signing_in.py</a>
                     </div>
                   </div>
                   <div class="test-field">
@@ -1472,52 +1570,7 @@ body {
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Visualization and Result</div>
                     <div class="test-field-value text-body">
-                      <a href="https://www.testsprite.com/dashboard/mcp/tests/2c053129-7cb9-40ff-8259-66ac64898d7d/017e881e-77a3-4372-81ac-3f4d0f713eae" class="text-link">View Results</a>
-                    </div>
-                  </div>
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Status</div>
-                    <div class="test-field-value">
-                      <div class="status-wrapper">
-                <div class="status-icon">
-                    <svg width="18" height="18" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="7.99961" cy="7.99998" r="6.4" fill="#10A363" fill-opacity="0.2"/>
-                        <path d="M5.59961 8.00002L7.19961 9.60002L10.3996 6.40002" stroke="#19C379" stroke-width="1.28" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </div>
-                <span class="text-body status-pass">Pass</span>
-            </div>
-                    </div>
-                  </div>
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Severity</div>
-                    <div class="test-field-value text-body">N/A</div>
-                  </div>
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Analysis / Findings</div>
-                    <div class="test-field-value text-body">Test executed perfectly, functionality verified. User creation workflow operates correctly.</div>
-                  </div>
-                </div>
-              </div>
-<div class="test-card">
-                <div class="test-header">
-                  <h4 class="text-body-medium">TC004 Edit an existing user</h4>
-                </div>
-                <div class="test-content">
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Test Code</div>
-                    <div class="test-field-value text-body">
-                      <a href="./TC004_Edit_an_existing_user.py" class="text-link">TC004_Edit_an_existing_user.py</a>
-                    </div>
-                  </div>
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Test Error</div>
-                    <div class="test-field-value text-body">N/A</div>
-                  </div>
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Test Visualization and Result</div>
-                    <div class="test-field-value text-body">
-                      <a href="https://www.testsprite.com/dashboard/mcp/tests/2c053129-7cb9-40ff-8259-66ac64898d7d/cc7cf6c7-1c37-46c1-aaf4-4baab375f571" class="text-link">View Results</a>
+                      <a href="null" class="text-link">View Results</a>
                     </div>
                   </div>
                   <div class="test-field">
@@ -1543,193 +1596,7 @@ body {
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Analysis / Findings</div>
-                    <div class="test-field-value text-body">The test could not be completed — the confirmation action in the 'Save Credential Changes?' modal cannot be triggered from the available interactive elements. The confirmation modal is visible but the 'Save Credentials' button isn't exposed to the agent properly.</div>
-                  </div>
-                </div>
-              </div>
-<div class="test-card">
-                <div class="test-header">
-                  <h4 class="text-body-medium">TC005 Delete a user with confirmation</h4>
-                </div>
-                <div class="test-content">
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Test Code</div>
-                    <div class="test-field-value text-body">
-                      <a href="./TC005_Delete_a_user_with_confirmation.py" class="text-link">TC005_Delete_a_user_with_confirmation.py</a>
-                    </div>
-                  </div>
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Test Error</div>
-                    <div class="test-field-value text-body">N/A</div>
-                  </div>
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Test Visualization and Result</div>
-                    <div class="test-field-value text-body">
-                      <a href="https://www.testsprite.com/dashboard/mcp/tests/2c053129-7cb9-40ff-8259-66ac64898d7d/c7715862-52ef-42db-9f5a-49aca79471f2" class="text-link">View Results</a>
-                    </div>
-                  </div>
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Status</div>
-                    <div class="test-field-value">
-                      
-            <div class="status-wrapper">
-                <div class="status-icon">
-                    <svg width="18" height="18" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-<circle cx="7.99961" cy="7.99998" r="6.4" fill="#C23539" fill-opacity="0.2"/>
-<path d="M8 5.59998V7.99698" stroke="#EF4146" stroke-width="1.38478" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M8 10.394V10.3995" stroke="#EF4146" stroke-width="1.38478" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
-                </div>
-                <span class="text-body status-fail">Failed</span>
-            </div>
-            
-                    </div>
-                  </div>
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Severity</div>
-                    <div class="test-field-value text-body">N/A</div>
-                  </div>
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Analysis / Findings</div>
-                    <div class="test-field-value text-body">The test could not be run to completion — the final confirmation button inside the delete confirmation modal could not be interacted with. Pressing Enter also did not confirm deletion.</div>
-                  </div>
-                </div>
-              </div>
-<div class="test-card">
-                <div class="test-header">
-                  <h4 class="text-body-medium">TC007 Persist user changes after refresh</h4>
-                </div>
-                <div class="test-content">
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Test Code</div>
-                    <div class="test-field-value text-body">
-                      <a href="./TC007_Persist_user_changes_after_refresh.py" class="text-link">TC007_Persist_user_changes_after_refresh.py</a>
-                    </div>
-                  </div>
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Test Error</div>
-                    <div class="test-field-value text-body">N/A</div>
-                  </div>
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Test Visualization and Result</div>
-                    <div class="test-field-value text-body">
-                      <a href="https://www.testsprite.com/dashboard/mcp/tests/2c053129-7cb9-40ff-8259-66ac64898d7d/6ec6478b-8995-4281-a1d6-41a5c957241e" class="text-link">View Results</a>
-                    </div>
-                  </div>
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Status</div>
-                    <div class="test-field-value">
-                      
-            <div class="status-wrapper">
-                <div class="status-icon">
-                    <svg width="18" height="18" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-<circle cx="7.99961" cy="7.99998" r="6.4" fill="#C23539" fill-opacity="0.2"/>
-<path d="M8 5.59998V7.99698" stroke="#EF4146" stroke-width="1.38478" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M8 10.394V10.3995" stroke="#EF4146" stroke-width="1.38478" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
-                </div>
-                <span class="text-body status-fail">Failed</span>
-            </div>
-            
-                    </div>
-                  </div>
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Severity</div>
-                    <div class="test-field-value text-body">N/A</div>
-                  </div>
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Analysis / Findings</div>
-                    <div class="test-field-value text-body">The confirmation control to commit the user change is not accessible via the page's interactive elements. The agent could not locate or click the 'Save Credentials' button, similar to TC004.</div>
-                  </div>
-                </div>
-              </div>
-<div class="test-card">
-                <div class="test-header">
-                  <h4 class="text-body-medium">TC009 Keep a user when deletion is cancelled</h4>
-                </div>
-                <div class="test-content">
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Test Code</div>
-                    <div class="test-field-value text-body">
-                      <a href="./TC009_Keep_a_user_when_deletion_is_cancelled.py" class="text-link">TC009_Keep_a_user_when_deletion_is_cancelled.py</a>
-                    </div>
-                  </div>
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Test Error</div>
-                    <div class="test-field-value text-body">N/A</div>
-                  </div>
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Test Visualization and Result</div>
-                    <div class="test-field-value text-body">
-                      <a href="https://www.testsprite.com/dashboard/mcp/tests/2c053129-7cb9-40ff-8259-66ac64898d7d/a201e4f3-be31-4eb9-b0a5-04b69b3f7fad" class="text-link">View Results</a>
-                    </div>
-                  </div>
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Status</div>
-                    <div class="test-field-value">
-                      <div class="status-wrapper">
-                <div class="status-icon">
-                    <svg width="18" height="18" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="7.99961" cy="7.99998" r="6.4" fill="#10A363" fill-opacity="0.2"/>
-                        <path d="M5.59961 8.00002L7.19961 9.60002L10.3996 6.40002" stroke="#19C379" stroke-width="1.28" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </div>
-                <span class="text-body status-pass">Pass</span>
-            </div>
-                    </div>
-                  </div>
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Severity</div>
-                    <div class="test-field-value text-body">N/A</div>
-                  </div>
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Analysis / Findings</div>
-                    <div class="test-field-value text-body">Test executed perfectly, functionality verified. Canceling a deletion behaves as expected.</div>
-                  </div>
-                </div>
-              </div>
-<div class="test-card">
-                <div class="test-header">
-                  <h4 class="text-body-medium">TC011 Show validation when creating a user with missing required details</h4>
-                </div>
-                <div class="test-content">
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Test Code</div>
-                    <div class="test-field-value text-body">
-                      <a href="./TC011_Show_validation_when_creating_a_user_with_missing_required_details.py" class="text-link">TC011_Show_validation_when_creating_a_user_with_missing_required_details.py</a>
-                    </div>
-                  </div>
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Test Error</div>
-                    <div class="test-field-value text-body">N/A</div>
-                  </div>
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Test Visualization and Result</div>
-                    <div class="test-field-value text-body">
-                      <a href="https://www.testsprite.com/dashboard/mcp/tests/2c053129-7cb9-40ff-8259-66ac64898d7d/247cc52c-b834-465d-9c80-3aebdcc4ee03" class="text-link">View Results</a>
-                    </div>
-                  </div>
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Status</div>
-                    <div class="test-field-value">
-                      <div class="status-wrapper">
-                <div class="status-icon">
-                    <svg width="18" height="18" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="7.99961" cy="7.99998" r="6.4" fill="#10A363" fill-opacity="0.2"/>
-                        <path d="M5.59961 8.00002L7.19961 9.60002L10.3996 6.40002" stroke="#19C379" stroke-width="1.28" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </div>
-                <span class="text-body status-pass">Pass</span>
-            </div>
-                    </div>
-                  </div>
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Severity</div>
-                    <div class="test-field-value text-body">N/A</div>
-                  </div>
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Analysis / Findings</div>
-                    <div class="test-field-value text-body">Test executed perfectly, functionality verified. Required field validation successfully prevents invalid creation.</div>
+                    <div class="test-field-value text-body">The Fines statistic component is completely missing from the dashboard view. While Active Loans and Pending Reservations render correctly, there is no UI indicator for accumulated fines, violating the dashboard presentation requirements.</div>
                   </div>
                 </div>
               </div>
@@ -1741,7 +1608,435 @@ body {
           <div class="accordion-header" onclick="toggleAccordion(this)">
             <div class="requirement-content">
                                           <div class="requirement-title-row">
-              <h3 class="title-requirement">Requirement: System Settings</h3>
+              <h3 class="title-requirement">Catalog & Reservations</h3>
+                <div class="requirement-status-tag status-error">
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="7.99961" cy="7.99998" r="6.4" fill="#C23539" fill-opacity="0.2"/>
+                <path d="M8 5.59998V7.99698" stroke="#EF4146" stroke-width="1.38478" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 10.394V10.3995" stroke="#EF4146" stroke-width="1.38478" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>2/4</span>
+            </div>
+              </div>
+              <p class="text-body-medium requirement-description">Proper error handling for API calls and invalid data scenarios.</p>
+            </div>
+            <div class="accordion-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M11.4276 6C11.9145 6 12.1687 6.61626 11.875 7.01439L11.8316 7.06689L8.40295 10.817C8.30455 10.9246 8.17364 10.9892 8.03476 10.9988C7.89589 11.0083 7.7586 10.9621 7.64865 10.8688L7.59493 10.817L4.16629 7.06689L4.11886 7.00814L4.088 6.96002L4.05714 6.90002L4.04743 6.87752L4.032 6.83564L4.01371 6.76814L4.008 6.73501L4.00229 6.69751L4 6.66189V6.58814L4.00286 6.55188L4.008 6.51438L4.01371 6.48188L4.032 6.41438L4.04743 6.37251L4.08743 6.29L4.12457 6.23375L4.16629 6.18313L4.22 6.13125L4.26401 6.0975L4.31886 6.06375L4.33944 6.05313L4.37772 6.03625L4.43944 6.01625L4.46972 6.01L4.50401 6.00375L4.53658 6.00125L11.4276 6Z" fill="var(--fg-secondary)"/>
+              </svg>
+            </div>
+          </div>
+
+            <div class="accordion-content">
+            <div class="test-wrapper">
+<div class="test-card">
+                <div class="test-header">
+                  <h4 class="text-body-medium">TC008 Borrower sees catalog results after signing in</h4>
+                </div>
+                <div class="test-content">
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Test Code</div>
+                    <div class="test-field-value text-body">
+                      <a href="./TC008_Borrower_sees_catalog_results_after_signing_in.py" class="text-link">TC008_Borrower_sees_catalog_results_after_signing_in.py</a>
+                    </div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Test Error</div>
+                    <div class="test-field-value text-body">N/A</div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Test Visualization and Result</div>
+                    <div class="test-field-value text-body">
+                      <a href="null" class="text-link">View Results</a>
+                    </div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Status</div>
+                    <div class="test-field-value">
+                      <div class="status-wrapper">
+                <div class="status-icon">
+                    <svg width="18" height="18" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="7.99961" cy="7.99998" r="6.4" fill="#10A363" fill-opacity="0.2"/>
+                        <path d="M5.59961 8.00002L7.19961 9.60002L10.3996 6.40002" stroke="#19C379" stroke-width="1.28" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <span class="text-body status-pass">Pass</span>
+            </div>
+                    </div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Severity</div>
+                    <div class="test-field-value text-body">N/A</div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Analysis / Findings</div>
+                    <div class="test-field-value text-body">Catalog items are successfully fetched and displayed for authenticated borrowers.</div>
+                  </div>
+                </div>
+              </div>
+<div class="test-card">
+                <div class="test-header">
+                  <h4 class="text-body-medium">TC009 Borrower opens the catalog from the portal</h4>
+                </div>
+                <div class="test-content">
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Test Code</div>
+                    <div class="test-field-value text-body">
+                      <a href="./TC009_Borrower_opens_the_catalog_from_the_portal.py" class="text-link">TC009_Borrower_opens_the_catalog_from_the_portal.py</a>
+                    </div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Test Error</div>
+                    <div class="test-field-value text-body">N/A</div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Test Visualization and Result</div>
+                    <div class="test-field-value text-body">
+                      <a href="null" class="text-link">View Results</a>
+                    </div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Status</div>
+                    <div class="test-field-value">
+                      <div class="status-wrapper">
+                <div class="status-icon">
+                    <svg width="18" height="18" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="7.99961" cy="7.99998" r="6.4" fill="#10A363" fill-opacity="0.2"/>
+                        <path d="M5.59961 8.00002L7.19961 9.60002L10.3996 6.40002" stroke="#19C379" stroke-width="1.28" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <span class="text-body status-pass">Pass</span>
+            </div>
+                    </div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Severity</div>
+                    <div class="test-field-value text-body">N/A</div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Analysis / Findings</div>
+                    <div class="test-field-value text-body">Portal navigation links to the catalog function as expected.</div>
+                  </div>
+                </div>
+              </div>
+<div class="test-card">
+                <div class="test-header">
+                  <h4 class="text-body-medium">TC006 Borrower reserves a book from the catalog</h4>
+                </div>
+                <div class="test-content">
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Test Code</div>
+                    <div class="test-field-value text-body">
+                      <a href="./TC006_Borrower_reserves_a_book_from_the_catalog.py" class="text-link">TC006_Borrower_reserves_a_book_from_the_catalog.py</a>
+                    </div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Test Error</div>
+                    <div class="test-field-value text-body">N/A</div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Test Visualization and Result</div>
+                    <div class="test-field-value text-body">
+                      <a href="null" class="text-link">View Results</a>
+                    </div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Status</div>
+                    <div class="test-field-value">
+                      
+            <div class="status-wrapper">
+                <div class="status-icon">
+                    <svg width="18" height="18" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<circle cx="7.99961" cy="7.99998" r="6.4" fill="#C23539" fill-opacity="0.2"/>
+<path d="M8 5.59998V7.99698" stroke="#EF4146" stroke-width="1.38478" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M8 10.394V10.3995" stroke="#EF4146" stroke-width="1.38478" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+                </div>
+                <span class="text-body status-fail">Failed</span>
+            </div>
+            
+                    </div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Severity</div>
+                    <div class="test-field-value text-body">N/A</div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Analysis / Findings</div>
+                    <div class="test-field-value text-body">The test account has overdue items, which triggers a block on new reservations. This demonstrates that the overdue restriction logic works, but prevents testing the happy path of the reservation flow.</div>
+                  </div>
+                </div>
+              </div>
+<div class="test-card">
+                <div class="test-header">
+                  <h4 class="text-body-medium">TC012 Borrower returns to the catalog with updated reservation state</h4>
+                </div>
+                <div class="test-content">
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Test Code</div>
+                    <div class="test-field-value text-body">
+                      <a href="./TC012_Borrower_returns_to_the_catalog_with_updated_reservation_state.py" class="text-link">TC012_Borrower_returns_to_the_catalog_with_updated_reservation_state.py</a>
+                    </div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Test Error</div>
+                    <div class="test-field-value text-body">N/A</div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Test Visualization and Result</div>
+                    <div class="test-field-value text-body">
+                      <a href="null" class="text-link">View Results</a>
+                    </div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Status</div>
+                    <div class="test-field-value">
+                      
+            <div class="status-wrapper">
+                <div class="status-icon">
+                    <svg width="18" height="18" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<circle cx="7.99961" cy="7.99998" r="6.4" fill="#C23539" fill-opacity="0.2"/>
+<path d="M8 5.59998V7.99698" stroke="#EF4146" stroke-width="1.38478" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M8 10.394V10.3995" stroke="#EF4146" stroke-width="1.38478" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+                </div>
+                <span class="text-body status-fail">Failed</span>
+            </div>
+            
+                    </div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Severity</div>
+                    <div class="test-field-value text-body">N/A</div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Analysis / Findings</div>
+                    <div class="test-field-value text-body">Fails as a cascade effect of TC006. Because the reservation was blocked by overdue fines, the catalog UI never updated to reflect the 'Reserved' state.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+                <div class="requirement-wrapper accordion-item active">
+          <div class="accordion-header" onclick="toggleAccordion(this)">
+            <div class="requirement-content">
+                                          <div class="requirement-title-row">
+              <h3 class="title-requirement">Active Loans & Renewals</h3>
+                <div class="requirement-status-tag status-error">
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="7.99961" cy="7.99998" r="6.4" fill="#C23539" fill-opacity="0.2"/>
+                <path d="M8 5.59998V7.99698" stroke="#EF4146" stroke-width="1.38478" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 10.394V10.3995" stroke="#EF4146" stroke-width="1.38478" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>2/4</span>
+            </div>
+              </div>
+              <p class="text-body-medium requirement-description">Proper error handling for API calls and invalid data scenarios.</p>
+            </div>
+            <div class="accordion-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M11.4276 6C11.9145 6 12.1687 6.61626 11.875 7.01439L11.8316 7.06689L8.40295 10.817C8.30455 10.9246 8.17364 10.9892 8.03476 10.9988C7.89589 11.0083 7.7586 10.9621 7.64865 10.8688L7.59493 10.817L4.16629 7.06689L4.11886 7.00814L4.088 6.96002L4.05714 6.90002L4.04743 6.87752L4.032 6.83564L4.01371 6.76814L4.008 6.73501L4.00229 6.69751L4 6.66189V6.58814L4.00286 6.55188L4.008 6.51438L4.01371 6.48188L4.032 6.41438L4.04743 6.37251L4.08743 6.29L4.12457 6.23375L4.16629 6.18313L4.22 6.13125L4.26401 6.0975L4.31886 6.06375L4.33944 6.05313L4.37772 6.03625L4.43944 6.01625L4.46972 6.01L4.50401 6.00375L4.53658 6.00125L11.4276 6Z" fill="var(--fg-secondary)"/>
+              </svg>
+            </div>
+          </div>
+
+            <div class="accordion-content">
+            <div class="test-wrapper">
+<div class="test-card">
+                <div class="test-header">
+                  <h4 class="text-body-medium">TC010 Borrower reviews active loans</h4>
+                </div>
+                <div class="test-content">
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Test Code</div>
+                    <div class="test-field-value text-body">
+                      <a href="./TC010_Borrower_reviews_active_loans.py" class="text-link">TC010_Borrower_reviews_active_loans.py</a>
+                    </div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Test Error</div>
+                    <div class="test-field-value text-body">N/A</div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Test Visualization and Result</div>
+                    <div class="test-field-value text-body">
+                      <a href="null" class="text-link">View Results</a>
+                    </div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Status</div>
+                    <div class="test-field-value">
+                      <div class="status-wrapper">
+                <div class="status-icon">
+                    <svg width="18" height="18" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="7.99961" cy="7.99998" r="6.4" fill="#10A363" fill-opacity="0.2"/>
+                        <path d="M5.59961 8.00002L7.19961 9.60002L10.3996 6.40002" stroke="#19C379" stroke-width="1.28" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <span class="text-body status-pass">Pass</span>
+            </div>
+                    </div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Severity</div>
+                    <div class="test-field-value text-body">N/A</div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Analysis / Findings</div>
+                    <div class="test-field-value text-body">The active loans view successfully loads and presents the borrower's current checkouts.</div>
+                  </div>
+                </div>
+              </div>
+<div class="test-card">
+                <div class="test-header">
+                  <h4 class="text-body-medium">TC011 Borrower views active loans</h4>
+                </div>
+                <div class="test-content">
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Test Code</div>
+                    <div class="test-field-value text-body">
+                      <a href="./TC011_Borrower_views_active_loans.py" class="text-link">TC011_Borrower_views_active_loans.py</a>
+                    </div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Test Error</div>
+                    <div class="test-field-value text-body">N/A</div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Test Visualization and Result</div>
+                    <div class="test-field-value text-body">
+                      <a href="null" class="text-link">View Results</a>
+                    </div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Status</div>
+                    <div class="test-field-value">
+                      <div class="status-wrapper">
+                <div class="status-icon">
+                    <svg width="18" height="18" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="7.99961" cy="7.99998" r="6.4" fill="#10A363" fill-opacity="0.2"/>
+                        <path d="M5.59961 8.00002L7.19961 9.60002L10.3996 6.40002" stroke="#19C379" stroke-width="1.28" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <span class="text-body status-pass">Pass</span>
+            </div>
+                    </div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Severity</div>
+                    <div class="test-field-value text-body">N/A</div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Analysis / Findings</div>
+                    <div class="test-field-value text-body">Detailed loan entries are fully visible and readable within the My Books view.</div>
+                  </div>
+                </div>
+              </div>
+<div class="test-card">
+                <div class="test-header">
+                  <h4 class="text-body-medium">TC007 Borrower renews an eligible loan</h4>
+                </div>
+                <div class="test-content">
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Test Code</div>
+                    <div class="test-field-value text-body">
+                      <a href="./TC007_Borrower_renews_an_eligible_loan.py" class="text-link">TC007_Borrower_renews_an_eligible_loan.py</a>
+                    </div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Test Error</div>
+                    <div class="test-field-value text-body">N/A</div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Test Visualization and Result</div>
+                    <div class="test-field-value text-body">
+                      <a href="null" class="text-link">View Results</a>
+                    </div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Status</div>
+                    <div class="test-field-value">
+                      
+            <div class="status-wrapper">
+                <div class="status-icon">
+                    <svg width="18" height="18" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<circle cx="7.99961" cy="7.99998" r="6.4" fill="#C23539" fill-opacity="0.2"/>
+<path d="M8 5.59998V7.99698" stroke="#EF4146" stroke-width="1.38478" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M8 10.394V10.3995" stroke="#EF4146" stroke-width="1.38478" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+                </div>
+                <span class="text-body status-fail">Failed</span>
+            </div>
+            
+                    </div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Severity</div>
+                    <div class="test-field-value text-body">N/A</div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Analysis / Findings</div>
+                    <div class="test-field-value text-body">There is no actionable 'Renew' button in the UI. The Action column universally states 'Not available' for all loans, completely preventing book renewals.</div>
+                  </div>
+                </div>
+              </div>
+<div class="test-card">
+                <div class="test-header">
+                  <h4 class="text-body-medium">TC015 Borrower sees renewal guidance when a loan cannot be renewed</h4>
+                </div>
+                <div class="test-content">
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Test Code</div>
+                    <div class="test-field-value text-body">
+                      <a href="./TC015_Borrower_sees_renewal_guidance_when_a_loan_cannot_be_renewed.py" class="text-link">TC015_Borrower_sees_renewal_guidance_when_a_loan_cannot_be_renewed.py</a>
+                    </div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Test Error</div>
+                    <div class="test-field-value text-body">N/A</div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Test Visualization and Result</div>
+                    <div class="test-field-value text-body">
+                      <a href="null" class="text-link">View Results</a>
+                    </div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Status</div>
+                    <div class="test-field-value">
+                      
+            <div class="status-wrapper">
+                <div class="status-icon">
+                    <svg width="18" height="18" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<circle cx="7.99961" cy="7.99998" r="6.4" fill="#C23539" fill-opacity="0.2"/>
+<path d="M8 5.59998V7.99698" stroke="#EF4146" stroke-width="1.38478" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M8 10.394V10.3995" stroke="#EF4146" stroke-width="1.38478" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+                </div>
+                <span class="text-body status-fail">Failed</span>
+            </div>
+            
+                    </div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Severity</div>
+                    <div class="test-field-value text-body">N/A</div>
+                  </div>
+                  <div class="test-field">
+                    <div class="test-field-label text-body-medium">Analysis / Findings</div>
+                    <div class="test-field-value text-body">Because there are no interactive 'Renew' elements (only static 'Not available' text), there is no way to trigger or validate the specific error feedback messages for non-eligible renewals.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+                <div class="requirement-wrapper accordion-item active">
+          <div class="accordion-header" onclick="toggleAccordion(this)">
+            <div class="requirement-content">
+                                          <div class="requirement-title-row">
+              <h3 class="title-requirement">Profile Management</h3>
                 <div class="requirement-status-tag status-success">
               <svg width="18" height="18" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="7.99961" cy="7.99998" r="6.4" fill="#10A363" fill-opacity="0.2"/>
@@ -1763,13 +2058,13 @@ body {
             <div class="test-wrapper">
 <div class="test-card">
                 <div class="test-header">
-                  <h4 class="text-body-medium">TC003 Update and persist system settings</h4>
+                  <h4 class="text-body-medium">TC013 Borrower updates profile details successfully</h4>
                 </div>
                 <div class="test-content">
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Code</div>
                     <div class="test-field-value text-body">
-                      <a href="./TC003_Update_and_persist_system_settings.py" class="text-link">TC003_Update_and_persist_system_settings.py</a>
+                      <a href="./TC013_Borrower_updates_profile_details_successfully.py" class="text-link">TC013_Borrower_updates_profile_details_successfully.py</a>
                     </div>
                   </div>
                   <div class="test-field">
@@ -1779,7 +2074,7 @@ body {
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Visualization and Result</div>
                     <div class="test-field-value text-body">
-                      <a href="https://www.testsprite.com/dashboard/mcp/tests/2c053129-7cb9-40ff-8259-66ac64898d7d/d63f2e88-dfbe-4959-a63a-53c51b10975b" class="text-link">View Results</a>
+                      <a href="null" class="text-link">View Results</a>
                     </div>
                   </div>
                   <div class="test-field">
@@ -1802,19 +2097,19 @@ body {
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Analysis / Findings</div>
-                    <div class="test-field-value text-body">Test executed perfectly, functionality verified. Settings update and persist correctly.</div>
+                    <div class="test-field-value text-body">Profile modification forms submit correctly and changes persist to the database and UI.</div>
                   </div>
                 </div>
               </div>
 <div class="test-card">
                 <div class="test-header">
-                  <h4 class="text-body-medium">TC010 Show validation when saving incomplete settings</h4>
+                  <h4 class="text-body-medium">TC014 Borrower sees validation when profile changes are incomplete</h4>
                 </div>
                 <div class="test-content">
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Code</div>
                     <div class="test-field-value text-body">
-                      <a href="./TC010_Show_validation_when_saving_incomplete_settings.py" class="text-link">TC010_Show_validation_when_saving_incomplete_settings.py</a>
+                      <a href="./TC014_Borrower_sees_validation_when_profile_changes_are_incomplete.py" class="text-link">TC014_Borrower_sees_validation_when_profile_changes_are_incomplete.py</a>
                     </div>
                   </div>
                   <div class="test-field">
@@ -1824,7 +2119,7 @@ body {
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Visualization and Result</div>
                     <div class="test-field-value text-body">
-                      <a href="https://www.testsprite.com/dashboard/mcp/tests/2c053129-7cb9-40ff-8259-66ac64898d7d/46b02e0c-45d1-4e95-9256-3ae6cd975aec" class="text-link">View Results</a>
+                      <a href="null" class="text-link">View Results</a>
                     </div>
                   </div>
                   <div class="test-field">
@@ -1847,80 +2142,7 @@ body {
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Analysis / Findings</div>
-                    <div class="test-field-value text-body">Test executed perfectly, functionality verified. Settings validation prevents invalid states.</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-                <div class="requirement-wrapper accordion-item active">
-          <div class="accordion-header" onclick="toggleAccordion(this)">
-            <div class="requirement-content">
-                                          <div class="requirement-title-row">
-              <h3 class="title-requirement">Requirement: Audit Logs</h3>
-                <div class="requirement-status-tag status-success">
-              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="7.99961" cy="7.99998" r="6.4" fill="#10A363" fill-opacity="0.2"/>
-                <path d="M5.59961 8.00002L7.19961 9.60002L10.3996 6.40002" stroke="#19C379" stroke-width="1.28" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              <span>1/1</span>
-            </div>
-              </div>
-              <p class="text-body-medium requirement-description">Proper error handling for API calls and invalid data scenarios.</p>
-            </div>
-            <div class="accordion-icon">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M11.4276 6C11.9145 6 12.1687 6.61626 11.875 7.01439L11.8316 7.06689L8.40295 10.817C8.30455 10.9246 8.17364 10.9892 8.03476 10.9988C7.89589 11.0083 7.7586 10.9621 7.64865 10.8688L7.59493 10.817L4.16629 7.06689L4.11886 7.00814L4.088 6.96002L4.05714 6.90002L4.04743 6.87752L4.032 6.83564L4.01371 6.76814L4.008 6.73501L4.00229 6.69751L4 6.66189V6.58814L4.00286 6.55188L4.008 6.51438L4.01371 6.48188L4.032 6.41438L4.04743 6.37251L4.08743 6.29L4.12457 6.23375L4.16629 6.18313L4.22 6.13125L4.26401 6.0975L4.31886 6.06375L4.33944 6.05313L4.37772 6.03625L4.43944 6.01625L4.46972 6.01L4.50401 6.00375L4.53658 6.00125L11.4276 6Z" fill="var(--fg-secondary)"/>
-              </svg>
-            </div>
-          </div>
-
-            <div class="accordion-content">
-            <div class="test-wrapper">
-<div class="test-card">
-                <div class="test-header">
-                  <h4 class="text-body-medium">TC008 View audit logs</h4>
-                </div>
-                <div class="test-content">
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Test Code</div>
-                    <div class="test-field-value text-body">
-                      <a href="./TC008_View_audit_logs.py" class="text-link">TC008_View_audit_logs.py</a>
-                    </div>
-                  </div>
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Test Error</div>
-                    <div class="test-field-value text-body">N/A</div>
-                  </div>
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Test Visualization and Result</div>
-                    <div class="test-field-value text-body">
-                      <a href="https://www.testsprite.com/dashboard/mcp/tests/2c053129-7cb9-40ff-8259-66ac64898d7d/fa5259c5-0e93-4246-a767-7a1d79516174" class="text-link">View Results</a>
-                    </div>
-                  </div>
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Status</div>
-                    <div class="test-field-value">
-                      <div class="status-wrapper">
-                <div class="status-icon">
-                    <svg width="18" height="18" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="7.99961" cy="7.99998" r="6.4" fill="#10A363" fill-opacity="0.2"/>
-                        <path d="M5.59961 8.00002L7.19961 9.60002L10.3996 6.40002" stroke="#19C379" stroke-width="1.28" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </div>
-                <span class="text-body status-pass">Pass</span>
-            </div>
-                    </div>
-                  </div>
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Severity</div>
-                    <div class="test-field-value text-body">N/A</div>
-                  </div>
-                  <div class="test-field">
-                    <div class="test-field-label text-body-medium">Analysis / Findings</div>
-                    <div class="test-field-value text-body">Test executed perfectly, functionality verified. Audit logs display properly.</div>
+                    <div class="test-field-value text-body">Frontend and/or backend validation correctly intercepts incomplete profile submissions and preserves form state while showing errors.</div>
                   </div>
                 </div>
               </div>

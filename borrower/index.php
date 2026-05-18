@@ -52,6 +52,7 @@ $total_borrowed      = $stats['total_borrowed'];
 $pending_count       = $stats['pending_count'];
 $due_soon_count      = $stats['due_soon_count'];
 $next_return         = $stats['next_return'];
+$total_fines         = $stats['total_fines'] ?? 0.00;
 $approved_count      = count($approved_reservations);
 
 $has_renewal_count = !empty($active_loans) && array_key_exists('renewal_count', $active_loans[0]);
@@ -280,6 +281,14 @@ $extraStyles = [
           <div class="rd-stat-title">Reservations</div>
           <div class="rd-stat-sub">pending</div>
         </div>
+        <div class="rd-card rd-stat">
+          <div class="rd-stat-icon rd-i-red" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+          </div>
+          <div class="rd-stat-val rd-stat-val-serif">₱<?= number_format($total_fines, 2) ?></div>
+          <div class="rd-stat-title">Unpaid Fines</div>
+          <div class="rd-stat-sub">outstanding balance</div>
+        </div>
       </div>
 
       <div class="rd-layout-grid rd-stagger">
@@ -336,11 +345,7 @@ $extraStyles = [
                         </td>
                         <td>
                           <?php
-                            $renew_count = $has_renewal_count && isset($loan['renewal_count']) ? (int)$loan['renewal_count'] : 0;
-                            $renew_eligible = $loan['status'] === 'active'
-                                && strtotime($loan['due_date']) - time() <= 86400
-                                && strtotime($loan['due_date']) > time()
-                                && $renew_count < 1;
+                            $renew_eligible = !empty($loan['renewal_eligible']);
                           ?>
                           <?php if ($renew_eligible): ?>
                           <form method="POST" action="<?= htmlspecialchars(BASE_URL . 'borrower/renew.php', ENT_QUOTES, 'UTF-8') ?>" style="margin:0;">

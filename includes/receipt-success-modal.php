@@ -142,6 +142,24 @@ $receipt_modal_msg_id = $receipt_modal_dom_id . '-message';
     flex-wrap: wrap;
   }
 
+  .receipt-success-modal__actions .btn-ghost {
+    background: #ffffff;
+    color: #0f0e0c;
+    border: 1px solid #d5cfc4;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .receipt-success-modal__actions .btn-ghost:hover:not([disabled]) {
+    background: #f0ebe1;
+    border-color: #c4bcb0;
+  }
+
   .receipt-success-modal__download-btn[disabled],
   .receipt-success-modal__retry-btn[disabled] {
     opacity: 0.6;

@@ -51,7 +51,7 @@ class BorrowerAccountSummaryModule
       $renewalCount = ($hasRenewalCount && isset($loan['renewal_count'])) ? (int) $loan['renewal_count'] : 0;
       $dueTs = strtotime($loan['due_date']);
       $loan['renewal_eligible'] = $loan['status'] === 'active'
-        && $dueTs !== false && $dueTs <= (time() + 86400)
+        && $dueTs !== false
         && $dueTs > time()
         && $renewalCount < 1;
     }
@@ -126,6 +126,10 @@ class BorrowerAccountSummaryModule
     $qDueSoon->execute([$userId]);
     $dueRow = $qDueSoon->fetch();
 
+    $qFines = $pdo->prepare("SELECT SUM(fine_amount) FROM Circulation WHERE user_id = ? AND fine_paid = 0 AND fine_amount > 0");
+    $qFines->execute([$userId]);
+    $totalFines = (float) $qFines->fetchColumn();
+
     return [
       'active_loans'            => $activeLoans,
       'approved_reservations'   => $approvedReservations,
@@ -138,6 +142,7 @@ class BorrowerAccountSummaryModule
         'pending_count'      => count($pendingReservations),
         'due_soon_count'     => (int) ($dueRow['due_soon_count'] ?? 0),
         'next_return'        => $dueRow['next_return'] ?? null,
+        'total_fines'        => $totalFines,
       ],
     ];
   }

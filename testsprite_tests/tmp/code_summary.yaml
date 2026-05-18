@@ -6,57 +6,98 @@ tech_stack:
   - html/css
   - mysql
 routes:
-  - path: /admin/index.php
-    file: admin/index.php
+  - path: /librarian/index.php
+    file: librarian/index.php
     auth_required: true
-    description: Admin Dashboard
-  - path: /admin/users.php
-    file: admin/users.php
+    description: Librarian Dashboard
+  - path: /librarian/catalog.php
+    file: librarian/catalog.php
     auth_required: true
-    description: Manage Users
-  - path: /admin/settings.php
-    file: admin/settings.php
+    description: Manage Books Catalog
+  - path: /librarian/catalog-add.php
+    file: librarian/catalog-add.php
     auth_required: true
-    description: System Settings
-  - path: /admin/audit-log.php
-    file: admin/audit-log.php
+    description: Add New Book
+  - path: /librarian/catalog-edit.php
+    file: librarian/catalog-edit.php
     auth_required: true
-    description: View Audit Logs
-  - path: /login.php
-    file: login.php
-    auth_required: false
-    description: Login Page
+    description: Edit Book Details
+  - path: /librarian/checkin.php
+    file: librarian/checkin.php
+    auth_required: true
+    description: Process Book Returns
+  - path: /librarian/checkout.php
+    file: librarian/checkout.php
+    auth_required: true
+    description: Process Book Loans
+  - path: /librarian/pay-fine.php
+    file: librarian/pay-fine.php
+    auth_required: true
+    description: Process Fine Payments
+  - path: /librarian/records.php
+    file: librarian/records.php
+    auth_required: true
+    description: View Loan Records
+  - path: /librarian/reservations.php
+    file: librarian/reservations.php
+    auth_required: true
+    description: View Reservations
 features:
-  - name: Admin Dashboard
-    description: Main admin dashboard overview
+  - name: Librarian Dashboard
+    description: View system overview and quick links
     files:
-      - admin/index.php
-    entry_route: /admin/index.php
+      - librarian/index.php
+    entry_route: /librarian/index.php
     user_interactions:
-      - View stats
+      - Navigate to various management sections
     api_calls: []
     auth_required: true
-  - name: Manage Users
-    description: Add, update, delete system users
+  - name: Manage Catalog
+    description: View, add, edit, and delete books
     files:
-      - admin/users.php
-    entry_route: /admin/users.php
+      - librarian/catalog.php
+      - librarian/catalog-add.php
+      - librarian/catalog-edit.php
+      - librarian/catalog-delete.php
+    entry_route: /librarian/catalog.php
     user_interactions:
-      - Fill create user form
-      - Submit create user
-      - View users list
-      - Click edit user
-      - Click delete user
+      - View list of books
+      - Search and filter catalog
+      - Click add book to create a new book
+      - Click edit to modify an existing book
+      - Click delete to remove a book
     api_calls: []
     auth_required: true
-  - name: System Settings
-    description: Update global system settings
+  - name: Process Checkout
+    description: Loan books to borrowers
     files:
-      - admin/settings.php
-    entry_route: /admin/settings.php
+      - librarian/checkout.php
+    entry_route: /librarian/checkout.php
     user_interactions:
-      - Change setting values
-      - Save settings
+      - Enter borrower ID
+      - Enter book copy ID
+      - Submit to create loan
+    api_calls: []
+    auth_required: true
+  - name: Process Checkin
+    description: Return borrowed books
+    files:
+      - librarian/checkin.php
+    entry_route: /librarian/checkin.php
+    user_interactions:
+      - Enter book copy ID
+      - Submit to process return
+    api_calls: []
+    auth_required: true
+  - name: Manage Reservations
+    description: Approve or reject reservations
+    files:
+      - librarian/reservations.php
+    entry_route: /librarian/reservations.php
+    user_interactions:
+      - View pending reservations
+      - Approve reservation
+      - Reject reservation
     api_calls: []
     auth_required: true
 known_limitations: []

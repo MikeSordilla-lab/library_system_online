@@ -5,112 +5,130 @@
 ## 1️⃣ Document Metadata
 - **Project Name:** library_system_online
 - **Date:** 2026-05-19
-- **Prepared by:** TestSprite AI Team & Antigravity
+- **Prepared by:** TestSprite AI Team / Antigravity
 
 ---
 
 ## 2️⃣ Requirement Validation Summary
 
-### Requirement: Admin Dashboard
+### User Authentication & Authorization
 
-#### Test TC001 Access the admin dashboard after signing in
-- **Test Code:** [TC001_Access_the_admin_dashboard_after_signing_in.py](./TC001_Access_the_admin_dashboard_after_signing_in.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/2c053129-7cb9-40ff-8259-66ac64898d7d/fda8d0e9-bf7b-4afd-b5f3-79de55de9882
+#### Test TC001 Borrower signs in and reaches the dashboard
+- **Test Code:** [TC001_Borrower_signs_in_and_reaches_the_dashboard.py](./TC001_Borrower_signs_in_and_reaches_the_dashboard.py)
 - **Status:** ✅ Passed
-- **Analysis / Findings:** Test executed perfectly, functionality verified. Admin dashboard is accessible post-login.
+- **Analysis / Findings:** Authentication flow is working correctly. User successfully transitions to the borrower dashboard after login.
 ---
 
-#### Test TC006 View dashboard statistics
-- **Test Code:** [TC006_View_dashboard_statistics.py](./TC006_View_dashboard_statistics.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/2c053129-7cb9-40ff-8259-66ac64898d7d/1dc1c65d-4682-4c97-b9d2-0110c83a4150
+#### Test TC002 Borrower logs in and reaches the dashboard
+- **Test Code:** [TC002_Borrower_logs_in_and_reaches_the_dashboard.py](./TC002_Borrower_logs_in_and_reaches_the_dashboard.py)
 - **Status:** ✅ Passed
-- **Analysis / Findings:** Test executed perfectly, functionality verified. Dashboard statistics load correctly.
+- **Analysis / Findings:** Core account statistics are visible immediately after login, validating the initial dashboard load.
 ---
 
-### Requirement: Manage Users
-
-#### Test TC002 Create a new user
-- **Test Code:** [TC002_Create_a_new_user.py](./TC002_Create_a_new_user.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/2c053129-7cb9-40ff-8259-66ac64898d7d/017e881e-77a3-4372-81ac-3f4d0f713eae
+#### Test TC003 Borrower is blocked from protected pages without signing in
+- **Test Code:** [TC003_Borrower_is_blocked_from_protected_pages_without_signing_in.py](./TC003_Borrower_is_blocked_from_protected_pages_without_signing_in.py)
 - **Status:** ✅ Passed
-- **Analysis / Findings:** Test executed perfectly, functionality verified. User creation workflow operates correctly.
+- **Analysis / Findings:** Auth guard middleware successfully intercepts unauthorized access to protected dashboard and profile routes.
 ---
 
-#### Test TC004 Edit an existing user
-- **Test Code:** [TC004_Edit_an_existing_user.py](./TC004_Edit_an_existing_user.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/2c053129-7cb9-40ff-8259-66ac64898d7d/cc7cf6c7-1c37-46c1-aaf4-4baab375f571
+#### Test TC004 Protected borrower pages require sign-in
+- **Test Code:** [TC004_Protected_borrower_pages_require_sign_in.py](./TC004_Protected_borrower_pages_require_sign_in.py)
+- **Status:** ✅ Passed
+- **Analysis / Findings:** Direct URL navigation to protected catalog and loan pages redirects unauthenticated users to the login screen.
+---
+
+### Borrower Dashboard
+
+#### Test TC005 Borrower sees dashboard stats after signing in
+- **Test Code:** [TC005_Borrower_sees_dashboard_stats_after_signing_in.py](./TC005_Borrower_sees_dashboard_stats_after_signing_in.py)
+- **Status:** ❌ Failed
+- **Analysis / Findings:** The Fines statistic component is completely missing from the dashboard view. While Active Loans and Pending Reservations render correctly, there is no UI indicator for accumulated fines, violating the dashboard presentation requirements.
+---
+
+### Catalog & Reservations
+
+#### Test TC008 Borrower sees catalog results after signing in
+- **Test Code:** [TC008_Borrower_sees_catalog_results_after_signing_in.py](./TC008_Borrower_sees_catalog_results_after_signing_in.py)
+- **Status:** ✅ Passed
+- **Analysis / Findings:** Catalog items are successfully fetched and displayed for authenticated borrowers.
+---
+
+#### Test TC009 Borrower opens the catalog from the portal
+- **Test Code:** [TC009_Borrower_opens_the_catalog_from_the_portal.py](./TC009_Borrower_opens_the_catalog_from_the_portal.py)
+- **Status:** ✅ Passed
+- **Analysis / Findings:** Portal navigation links to the catalog function as expected.
+---
+
+#### Test TC006 Borrower reserves a book from the catalog
+- **Test Code:** [TC006_Borrower_reserves_a_book_from_the_catalog.py](./TC006_Borrower_reserves_a_book_from_the_catalog.py)
 - **Status:** ⚠️ BLOCKED
-- **Analysis / Findings:** The test could not be completed — the confirmation action in the 'Save Credential Changes?' modal cannot be triggered from the available interactive elements. The confirmation modal is visible but the 'Save Credentials' button isn't exposed to the agent properly.
+- **Analysis / Findings:** The test account has overdue items, which triggers a block on new reservations. This demonstrates that the overdue restriction logic works, but prevents testing the happy path of the reservation flow.
 ---
 
-#### Test TC005 Delete a user with confirmation
-- **Test Code:** [TC005_Delete_a_user_with_confirmation.py](./TC005_Delete_a_user_with_confirmation.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/2c053129-7cb9-40ff-8259-66ac64898d7d/c7715862-52ef-42db-9f5a-49aca79471f2
+#### Test TC012 Borrower returns to the catalog with updated reservation state
+- **Test Code:** [TC012_Borrower_returns_to_the_catalog_with_updated_reservation_state.py](./TC012_Borrower_returns_to_the_catalog_with_updated_reservation_state.py)
+- **Status:** ❌ Failed
+- **Analysis / Findings:** Fails as a cascade effect of TC006. Because the reservation was blocked by overdue fines, the catalog UI never updated to reflect the 'Reserved' state.
+---
+
+### Active Loans & Renewals
+
+#### Test TC010 Borrower reviews active loans
+- **Test Code:** [TC010_Borrower_reviews_active_loans.py](./TC010_Borrower_reviews_active_loans.py)
+- **Status:** ✅ Passed
+- **Analysis / Findings:** The active loans view successfully loads and presents the borrower's current checkouts.
+---
+
+#### Test TC011 Borrower views active loans
+- **Test Code:** [TC011_Borrower_views_active_loans.py](./TC011_Borrower_views_active_loans.py)
+- **Status:** ✅ Passed
+- **Analysis / Findings:** Detailed loan entries are fully visible and readable within the My Books view.
+---
+
+#### Test TC007 Borrower renews an eligible loan
+- **Test Code:** [TC007_Borrower_renews_an_eligible_loan.py](./TC007_Borrower_renews_an_eligible_loan.py)
+- **Status:** ❌ Failed
+- **Analysis / Findings:** There is no actionable 'Renew' button in the UI. The Action column universally states 'Not available' for all loans, completely preventing book renewals.
+---
+
+#### Test TC015 Borrower sees renewal guidance when a loan cannot be renewed
+- **Test Code:** [TC015_Borrower_sees_renewal_guidance_when_a_loan_cannot_be_renewed.py](./TC015_Borrower_sees_renewal_guidance_when_a_loan_cannot_be_renewed.py)
 - **Status:** ⚠️ BLOCKED
-- **Analysis / Findings:** The test could not be run to completion — the final confirmation button inside the delete confirmation modal could not be interacted with. Pressing Enter also did not confirm deletion.
+- **Analysis / Findings:** Because there are no interactive 'Renew' elements (only static 'Not available' text), there is no way to trigger or validate the specific error feedback messages for non-eligible renewals.
 ---
 
-#### Test TC007 Persist user changes after refresh
-- **Test Code:** [TC007_Persist_user_changes_after_refresh.py](./TC007_Persist_user_changes_after_refresh.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/2c053129-7cb9-40ff-8259-66ac64898d7d/6ec6478b-8995-4281-a1d6-41a5c957241e
-- **Status:** ⚠️ BLOCKED
-- **Analysis / Findings:** The confirmation control to commit the user change is not accessible via the page's interactive elements. The agent could not locate or click the 'Save Credentials' button, similar to TC004.
----
+### Profile Management
 
-#### Test TC009 Keep a user when deletion is cancelled
-- **Test Code:** [TC009_Keep_a_user_when_deletion_is_cancelled.py](./TC009_Keep_a_user_when_deletion_is_cancelled.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/2c053129-7cb9-40ff-8259-66ac64898d7d/a201e4f3-be31-4eb9-b0a5-04b69b3f7fad
+#### Test TC013 Borrower updates profile details successfully
+- **Test Code:** [TC013_Borrower_updates_profile_details_successfully.py](./TC013_Borrower_updates_profile_details_successfully.py)
 - **Status:** ✅ Passed
-- **Analysis / Findings:** Test executed perfectly, functionality verified. Canceling a deletion behaves as expected.
+- **Analysis / Findings:** Profile modification forms submit correctly and changes persist to the database and UI.
 ---
 
-#### Test TC011 Show validation when creating a user with missing required details
-- **Test Code:** [TC011_Show_validation_when_creating_a_user_with_missing_required_details.py](./TC011_Show_validation_when_creating_a_user_with_missing_required_details.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/2c053129-7cb9-40ff-8259-66ac64898d7d/247cc52c-b834-465d-9c80-3aebdcc4ee03
+#### Test TC014 Borrower sees validation when profile changes are incomplete
+- **Test Code:** [TC014_Borrower_sees_validation_when_profile_changes_are_incomplete.py](./TC014_Borrower_sees_validation_when_profile_changes_are_incomplete.py)
 - **Status:** ✅ Passed
-- **Analysis / Findings:** Test executed perfectly, functionality verified. Required field validation successfully prevents invalid creation.
+- **Analysis / Findings:** Frontend and/or backend validation correctly intercepts incomplete profile submissions and preserves form state while showing errors.
 ---
-
-### Requirement: System Settings
-
-#### Test TC003 Update and persist system settings
-- **Test Code:** [TC003_Update_and_persist_system_settings.py](./TC003_Update_and_persist_system_settings.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/2c053129-7cb9-40ff-8259-66ac64898d7d/d63f2e88-dfbe-4959-a63a-53c51b10975b
-- **Status:** ✅ Passed
-- **Analysis / Findings:** Test executed perfectly, functionality verified. Settings update and persist correctly.
----
-
-#### Test TC010 Show validation when saving incomplete settings
-- **Test Code:** [TC010_Show_validation_when_saving_incomplete_settings.py](./TC010_Show_validation_when_saving_incomplete_settings.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/2c053129-7cb9-40ff-8259-66ac64898d7d/46b02e0c-45d1-4e95-9256-3ae6cd975aec
-- **Status:** ✅ Passed
-- **Analysis / Findings:** Test executed perfectly, functionality verified. Settings validation prevents invalid states.
----
-
-### Requirement: Audit Logs
-
-#### Test TC008 View audit logs
-- **Test Code:** [TC008_View_audit_logs.py](./TC008_View_audit_logs.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/2c053129-7cb9-40ff-8259-66ac64898d7d/fa5259c5-0e93-4246-a767-7a1d79516174
-- **Status:** ✅ Passed
-- **Analysis / Findings:** Test executed perfectly, functionality verified. Audit logs display properly.
----
-
 
 ## 3️⃣ Coverage & Matching Metrics
 
-- **72.73%** of tests passed
+- **10 / 15 (66.67%)** of tests passed
+- **3 / 15 (20.00%)** of tests failed
+- **2 / 15 (13.33%)** of tests blocked
 
-| Requirement        | Total Tests | ✅ Passed | ❌ Failed/Blocked |
-|--------------------|-------------|-----------|-------------------|
-| Admin Dashboard    | 2           | 2         | 0                 |
-| Manage Users       | 6           | 3         | 3                 |
-| System Settings    | 2           | 2         | 0                 |
-| Audit Logs         | 1           | 1         | 0                 |
+| Requirement                      | Total Tests | ✅ Passed | ❌ Failed | ⚠️ Blocked |
+|----------------------------------|-------------|-----------|-----------|------------|
+| User Authentication & Auth       | 4           | 4         | 0         | 0          |
+| Profile Management               | 2           | 2         | 0         | 0          |
+| Catalog & Reservations           | 4           | 2         | 1         | 1          |
+| Active Loans & Renewals          | 4           | 2         | 1         | 1          |
+| Borrower Dashboard               | 1           | 0         | 1         | 0          |
+
 ---
-
 
 ## 4️⃣ Key Gaps / Risks
-- **Modal Accessibility Issues:** Automated test agent cannot interact with the confirmation buttons inside the 'Save Credential Changes?' and 'Delete User' modals. This suggests that the buttons might lack appropriate ARIA roles, might be obscured by a DOM overlay with a higher z-index, or might reside within an inaccessible shadow boundary. This is a risk not only for automated testability but potentially for accessibility, meaning screen-reader or keyboard-only users could encounter the same blockers.
-- **Keyboard Navigation Missing on Modals:** The test observations noted that pressing Enter while the delete modal was open did not confirm the deletion. It's a standard practice for critical modals to capture focus and respond to keyboard interactions, suggesting a usability enhancement opportunity.
----
+
+1. **Missing Dashboard Elements:** The 'Fines' statistic is completely absent from the Borrower Dashboard (`borrower/index.php`). This is a critical gap as users cannot see their outstanding balances.
+2. **Broken Renewal Functionality:** The 'Renew' action is completely missing from the `borrower/my_books.php` page. All items simply show 'Not available' in the action column, preventing any users from extending their loans.
+3. **Test Data State Dependency:** The automated tests for reservations (`TC006`, `TC012`) are currently blocked because the default test user account has overdue books. To accurately test the reservation happy-path, the seed data must be adjusted or the test runner must clear user fines/overdue states before executing these specific tests.

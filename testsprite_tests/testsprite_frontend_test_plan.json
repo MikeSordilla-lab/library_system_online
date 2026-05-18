@@ -1,9 +1,9 @@
 [
   {
     "id": "TC001",
-    "title": "Access the admin dashboard after signing in",
-    "description": "An administrator can sign in and reach the dashboard to review system status.",
-    "category": "Admin Dashboard",
+    "title": "Borrower signs in and reaches the dashboard",
+    "description": "This test verifies that a borrower can sign in with valid credentials and land on the authenticated dashboard with portal access available.",
+    "category": "User Login",
     "steps": [
       {
         "type": "action",
@@ -22,25 +22,21 @@
         "description": "Submit the login form"
       },
       {
-        "type": "action",
-        "description": "Navigate to /admin/index.php"
+        "type": "assertion",
+        "description": "Verify the borrower dashboard is displayed"
       },
       {
         "type": "assertion",
-        "description": "Verify dashboard statistics are displayed"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify the admin overview page is shown"
+        "description": "Verify dashboard statistics are visible"
       }
     ],
     "priority": "High"
   },
   {
     "id": "TC002",
-    "title": "Create a new user",
-    "description": "An administrator can create a new user from the users page and see the new user appear in the list.",
-    "category": "Manage Users",
+    "title": "Borrower logs in and reaches the dashboard",
+    "description": "This verifies a borrower can sign in and land on the dashboard with core account statistics visible.",
+    "category": "Book Catalog and Reservation",
     "steps": [
       {
         "type": "action",
@@ -59,131 +55,95 @@
         "description": "Submit the login form"
       },
       {
-        "type": "action",
-        "description": "Navigate to /admin/users.php"
-      },
-      {
-        "type": "action",
-        "description": "Fill in a unique username in the create user form"
-      },
-      {
-        "type": "action",
-        "description": "Fill in the remaining required user details in the create user form"
-      },
-      {
-        "type": "action",
-        "description": "Submit the create user form"
+        "type": "assertion",
+        "description": "Verify the borrower dashboard is displayed"
       },
       {
         "type": "assertion",
-        "description": "Verify the new user appears in the users list"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify the users list is displayed"
+        "description": "Verify dashboard statistics are visible"
       }
     ],
     "priority": "High"
   },
   {
     "id": "TC003",
-    "title": "Update and persist system settings",
-    "description": "An administrator can change global settings, save them, and see the saved values remain on the settings page.",
-    "category": "System Settings",
+    "title": "Borrower is blocked from protected pages without signing in",
+    "description": "This test verifies that protected borrower routes cannot be accessed directly without authentication and the user is redirected or blocked.",
+    "category": "Borrower Dashboard",
     "steps": [
       {
         "type": "action",
-        "description": "Navigate to /login.php"
-      },
-      {
-        "type": "action",
-        "description": "Fill in the username field with {{LOGIN_USER}}"
-      },
-      {
-        "type": "action",
-        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
-      },
-      {
-        "type": "action",
-        "description": "Submit the login form"
-      },
-      {
-        "type": "action",
-        "description": "Navigate to /admin/settings.php"
-      },
-      {
-        "type": "action",
-        "description": "Change one or more setting values"
-      },
-      {
-        "type": "action",
-        "description": "Save the settings"
-      },
-      {
-        "type": "action",
-        "description": "Refresh the page"
+        "description": "Navigate to /borrower/index.php"
       },
       {
         "type": "assertion",
-        "description": "Verify the updated settings are shown on the page"
+        "description": "Verify access is blocked or redirected to sign in"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /borrower/profile.php"
       },
       {
         "type": "assertion",
-        "description": "Verify a successful save confirmation is visible"
+        "description": "Verify access is blocked or redirected to sign in"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /borrower/catalog.php"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify access is blocked or redirected to sign in"
       }
     ],
     "priority": "High"
   },
   {
     "id": "TC004",
-    "title": "Edit an existing user",
-    "description": "An administrator can update an existing user and see the edited values reflected in the users list.",
-    "category": "Manage Users",
+    "title": "Protected borrower pages require sign-in",
+    "description": "This verifies direct access to borrower pages without signing in is blocked or redirected to the login page.",
+    "category": "Book Catalog and Reservation",
     "steps": [
       {
         "type": "action",
-        "description": "Navigate to /login.php"
-      },
-      {
-        "type": "action",
-        "description": "Fill in the username field with {{LOGIN_USER}}"
-      },
-      {
-        "type": "action",
-        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
-      },
-      {
-        "type": "action",
-        "description": "Submit the login form"
-      },
-      {
-        "type": "action",
-        "description": "Navigate to /admin/users.php"
-      },
-      {
-        "type": "action",
-        "description": "Select a user to edit"
-      },
-      {
-        "type": "action",
-        "description": "Update the selected user's details"
-      },
-      {
-        "type": "action",
-        "description": "Submit the changes"
+        "description": "Navigate to /borrower/index.php"
       },
       {
         "type": "assertion",
-        "description": "Verify the updated user information is shown in the users list"
+        "description": "Verify access is blocked or the login page is displayed"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /borrower/catalog.php"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify access is blocked or the login page is displayed"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /borrower/my_books.php"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify access is blocked or the login page is displayed"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /borrower/profile.php"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify access is blocked or the login page is displayed"
       }
     ],
     "priority": "High"
   },
   {
     "id": "TC005",
-    "title": "Delete a user with confirmation",
-    "description": "An administrator can delete a user after confirming the destructive action and the user is removed from the list.",
-    "category": "Manage Users",
+    "title": "Borrower sees dashboard stats after signing in",
+    "description": "This test verifies that a signed-in borrower can open the dashboard and review account statistics for loans, fines, and reservations.",
+    "category": "Borrower Dashboard",
     "steps": [
       {
         "type": "action",
@@ -203,28 +163,24 @@
       },
       {
         "type": "action",
-        "description": "Navigate to /admin/users.php"
-      },
-      {
-        "type": "action",
-        "description": "Select a user to delete"
-      },
-      {
-        "type": "action",
-        "description": "Confirm the deletion"
+        "description": "Click the link to open the borrower dashboard"
       },
       {
         "type": "assertion",
-        "description": "Verify the user is removed from the users list"
+        "description": "Verify loan, fine, and reservation statistics are visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the dashboard content is loaded"
       }
     ],
     "priority": "High"
   },
   {
     "id": "TC006",
-    "title": "View dashboard statistics",
-    "description": "An authenticated administrator can open the dashboard and see system summary information.",
-    "category": "Admin Dashboard",
+    "title": "Borrower reserves a book from the catalog",
+    "description": "This verifies a borrower can reserve a book from the catalog and see the reservation confirmed.",
+    "category": "Book Catalog and Reservation",
     "steps": [
       {
         "type": "action",
@@ -244,20 +200,32 @@
       },
       {
         "type": "action",
-        "description": "Navigate to /admin/index.php"
+        "description": "Click the link to open the catalog"
+      },
+      {
+        "type": "action",
+        "description": "Click the reserve action for an available book"
+      },
+      {
+        "type": "action",
+        "description": "Confirm the reservation"
       },
       {
         "type": "assertion",
-        "description": "Verify dashboard statistics are displayed"
+        "description": "Verify a reservation confirmation is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the reserved book is shown as reserved"
       }
     ],
-    "priority": "Medium"
+    "priority": "High"
   },
   {
     "id": "TC007",
-    "title": "Persist user changes after refresh",
-    "description": "An administrator can save a user change and the updated value remains visible after the page is refreshed.",
-    "category": "Manage Users",
+    "title": "Borrower renews an eligible loan",
+    "description": "This verifies a borrower can renew an eligible loan and receive a successful renewal confirmation.",
+    "category": "Manage Active Loans",
     "steps": [
       {
         "type": "action",
@@ -277,36 +245,28 @@
       },
       {
         "type": "action",
-        "description": "Navigate to /admin/users.php"
+        "description": "Click the link to view active loans"
       },
       {
         "type": "action",
-        "description": "Select a user to edit"
-      },
-      {
-        "type": "action",
-        "description": "Update the selected user's details"
-      },
-      {
-        "type": "action",
-        "description": "Submit the changes"
-      },
-      {
-        "type": "action",
-        "description": "Refresh the page"
+        "description": "Click the renew action for an eligible loan"
       },
       {
         "type": "assertion",
-        "description": "Verify the updated user information remains visible in the users list"
+        "description": "Verify a renewal success confirmation is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the loan now shows an updated due date or renewed state"
       }
     ],
-    "priority": "Medium"
+    "priority": "High"
   },
   {
     "id": "TC008",
-    "title": "View audit logs",
-    "description": "An authenticated administrator can open the audit log page and review recorded activity.",
-    "category": "View Audit Logs",
+    "title": "Borrower sees catalog results after signing in",
+    "description": "This verifies a signed-in borrower can open the catalog and view available books.",
+    "category": "Book Catalog and Reservation",
     "steps": [
       {
         "type": "action",
@@ -326,20 +286,229 @@
       },
       {
         "type": "action",
-        "description": "Navigate to /admin/audit-log.php"
+        "description": "Click the link to open the catalog"
       },
       {
         "type": "assertion",
-        "description": "Verify audit log entries are displayed"
+        "description": "Verify the catalog page is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a list of books is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC009",
+    "title": "Borrower opens the catalog from the portal",
+    "description": "This test verifies that a borrower can reach the catalog from the portal and see available books to browse.",
+    "category": "Borrower Dashboard",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.php"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open the catalog"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the catalog page is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify book listings are visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC010",
+    "title": "Borrower reviews active loans",
+    "description": "This test verifies that a borrower can open the active loans page and view the books currently on loan.",
+    "category": "Borrower Active Loans",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.php"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to view active loans"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify active loans are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify loan details are visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC011",
+    "title": "Borrower views active loans",
+    "description": "This verifies a borrower can open active loans and see the list of currently borrowed books.",
+    "category": "Manage Active Loans",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.php"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to view active loans"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the active loans page is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify active loan entries are visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC012",
+    "title": "Borrower returns to the catalog with updated reservation state",
+    "description": "This verifies the catalog reflects a successful reservation after the borrower completes the reserve flow.",
+    "category": "Book Catalog and Reservation",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.php"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open the catalog"
+      },
+      {
+        "type": "action",
+        "description": "Click the reserve action for an available book"
+      },
+      {
+        "type": "action",
+        "description": "Confirm the reservation"
+      },
+      {
+        "type": "action",
+        "description": "Return to the catalog"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the catalog is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the book shows an updated reserved state"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC013",
+    "title": "Borrower updates profile details successfully",
+    "description": "This test verifies that a borrower can edit profile information, save the changes, and see the updated details displayed afterward.",
+    "category": "Borrower Profile Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.php"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open the profile page"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the updated profile details"
+      },
+      {
+        "type": "action",
+        "description": "Submit the profile update"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated profile information is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a save confirmation is visible"
       }
     ],
     "priority": "Medium"
   },
   {
-    "id": "TC009",
-    "title": "Keep a user when deletion is cancelled",
-    "description": "An administrator can cancel a delete action and the selected user remains in the list.",
-    "category": "Manage Users",
+    "id": "TC014",
+    "title": "Borrower sees validation when profile changes are incomplete",
+    "description": "This test verifies that a borrower cannot submit invalid profile edits and receives validation feedback without losing the page.",
+    "category": "Borrower Profile Management",
     "steps": [
       {
         "type": "action",
@@ -359,28 +528,32 @@
       },
       {
         "type": "action",
-        "description": "Navigate to /admin/users.php"
+        "description": "Click the link to open the profile page"
       },
       {
         "type": "action",
-        "description": "Select a user to delete"
+        "description": "Clear a required profile field"
       },
       {
         "type": "action",
-        "description": "Cancel the deletion"
+        "description": "Submit the profile update"
       },
       {
         "type": "assertion",
-        "description": "Verify the user remains in the users list"
+        "description": "Verify a profile validation error is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the profile form remains available"
       }
     ],
     "priority": "Low"
   },
   {
-    "id": "TC010",
-    "title": "Show validation when saving incomplete settings",
-    "description": "An administrator sees validation feedback when required settings are left blank and the current settings remain unchanged.",
-    "category": "System Settings",
+    "id": "TC015",
+    "title": "Borrower sees renewal guidance when a loan cannot be renewed",
+    "description": "This verifies a borrower receives clear feedback when attempting to renew a loan that is not eligible for renewal.",
+    "category": "Manage Active Loans",
     "steps": [
       {
         "type": "action",
@@ -400,32 +573,28 @@
       },
       {
         "type": "action",
-        "description": "Navigate to /admin/settings.php"
+        "description": "Click the link to view active loans"
       },
       {
         "type": "action",
-        "description": "Clear a required setting value"
-      },
-      {
-        "type": "action",
-        "description": "Save the settings"
+        "description": "Click the renew action for a loan that is not eligible for renewal"
       },
       {
         "type": "assertion",
-        "description": "Verify a settings validation error is visible"
+        "description": "Verify a renewal error message is visible"
       },
       {
         "type": "assertion",
-        "description": "Verify the existing settings remain displayed"
+        "description": "Verify the loan remains unchanged"
       }
     ],
     "priority": "Low"
   },
   {
-    "id": "TC011",
-    "title": "Show validation when creating a user with missing required details",
-    "description": "An administrator sees validation feedback when attempting to create a user without required information and no user is added.",
-    "category": "Manage Users",
+    "id": "TC016",
+    "title": "Borrower handles an empty state in the catalog or loans area",
+    "description": "This test verifies that when there are no items to show in a borrower browsing or loans view, the app presents an empty state instead of broken content.",
+    "category": "Borrower Catalog",
     "steps": [
       {
         "type": "action",
@@ -445,23 +614,60 @@
       },
       {
         "type": "action",
-        "description": "Navigate to /admin/users.php"
-      },
-      {
-        "type": "action",
-        "description": "Leave the required create user fields empty"
-      },
-      {
-        "type": "action",
-        "description": "Submit the create user form"
+        "description": "Click the link to open the catalog or active loans page"
       },
       {
         "type": "assertion",
-        "description": "Verify a user validation error is visible"
+        "description": "Verify an empty state message is visible when no items are available"
       },
       {
         "type": "assertion",
-        "description": "Verify no new user is added to the users list"
+        "description": "Verify the page remains usable"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC017",
+    "title": "Borrower sees profile validation when required details are missing",
+    "description": "This verifies profile edits are blocked with validation feedback when required information is left empty.",
+    "category": "Borrower Profile",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login.php"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open the profile page"
+      },
+      {
+        "type": "action",
+        "description": "Clear a required profile field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the profile form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a profile validation error is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the profile is not updated"
       }
     ],
     "priority": "Low"
