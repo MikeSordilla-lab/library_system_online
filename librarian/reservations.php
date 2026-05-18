@@ -7,7 +7,7 @@
  * POST: approve/reject a pending reservation with race-safe transitions.
  */
 
-$allowed_roles = ['admin', 'librarian'];
+$allowed_roles = ['librarian'];
 require_once __DIR__ . '/../includes/auth_guard.php';
 require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/circulation.php';

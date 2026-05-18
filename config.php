@@ -210,9 +210,6 @@ define('SMTP_USER', cfg_env('SMTP_USER', ''));
 define('SMTP_PASS', cfg_env('SMTP_PASS', ''));
 define('SMTP_FROM_EMAIL', cfg_env('SMTP_FROM_EMAIL', ''));
 define('SMTP_FROM_NAME', cfg_env('SMTP_FROM_NAME', 'LibraLink'));
-define('MAIL_CAPTURE_ENABLED', cfg_env_bool('MAIL_CAPTURE_ENABLED', true));
-define('MAIL_CAPTURE_ONLY', cfg_env_bool('MAIL_CAPTURE_ONLY', false));
-define('MAIL_CAPTURE_DIR', cfg_env('MAIL_CAPTURE_DIR', __DIR__ . '/storage/mail-capture'));
 
 // Debug Mode (should be false in production)
 define('DEBUG_MODE', cfg_env_bool('DEBUG_MODE', false));

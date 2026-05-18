@@ -102,6 +102,7 @@ try {
             'overdue'               => 'This loan is overdue. Please return the book instead of renewing.',
             'not_active'            => 'This loan is no longer active.',
             'already_renewed'       => 'This book has already been renewed the maximum number of times.',
+            'too_early'             => 'Renewal is only available within 1 day of the due date.',
             'competing_reservation' => 'Another borrower has reserved this book. It cannot be renewed.',
         ];
         $_SESSION['renewal_block'] = [

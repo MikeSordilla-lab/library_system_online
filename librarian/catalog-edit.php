@@ -23,7 +23,7 @@ if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'borrower') {
   exit;
 }
 
-$allowed_roles = ['admin', 'librarian'];
+$allowed_roles = ['librarian'];
 require_once __DIR__ . '/../includes/auth_guard.php';
 require_once __DIR__ . '/../includes/csrf.php';
 

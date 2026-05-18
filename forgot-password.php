@@ -170,9 +170,7 @@ if ($alertType !== '') {
     <div class="auth-panel">
       <div class="auth-panel__inner">
         <h1 class="auth-panel__heading">Reset your password</h1>
-        <p class="auth-panel__sub">
-          <?= $success === '' ? 'Enter your email to receive reset instructions.' : 'Check your email for reset instructions.' ?>
-        </p>
+        <p class="auth-panel__sub">Enter your email to receive reset instructions.</p>
 
         <?php if ($success === ''): ?>
           <form method="post" action="">
@@ -191,9 +189,6 @@ if ($alertType !== '') {
               class="auth-inline-link auth-inline-link--strong">Back to sign in</a>
           </p>
         <?php else: ?>
-          <div class="flash flash-success" role="status" aria-live="polite" aria-atomic="true">
-            <?= htmlspecialchars($success, ENT_QUOTES, 'UTF-8') ?>
-          </div>
           <p class="auth-note auth-note--center">
             <a href="<?= htmlspecialchars(BASE_URL . 'login.php', ENT_QUOTES, 'UTF-8') ?>"
               class="auth-inline-link auth-inline-link--strong">Back to sign in</a>

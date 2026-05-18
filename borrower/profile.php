@@ -20,13 +20,7 @@ unset($_SESSION['flash_error'], $_SESSION['flash_success']);
 
 // ── Handle POST requests ─────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  if (!csrf_is_valid()) {
-    $_SESSION['flash_error'] = 'Invalid or missing CSRF token. Please refresh the page and try again.';
-    header('Location: ' . BASE_URL . 'borrower/profile.php');
-    exit;
-  }
-
-  csrf_verify(); // Rotates token on success
+  csrf_verify(); // Exits on failure, rotates token on success
 
   $action = $_POST['action'] ?? '';
 

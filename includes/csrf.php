@@ -39,25 +39,15 @@ function csrf_token(): string
 }
 
 /**
- * Return whether the submitted token matches the current session token.
- */
-function csrf_is_valid(): bool
-{
-  $submitted = $_POST['csrf_token'] ?? '';
-  $stored    = $_SESSION['csrf_token'] ?? '';
-
-  return is_string($submitted)
-    && $stored !== ''
-    && hash_equals($stored, $submitted);
-}
-
-/**
  * Verify the submitted CSRF token. Regenerates the token on success.
  * Terminates with HTTP 403 if the token is missing or invalid.
  */
 function csrf_verify(): void
 {
-  if (!csrf_is_valid()) {
+  $submitted = $_POST['csrf_token'] ?? '';
+  $stored    = $_SESSION['csrf_token'] ?? '';
+
+  if ($stored === '' || !hash_equals($stored, $submitted)) {
     http_response_code(403);
     exit('403 Forbidden – Invalid or missing CSRF token.');
   }
