@@ -5,130 +5,153 @@
 ## 1️⃣ Document Metadata
 - **Project Name:** library_system_online
 - **Date:** 2026-05-19
-- **Prepared by:** TestSprite AI Team / Antigravity
+- **Prepared by:** TestSprite AI Team & Antigravity
 
 ---
 
 ## 2️⃣ Requirement Validation Summary
 
-### User Authentication & Authorization
+### Requirement: Process Checkout
 
-#### Test TC001 Borrower signs in and reaches the dashboard
-- **Test Code:** [TC001_Borrower_signs_in_and_reaches_the_dashboard.py](./TC001_Borrower_signs_in_and_reaches_the_dashboard.py)
+#### Test TC001 Process a book checkout
+- **Test Code:** [TC001_Process_a_book_checkout.py](./tmp/TC001_Process_a_book_checkout.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/e4d45d87-340f-4345-a0e6-dd58042a1790/dc48f8a2-09f2-491f-87b0-f509faf50dd0
 - **Status:** ✅ Passed
-- **Analysis / Findings:** Authentication flow is working correctly. User successfully transitions to the borrower dashboard after login.
+- **Analysis / Findings:** The checkout flow functions correctly. The librarian can successfully process a checkout and view the confirmation receipt modal.
+
+#### Test TC013 Stay on checkout when borrower information is missing
+- **Test Code:** [TC013_Stay_on_checkout_when_borrower_information_is_missing.py](./tmp/TC013_Stay_on_checkout_when_borrower_information_is_missing.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/e4d45d87-340f-4345-a0e6-dd58042a1790/ec21a5a5-5c47-4c60-a3b1-ca129be62320
+- **Status:** ✅ Passed
+- **Analysis / Findings:** Form validation successfully prevents processing checkouts when borrower information is missing.
+
 ---
 
-#### Test TC002 Borrower logs in and reaches the dashboard
-- **Test Code:** [TC002_Borrower_logs_in_and_reaches_the_dashboard.py](./TC002_Borrower_logs_in_and_reaches_the_dashboard.py)
+### Requirement: Librarian Dashboard
+
+#### Test TC002 Access dashboard after signing in
+- **Test Code:** [TC002_Access_dashboard_after_signing_in.py](./tmp/TC002_Access_dashboard_after_signing_in.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/e4d45d87-340f-4345-a0e6-dd58042a1790/4a1aab74-278e-4875-aa17-f6f34cc5e692
 - **Status:** ✅ Passed
-- **Analysis / Findings:** Core account statistics are visible immediately after login, validating the initial dashboard load.
+- **Analysis / Findings:** The librarian dashboard overview and main management sections are fully accessible after login.
+
+#### Test TC006 Use dashboard quick links to open a management section
+- **Test Code:** [TC006_Use_dashboard_quick_links_to_open_a_management_section.py](./tmp/TC006_Use_dashboard_quick_links_to_open_a_management_section.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/e4d45d87-340f-4345-a0e6-dd58042a1790/6f564630-f4db-4469-bb72-10bc17baca02
+- **Status:** ✅ Passed
+- **Analysis / Findings:** Dashboard quick links effectively route the librarian to catalog management without leaving the authenticated workflow.
+
+#### Test TC011 Review reservations from the management area
+- **Test Code:** [TC011_Review_reservations_from_the_management_area.py](./tmp/TC011_Review_reservations_from_the_management_area.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/e4d45d87-340f-4345-a0e6-dd58042a1790/f2567b53-d150-4859-b837-98c1b2ec075f
+- **Status:** ✅ Passed
+- **Analysis / Findings:** The reservations management page is successfully accessible from the dashboard.
+
 ---
 
-#### Test TC003 Borrower is blocked from protected pages without signing in
-- **Test Code:** [TC003_Borrower_is_blocked_from_protected_pages_without_signing_in.py](./TC003_Borrower_is_blocked_from_protected_pages_without_signing_in.py)
+### Requirement: Process Checkin
+
+#### Test TC003 Complete a book return
+- **Test Code:** [TC003_Complete_a_book_return.py](./tmp/TC003_Complete_a_book_return.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/e4d45d87-340f-4345-a0e6-dd58042a1790/6b72d2b2-2689-4327-b046-0dda699ee713
 - **Status:** ✅ Passed
-- **Analysis / Findings:** Auth guard middleware successfully intercepts unauthorized access to protected dashboard and profile routes.
----
+- **Analysis / Findings:** Valid book returns process successfully and display a completed check-in confirmation and receipt.
 
-#### Test TC004 Protected borrower pages require sign-in
-- **Test Code:** [TC004_Protected_borrower_pages_require_sign_in.py](./TC004_Protected_borrower_pages_require_sign_in.py)
-- **Status:** ✅ Passed
-- **Analysis / Findings:** Direct URL navigation to protected catalog and loan pages redirects unauthenticated users to the login screen.
----
-
-### Borrower Dashboard
-
-#### Test TC005 Borrower sees dashboard stats after signing in
-- **Test Code:** [TC005_Borrower_sees_dashboard_stats_after_signing_in.py](./TC005_Borrower_sees_dashboard_stats_after_signing_in.py)
+#### Test TC015 Reject an invalid book copy ID on return
+- **Test Code:** [TC015_Reject_an_invalid_book_copy_ID_on_return.py](./tmp/TC015_Reject_an_invalid_book_copy_ID_on_return.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/e4d45d87-340f-4345-a0e6-dd58042a1790/92637047-6794-42bc-9609-6e8b8ee54888
 - **Status:** ❌ Failed
-- **Analysis / Findings:** The Fines statistic component is completely missing from the dashboard view. While Active Loans and Pending Reservations render correctly, there is no UI indicator for accumulated fines, violating the dashboard presentation requirements.
+- **Analysis / Findings:** The return form incorrectly allowed submission without a valid Book Copy ID. Instead of throwing a validation error, the server processed an invalid return and displayed a success receipt. This indicates a missing backend validation check for copy IDs during the check-in process.
+
 ---
 
-### Catalog & Reservations
+### Requirement: Manage Catalog
 
-#### Test TC008 Borrower sees catalog results after signing in
-- **Test Code:** [TC008_Borrower_sees_catalog_results_after_signing_in.py](./TC008_Borrower_sees_catalog_results_after_signing_in.py)
+#### Test TC004 Add a new book to the catalog
+- **Test Code:** [TC004_Add_a_new_book_to_the_catalog.py](./tmp/TC004_Add_a_new_book_to_the_catalog.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/e4d45d87-340f-4345-a0e6-dd58042a1790/2a6cf240-6b87-4694-9b23-cd267236e77e
 - **Status:** ✅ Passed
-- **Analysis / Findings:** Catalog items are successfully fetched and displayed for authenticated borrowers.
----
+- **Analysis / Findings:** Librarians can successfully create and save new book entries into the catalog.
 
-#### Test TC009 Borrower opens the catalog from the portal
-- **Test Code:** [TC009_Borrower_opens_the_catalog_from_the_portal.py](./TC009_Borrower_opens_the_catalog_from_the_portal.py)
+#### Test TC005 Save edits to an existing book
+- **Test Code:** [TC005_Save_edits_to_an_existing_book.py](./tmp/TC005_Save_edits_to_an_existing_book.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/e4d45d87-340f-4345-a0e6-dd58042a1790/1c172176-ace5-4e99-9f2f-adca9b5f9e24
 - **Status:** ✅ Passed
-- **Analysis / Findings:** Portal navigation links to the catalog function as expected.
----
+- **Analysis / Findings:** Updating book details works as intended, with changes reflecting immediately in the catalog list.
 
-#### Test TC006 Borrower reserves a book from the catalog
-- **Test Code:** [TC006_Borrower_reserves_a_book_from_the_catalog.py](./TC006_Borrower_reserves_a_book_from_the_catalog.py)
-- **Status:** ⚠️ BLOCKED
-- **Analysis / Findings:** The test account has overdue items, which triggers a block on new reservations. This demonstrates that the overdue restriction logic works, but prevents testing the happy path of the reservation flow.
----
+#### Test TC007 Search the catalog and view matching results
+- **Test Code:** [TC007_Search_the_catalog_and_view_matching_results.py](./tmp/TC007_Search_the_catalog_and_view_matching_results.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/e4d45d87-340f-4345-a0e6-dd58042a1790/7ab2cf5d-1f5f-4b1c-946a-5fa979bc5030
+- **Status:** 🚫 Blocked
+- **Analysis / Findings:** The test was blocked because navigation attempted to hit `/librarian/book_catalog.php`, which returned a 404 Not Found error (the correct path is `catalog.php`). A broken link or incorrect routing instruction might be present in the dashboard UI.
 
-#### Test TC012 Borrower returns to the catalog with updated reservation state
-- **Test Code:** [TC012_Borrower_returns_to_the_catalog_with_updated_reservation_state.py](./TC012_Borrower_returns_to_the_catalog_with_updated_reservation_state.py)
+#### Test TC008 Delete a book from the catalog
+- **Test Code:** [TC008_Delete_a_book_from_the_catalog.py](./tmp/TC008_Delete_a_book_from_the_catalog.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/e4d45d87-340f-4345-a0e6-dd58042a1790/31682dae-f402-4322-93fe-5669dd4a33cb
 - **Status:** ❌ Failed
-- **Analysis / Findings:** Fails as a cascade effect of TC006. Because the reservation was blocked by overdue fines, the catalog UI never updated to reflect the 'Reserved' state.
----
+- **Analysis / Findings:** Deletion failed due to a SQL `PDOException`. The database threw an Integrity Constraint Violation (1451) because the book being deleted had existing records in the `circulation` table. The application should either implement soft deletion or gracefully handle this constraint by notifying the librarian, instead of throwing a fatal error.
 
-### Active Loans & Renewals
-
-#### Test TC010 Borrower reviews active loans
-- **Test Code:** [TC010_Borrower_reviews_active_loans.py](./TC010_Borrower_reviews_active_loans.py)
+#### Test TC014 Cancel deleting a book
+- **Test Code:** [TC014_Cancel_deleting_a_book.py](./tmp/TC014_Cancel_deleting_a_book.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/e4d45d87-340f-4345-a0e6-dd58042a1790/b0787036-8188-4658-88cc-fbce3e43513d
 - **Status:** ✅ Passed
-- **Analysis / Findings:** The active loans view successfully loads and presents the borrower's current checkouts.
+- **Analysis / Findings:** The cancellation flow correctly preserves the book entry in the catalog without deleting it.
+
 ---
 
-#### Test TC011 Borrower views active loans
-- **Test Code:** [TC011_Borrower_views_active_loans.py](./TC011_Borrower_views_active_loans.py)
+### Requirement: Manage Reservations
+
+#### Test TC009 Approve a reservation
+- **Test Code:** [TC009_Approve_a_reservation.py](./tmp/TC009_Approve_a_reservation.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/e4d45d87-340f-4345-a0e6-dd58042a1790/8d434c35-66f2-4b4a-9c10-229bf2015372
+- **Status:** 🚫 Blocked
+- **Analysis / Findings:** The test was blocked due to a lack of test data. There were no pending reservations in the queue (all were already processed), so the approval workflow could not be triggered. 
+
+#### Test TC010 Reject a reservation
+- **Test Code:** [TC010_Reject_a_reservation.py](./tmp/TC010_Reject_a_reservation.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/e4d45d87-340f-4345-a0e6-dd58042a1790/bf9acca6-c15a-4f8c-95d6-aa2ba2f9e274
 - **Status:** ✅ Passed
-- **Analysis / Findings:** Detailed loan entries are fully visible and readable within the My Books view.
----
+- **Analysis / Findings:** The reservation rejection flow completes successfully and updates the reservation status.
 
-#### Test TC007 Borrower renews an eligible loan
-- **Test Code:** [TC007_Borrower_renews_an_eligible_loan.py](./TC007_Borrower_renews_an_eligible_loan.py)
-- **Status:** ❌ Failed
-- **Analysis / Findings:** There is no actionable 'Renew' button in the UI. The Action column universally states 'Not available' for all loans, completely preventing book renewals.
----
-
-#### Test TC015 Borrower sees renewal guidance when a loan cannot be renewed
-- **Test Code:** [TC015_Borrower_sees_renewal_guidance_when_a_loan_cannot_be_renewed.py](./TC015_Borrower_sees_renewal_guidance_when_a_loan_cannot_be_renewed.py)
-- **Status:** ⚠️ BLOCKED
-- **Analysis / Findings:** Because there are no interactive 'Renew' elements (only static 'Not available' text), there is no way to trigger or validate the specific error feedback messages for non-eligible renewals.
----
-
-### Profile Management
-
-#### Test TC013 Borrower updates profile details successfully
-- **Test Code:** [TC013_Borrower_updates_profile_details_successfully.py](./TC013_Borrower_updates_profile_details_successfully.py)
+#### Test TC012 Review pending reservations list
+- **Test Code:** [TC012_Review_pending_reservations_list.py](./tmp/TC012_Review_pending_reservations_list.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/e4d45d87-340f-4345-a0e6-dd58042a1790/37b7316c-47b8-4709-8e84-d4d690cd5ed4
 - **Status:** ✅ Passed
-- **Analysis / Findings:** Profile modification forms submit correctly and changes persist to the database and UI.
+- **Analysis / Findings:** Pending reservation data correctly surfaces in the management lists.
+
 ---
 
-#### Test TC014 Borrower sees validation when profile changes are incomplete
-- **Test Code:** [TC014_Borrower_sees_validation_when_profile_changes_are_incomplete.py](./TC014_Borrower_sees_validation_when_profile_changes_are_incomplete.py)
-- **Status:** ✅ Passed
-- **Analysis / Findings:** Frontend and/or backend validation correctly intercepts incomplete profile submissions and preserves form state while showing errors.
----
 
 ## 3️⃣ Coverage & Matching Metrics
 
-- **10 / 15 (66.67%)** of tests passed
-- **3 / 15 (20.00%)** of tests failed
-- **2 / 15 (13.33%)** of tests blocked
+- **73.33%** of tests passed
 
-| Requirement                      | Total Tests | ✅ Passed | ❌ Failed | ⚠️ Blocked |
-|----------------------------------|-------------|-----------|-----------|------------|
-| User Authentication & Auth       | 4           | 4         | 0         | 0          |
-| Profile Management               | 2           | 2         | 0         | 0          |
-| Catalog & Reservations           | 4           | 2         | 1         | 1          |
-| Active Loans & Renewals          | 4           | 2         | 1         | 1          |
-| Borrower Dashboard               | 1           | 0         | 1         | 0          |
+| Requirement               | Total Tests | ✅ Passed | ❌ Failed | 🚫 Blocked |
+|---------------------------|-------------|-----------|-----------|------------|
+| Process Checkout          | 2           | 2         | 0         | 0          |
+| Librarian Dashboard       | 3           | 3         | 0         | 0          |
+| Process Checkin           | 2           | 1         | 1         | 0          |
+| Manage Catalog            | 5           | 3         | 1         | 1          |
+| Manage Reservations       | 3           | 2         | 0         | 1          |
+| **Total**                 | **15**      | **11**    | **2**     | **2**      |
 
 ---
 
 ## 4️⃣ Key Gaps / Risks
 
-1. **Missing Dashboard Elements:** The 'Fines' statistic is completely absent from the Borrower Dashboard (`borrower/index.php`). This is a critical gap as users cannot see their outstanding balances.
-2. **Broken Renewal Functionality:** The 'Renew' action is completely missing from the `borrower/my_books.php` page. All items simply show 'Not available' in the action column, preventing any users from extending their loans.
-3. **Test Data State Dependency:** The automated tests for reservations (`TC006`, `TC012`) are currently blocked because the default test user account has overdue books. To accurately test the reservation happy-path, the seed data must be adjusted or the test runner must clear user fines/overdue states before executing these specific tests.
+1. **Foreign Key Constraint Crash on Catalog Deletion (High Risk):** 
+   Attempting to delete a book that has existing circulation history triggers a fatal `PDOException` (Integrity constraint violation: 1451). The application lacks a mechanism to handle this scenario gracefully. 
+   **Recommendation:** Implement soft deletes (e.g., an `is_active` or `is_deleted` column) for books to preserve circulation history, or catch the exception and display a user-friendly error instructing the librarian that the book cannot be deleted due to active loan records.
+
+2. **Missing Validation for Empty Copy IDs on Check-in (High Risk):** 
+   The return/check-in form allows submission without a valid Book Copy ID and incorrectly processes the return, issuing a success receipt. This can lead to corrupted circulation logs and inaccurate inventory tracking.
+   **Recommendation:** Implement strict backend validation during the check-in endpoint (`/librarian/checkin.php` or its API handler) to ensure a valid and existing Book Copy ID is provided before processing the transaction.
+
+3. **Dashboard Navigation / Missing Route (Medium Risk):** 
+   Test TC007 was blocked because navigation attempted to hit `/librarian/book_catalog.php`, resulting in a 404 Not Found error. The actual route is `/librarian/catalog.php`. 
+   **Recommendation:** Verify the catalog link within the librarian dashboard navigation or quick links to ensure it correctly points to `catalog.php`.
+
+4. **Missing Seed Data for Reservations Workflow (Low Risk / Testing Gap):**
+   Test TC009 was blocked because there were no pending reservations in the queue to approve.
+   **Recommendation:** When running automated tests, ensure the seed data includes pending, active, and completed reservations so all state transitions can be thoroughly tested.
+---

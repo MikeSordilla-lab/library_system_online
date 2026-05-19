@@ -4,5 +4,16 @@
   "scope": "codebase",
   "localEndpoint": "http://localhost:8000/librarian/",
   "loginUser": "librarian@library.local",
-  "loginPassword": "admin123"
+  "loginPassword": "admin123",
+  "executionArgs": {
+    "projectName": "library_system_online",
+    "projectPath": "c:\\xampp\\htdocs\\library_system_online",
+    "testIds": [],
+    "additionalInstruction": "Use librarian credentials for LOGIN_USER: jdelacruz@library.local and LOGIN_PASSWORD: admin123",
+    "serverMode": "development",
+    "envs": {
+      "API_KEY": "sk-user-lTitTd4kFVSze0ReptvzWApQs7Pk-aZQyk2XJUbruN99FABbXtVn5gfVvWddiE8IUmZTeD664Hr4pAHmL29J58MYhQPRn2zkg9wG76J-QrRedTzfVovGUlzWL_j3pc_uwUg"
+    }
+  },
+  "serverPort": 24271
 }

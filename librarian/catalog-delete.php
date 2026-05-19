@@ -61,8 +61,23 @@ if ($book === false) {
 }
 
 // 4. Delete (FR-006 — PDO prepared statement)
-$stmt = $pdo->prepare('DELETE FROM Books WHERE id = ?');
-$stmt->execute([$book_id]);
+try {
+  $stmt = $pdo->prepare('DELETE FROM Books WHERE id = ?');
+  $stmt->execute([$book_id]);
+} catch (PDOException $e) {
+  // Detect FK integrity violation via SQLSTATE ("23000") OR MySQL error code (1451/1452)
+  $sqlstate   = (string) $e->getCode();          // PDO SQLSTATE e.g. "23000"
+  $mysql_code = (int) ($e->errorInfo[1] ?? 0);   // MySQL-native error number
+  if ($sqlstate === '23000' || $mysql_code === 1451 || $mysql_code === 1452) {
+    $_SESSION['flash_error'] =
+      'Cannot delete "' . htmlspecialchars($book['title'], ENT_QUOTES, 'UTF-8') . '" '
+      . 'because it has existing loan or reservation records. '
+      . 'Archive or reassign those records before deleting this book.';
+    header('Location: catalog.php');
+    exit;
+  }
+  throw $e;
+}
 
 // 5. Audit log (Constitution Principle V)
 log_event(

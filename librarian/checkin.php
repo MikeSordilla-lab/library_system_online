@@ -26,12 +26,13 @@ $pdo = get_db();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   csrf_verify();
 
-  $loan_id    = (int) ($_POST['loan_id'] ?? 0);
+  $loan_id    = filter_var($_POST['loan_id'] ?? '', FILTER_VALIDATE_INT);
+  $loan_id    = ($loan_id !== false && $loan_id > 0) ? (int) $loan_id : 0;
   $actor_id   = (int) $_SESSION['user_id'];
   $actor_role = (string) $_SESSION['role'];
 
   if ($loan_id < 1) {
-    $_SESSION['flash_error'] = 'Invalid loan reference.';
+    $_SESSION['flash_error'] = 'Invalid loan reference. Please select a valid loan from the list.';
     header('Location: ' . BASE_URL . 'librarian/checkin.php');
     exit;
   }
@@ -52,6 +53,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   if (!$loan || $loan['status'] === 'returned') {
     $_SESSION['flash_error'] = 'Loan not found or has already been returned.';
+    header('Location: ' . BASE_URL . 'librarian/checkin.php');
+    exit;
+  }
+
+  // Guard: ensure the loan has a valid book_id (prevent orphaned record processing)
+  if (empty($loan['book_id']) || (int) $loan['book_id'] < 1) {
+    $_SESSION['flash_error'] = 'This loan record is missing a valid book reference and cannot be processed.';
     header('Location: ' . BASE_URL . 'librarian/checkin.php');
     exit;
   }

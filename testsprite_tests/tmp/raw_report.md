@@ -12,156 +12,148 @@
 
 ## 2️⃣ Requirement Validation Summary
 
-#### Test TC001 Borrower signs in and reaches the dashboard
-- **Test Code:** [TC001_Borrower_signs_in_and_reaches_the_dashboard.py](./TC001_Borrower_signs_in_and_reaches_the_dashboard.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/9156bbb9-d268-4d0f-823c-09f139093acb/c2325eba-c74a-4e94-904b-fccd523ee3e9
+#### Test TC001 Process a book checkout
+- **Test Code:** [TC001_Process_a_book_checkout.py](./TC001_Process_a_book_checkout.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/e4d45d87-340f-4345-a0e6-dd58042a1790/dc48f8a2-09f2-491f-87b0-f509faf50dd0
 - **Status:** ✅ Passed
 - **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
 ---
 
-#### Test TC002 Borrower logs in and reaches the dashboard
-- **Test Code:** [TC002_Borrower_logs_in_and_reaches_the_dashboard.py](./TC002_Borrower_logs_in_and_reaches_the_dashboard.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/9156bbb9-d268-4d0f-823c-09f139093acb/35dff7ec-e25e-4edc-83ea-aafa34d7ec0b
+#### Test TC002 Access dashboard after signing in
+- **Test Code:** [TC002_Access_dashboard_after_signing_in.py](./TC002_Access_dashboard_after_signing_in.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/e4d45d87-340f-4345-a0e6-dd58042a1790/4a1aab74-278e-4875-aa17-f6f34cc5e692
 - **Status:** ✅ Passed
 - **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
 ---
 
-#### Test TC003 Borrower is blocked from protected pages without signing in
-- **Test Code:** [TC003_Borrower_is_blocked_from_protected_pages_without_signing_in.py](./TC003_Borrower_is_blocked_from_protected_pages_without_signing_in.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/9156bbb9-d268-4d0f-823c-09f139093acb/40b539d4-6987-44e0-8152-cac6878030b8
+#### Test TC003 Complete a book return
+- **Test Code:** [TC003_Complete_a_book_return.py](./TC003_Complete_a_book_return.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/e4d45d87-340f-4345-a0e6-dd58042a1790/6b72d2b2-2689-4327-b046-0dda699ee713
 - **Status:** ✅ Passed
 - **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
 ---
 
-#### Test TC004 Protected borrower pages require sign-in
-- **Test Code:** [TC004_Protected_borrower_pages_require_sign_in.py](./TC004_Protected_borrower_pages_require_sign_in.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/9156bbb9-d268-4d0f-823c-09f139093acb/7c977a2f-7334-43d8-846f-ff9f89e6b06e
+#### Test TC004 Add a new book to the catalog
+- **Test Code:** [TC004_Add_a_new_book_to_the_catalog.py](./TC004_Add_a_new_book_to_the_catalog.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/e4d45d87-340f-4345-a0e6-dd58042a1790/2a6cf240-6b87-4694-9b23-cd267236e77e
 - **Status:** ✅ Passed
 - **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
 ---
 
-#### Test TC005 Borrower sees dashboard stats after signing in
-- **Test Code:** [TC005_Borrower_sees_dashboard_stats_after_signing_in.py](./TC005_Borrower_sees_dashboard_stats_after_signing_in.py)
-- **Test Error:** TEST FAILURE
-
-The borrower dashboard loaded and loan and reservation statistics are visible, but the fines statistic is not present on the dashboard.
-
-Observations:
-- The dashboard shows cards for Currently Borrowed, Total Books Read, Due Soon, and Reservations (with values visible).
-- A search and page scan for the label 'Fines' returned no results and no fines counter was found on the dashboard.
-- Active Loans and Pending Reservations sections are present, confirming the dashboard content loaded, but the fines statistic is missing.
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/9156bbb9-d268-4d0f-823c-09f139093acb/ed9a83a0-c6ec-4ccc-9873-cd8bca292e22
-- **Status:** ❌ Failed
+#### Test TC005 Save edits to an existing book
+- **Test Code:** [TC005_Save_edits_to_an_existing_book.py](./TC005_Save_edits_to_an_existing_book.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/e4d45d87-340f-4345-a0e6-dd58042a1790/1c172176-ace5-4e99-9f2f-adca9b5f9e24
+- **Status:** ✅ Passed
 - **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
 ---
 
-#### Test TC006 Borrower reserves a book from the catalog
-- **Test Code:** [TC006_Borrower_reserves_a_book_from_the_catalog.py](./TC006_Borrower_reserves_a_book_from_the_catalog.py)
+#### Test TC006 Use dashboard quick links to open a management section
+- **Test Code:** [TC006_Use_dashboard_quick_links_to_open_a_management_section.py](./TC006_Use_dashboard_quick_links_to_open_a_management_section.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/e4d45d87-340f-4345-a0e6-dd58042a1790/6f564630-f4db-4469-bb72-10bc17baca02
+- **Status:** ✅ Passed
+- **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
+---
+
+#### Test TC007 Search the catalog and view matching results
+- **Test Code:** [TC007_Search_the_catalog_and_view_matching_results.py](./TC007_Search_the_catalog_and_view_matching_results.py)
 - **Test Error:** TEST BLOCKED
 
-The test could not be run to completion — the UI prevents creating a reservation because the borrower has overdue books that must be returned first.
+The Book Catalog feature could not be reached — the catalog page returned a 404 Not Found and navigation via the dashboard is not possible because the app's DOM has no interactive elements.
 
 Observations:
-- A visible banner states: "You have overdue books that must be returned before reserving new ones."
-- No reservation confirmation or "reserved" status appeared after confirming.
-- The reservation action was blocked by the overdue-items restriction.
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/9156bbb9-d268-4d0f-823c-09f139093acb/dbd9aa4b-db89-44a4-aa8b-cbcdd566e6f0
+- Navigating to /library_system_online/librarian/book_catalog.php displayed 'Not Found' (Apache 404).
+- The page shows the Apache 'Not Found' message and server footer.
+- The librarian dashboard previously showed a visual UI but the DOM reported 0 interactive elements, preventing sidebar navigation.
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/e4d45d87-340f-4345-a0e6-dd58042a1790/7ab2cf5d-1f5f-4b1c-946a-5fa979bc5030
 - **Status:** BLOCKED
 - **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
 ---
 
-#### Test TC007 Borrower renews an eligible loan
-- **Test Code:** [TC007_Borrower_renews_an_eligible_loan.py](./TC007_Borrower_renews_an_eligible_loan.py)
+#### Test TC008 Delete a book from the catalog
+- **Test Code:** [TC008_Delete_a_book_from_the_catalog.py](./TC008_Delete_a_book_from_the_catalog.py)
 - **Test Error:** TEST FAILURE
 
-A renewal action could not be performed because no renew control is available on the My Books page.
+Attempting to delete the book failed — a server-side integrity constraint prevented the deletion and a fatal PHP exception was shown.
 
 Observations:
-- The My Books table's Action column shows 'Not available' for each listed loan.
-- No 'Renew' button or link was found on the page during inspection or by searching for the word 'Renew'.
-- The page displays currently borrowed items but provides no UI to renew them.
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/9156bbb9-d268-4d0f-823c-09f139093acb/74c5fdaf-2630-466e-8394-3455884596fa
+- The page shows a fatal exception: "Uncaught PDOException: SQLSTATE[23000]: Integrity constraint violation: 1451 Cannot delete or update a parent row: a foreign key constraint fails (library_system.circulation, CONSTRAINT `fk_circulation_book` FOREIGN KEY (`book_id`) REFERENCES `books` (`id`))".
+- The error originated in C:\xampp\htdocs\library_system_online\librarian\catalog-delete.php on line 65.
+- The delete action was triggered from the UI (Delete clicked) but the operation did not complete due to the foreign key constraint with the 'circulation' table.
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/e4d45d87-340f-4345-a0e6-dd58042a1790/31682dae-f402-4322-93fe-5669dd4a33cb
 - **Status:** ❌ Failed
 - **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
 ---
 
-#### Test TC008 Borrower sees catalog results after signing in
-- **Test Code:** [TC008_Borrower_sees_catalog_results_after_signing_in.py](./TC008_Borrower_sees_catalog_results_after_signing_in.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/9156bbb9-d268-4d0f-823c-09f139093acb/9030eed2-7c83-421a-af30-4f5de8cdb869
-- **Status:** ✅ Passed
-- **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
----
-
-#### Test TC009 Borrower opens the catalog from the portal
-- **Test Code:** [TC009_Borrower_opens_the_catalog_from_the_portal.py](./TC009_Borrower_opens_the_catalog_from_the_portal.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/9156bbb9-d268-4d0f-823c-09f139093acb/435e7065-f057-4316-96e5-b527a1daeebf
-- **Status:** ✅ Passed
-- **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
----
-
-#### Test TC010 Borrower reviews active loans
-- **Test Code:** [TC010_Borrower_reviews_active_loans.py](./TC010_Borrower_reviews_active_loans.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/9156bbb9-d268-4d0f-823c-09f139093acb/854d78b3-e120-4688-a7b2-356290d922a5
-- **Status:** ✅ Passed
-- **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
----
-
-#### Test TC011 Borrower views active loans
-- **Test Code:** [TC011_Borrower_views_active_loans.py](./TC011_Borrower_views_active_loans.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/9156bbb9-d268-4d0f-823c-09f139093acb/1123642a-9807-4857-a5d6-fb935e27f51c
-- **Status:** ✅ Passed
-- **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
----
-
-#### Test TC012 Borrower returns to the catalog with updated reservation state
-- **Test Code:** [TC012_Borrower_returns_to_the_catalog_with_updated_reservation_state.py](./TC012_Borrower_returns_to_the_catalog_with_updated_reservation_state.py)
-- **Test Error:** TEST FAILURE
-
-The catalog did not update to show the book as reserved after the reservation confirmation was completed.
-
-Observations:
-- The catalog page still displays 'Reserve This Book' buttons and availability badges for the same title(s).
-- Searching the page for the word 'Reserved' returned 0 matches.
-- A visible banner states: 'You have overdue books that must be returned before reserving new ones.'
-
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/9156bbb9-d268-4d0f-823c-09f139093acb/b0a8fe65-8411-4d6d-b87d-070c8b5c3deb
-- **Status:** ❌ Failed
-- **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
----
-
-#### Test TC013 Borrower updates profile details successfully
-- **Test Code:** [TC013_Borrower_updates_profile_details_successfully.py](./TC013_Borrower_updates_profile_details_successfully.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/9156bbb9-d268-4d0f-823c-09f139093acb/b748e4bb-daa9-4202-8d43-f3e62061a8c2
-- **Status:** ✅ Passed
-- **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
----
-
-#### Test TC014 Borrower sees validation when profile changes are incomplete
-- **Test Code:** [TC014_Borrower_sees_validation_when_profile_changes_are_incomplete.py](./TC014_Borrower_sees_validation_when_profile_changes_are_incomplete.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/9156bbb9-d268-4d0f-823c-09f139093acb/2dc8bb06-778f-406e-9591-1cfbd76506a6
-- **Status:** ✅ Passed
-- **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
----
-
-#### Test TC015 Borrower sees renewal guidance when a loan cannot be renewed
-- **Test Code:** [TC015_Borrower_sees_renewal_guidance_when_a_loan_cannot_be_renewed.py](./TC015_Borrower_sees_renewal_guidance_when_a_loan_cannot_be_renewed.py)
+#### Test TC009 Approve a reservation
+- **Test Code:** [TC009_Approve_a_reservation.py](./TC009_Approve_a_reservation.py)
 - **Test Error:** TEST BLOCKED
 
-A renewal attempt could not be performed because the UI provides no way to start a renewal for non-eligible loans. The My Books page shows 'Not available' in the Action column and clicking that cell produced no renewal control or feedback, so the test scenario (attempting a renewal to observe an error message) cannot be executed.
+The test could not be completed because there were no pending reservations available to approve. The UI indicates the reservation was already processed by another request, so the approval flow could not be exercised.
 
 Observations:
-- The My Books table shows 'Not available' in the Action column for currently borrowed items.
-- Clicking the 'Not available' cell did not reveal a Renew button, link, or any error/feedback.
+- An informational banner reads: 'Reservation was already processed by another request.'
+- The 'Pending Reservations' panel shows 'No pending reservations.'
 
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/9156bbb9-d268-4d0f-823c-09f139093acb/6c629423-11d7-4a43-b6c9-b731d7e0b74e
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/e4d45d87-340f-4345-a0e6-dd58042a1790/8d434c35-66f2-4b4a-9c10-229bf2015372
 - **Status:** BLOCKED
+- **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
+---
+
+#### Test TC010 Reject a reservation
+- **Test Code:** [TC010_Reject_a_reservation.py](./TC010_Reject_a_reservation.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/e4d45d87-340f-4345-a0e6-dd58042a1790/bf9acca6-c15a-4f8c-95d6-aa2ba2f9e274
+- **Status:** ✅ Passed
+- **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
+---
+
+#### Test TC011 Review reservations from the management area
+- **Test Code:** [TC011_Review_reservations_from_the_management_area.py](./TC011_Review_reservations_from_the_management_area.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/e4d45d87-340f-4345-a0e6-dd58042a1790/f2567b53-d150-4859-b837-98c1b2ec075f
+- **Status:** ✅ Passed
+- **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
+---
+
+#### Test TC012 Review pending reservations list
+- **Test Code:** [TC012_Review_pending_reservations_list.py](./TC012_Review_pending_reservations_list.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/e4d45d87-340f-4345-a0e6-dd58042a1790/37b7316c-47b8-4709-8e84-d4d690cd5ed4
+- **Status:** ✅ Passed
+- **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
+---
+
+#### Test TC013 Stay on checkout when borrower information is missing
+- **Test Code:** [TC013_Stay_on_checkout_when_borrower_information_is_missing.py](./TC013_Stay_on_checkout_when_borrower_information_is_missing.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/e4d45d87-340f-4345-a0e6-dd58042a1790/ec21a5a5-5c47-4c60-a3b1-ca129be62320
+- **Status:** ✅ Passed
+- **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
+---
+
+#### Test TC014 Cancel deleting a book
+- **Test Code:** [TC014_Cancel_deleting_a_book.py](./TC014_Cancel_deleting_a_book.py)
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/e4d45d87-340f-4345-a0e6-dd58042a1790/b0787036-8188-4658-88cc-fbce3e43513d
+- **Status:** ✅ Passed
+- **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
+---
+
+#### Test TC015 Reject an invalid book copy ID on return
+- **Test Code:** [TC015_Reject_an_invalid_book_copy_ID_on_return.py](./TC015_Reject_an_invalid_book_copy_ID_on_return.py)
+- **Test Error:** TEST FAILURE
+
+The return form did not block submission when the Book Copy ID was missing or invalid — the return was processed immediately and a success receipt was shown instead of a validation error.
+
+Observations:
+- After clicking 'Return', the overlay shows 'Book return was completed successfully'.
+- Receipt No: 4b75c4d8376022cbf20d7aa448958c27 is displayed in the receipt overlay.
+- No validation message about a missing or invalid Book Copy ID was shown.
+
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/e4d45d87-340f-4345-a0e6-dd58042a1790/92637047-6794-42bc-9609-6e8b8ee54888
+- **Status:** ❌ Failed
 - **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
 ---
 
 
 ## 3️⃣ Coverage & Matching Metrics
 
-- **66.67** of tests passed
+- **73.33** of tests passed
 
 | Requirement        | Total Tests | ✅ Passed | ❌ Failed  |
 |--------------------|-------------|-----------|------------|
