@@ -1229,17 +1229,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       $dep_stmt = $pdo->prepare(
         'SELECT
-            (SELECT COUNT(*) FROM Circulation WHERE user_id = ?) AS circulation_count,
-            (SELECT COUNT(*) FROM Reservations WHERE user_id = ?) AS reservation_count'
+            (SELECT COUNT(*) FROM Circulation WHERE user_id = ? AND status IN (\'active\', \'overdue\')) AS open_circulation_count,
+            (SELECT COUNT(*) FROM Reservations WHERE user_id = ? AND status IN (\'pending\', \'approved\')) AS open_reservation_count,
+            (SELECT COUNT(*) FROM Receipt_Tickets WHERE actor_user_id = ? OR patron_user_id = ?) AS receipt_count,
+            (SELECT COUNT(*) FROM Receipt_Ticket_Logs WHERE actor_user_id = ?) AS receipt_log_count,
+            (SELECT COUNT(*) FROM Receipt_Print_Jobs WHERE actor_user_id = ?) AS receipt_print_count'
       );
-      $dep_stmt->execute([$user_id, $user_id]);
-      $dep = $dep_stmt->fetch() ?: ['circulation_count' => 0, 'reservation_count' => 0];
+      $dep_stmt->execute([$user_id, $user_id, $user_id, $user_id, $user_id, $user_id]);
+      $dep = $dep_stmt->fetch() ?: [
+        'open_circulation_count' => 0,
+        'open_reservation_count' => 0,
+        'receipt_count' => 0,
+        'receipt_log_count' => 0,
+        'receipt_print_count' => 0,
+      ];
 
-      if ((int) $dep['circulation_count'] > 0 || (int) $dep['reservation_count'] > 0) {
+      if ((int) $dep['open_circulation_count'] > 0 || (int) $dep['open_reservation_count'] > 0) {
         $pdo->rollBack();
-        $_SESSION['flash_error_msg'] = 'This account has loan or reservation history. Deactivate it instead.';
+        $_SESSION['flash_error_msg'] = 'This account still has active or overdue loans, or open reservations. Return books and close reservations first.';
         header('Location: ' . $self_url);
         exit;
+      }
+
+      if ((int) $dep['receipt_count'] > 0 || (int) $dep['receipt_log_count'] > 0 || (int) $dep['receipt_print_count'] > 0) {
+        $deletePrintJobs = $pdo->prepare(
+          'DELETE FROM Receipt_Print_Jobs
+            WHERE actor_user_id = ?
+               OR receipt_id IN (
+                    SELECT id FROM Receipt_Tickets
+                     WHERE actor_user_id = ? OR patron_user_id = ?
+                  )'
+        );
+        $deletePrintJobs->execute([$user_id, $user_id, $user_id]);
+
+        $deleteReceiptLogs = $pdo->prepare(
+          'DELETE FROM Receipt_Ticket_Logs
+            WHERE actor_user_id = ?
+               OR receipt_id IN (
+                    SELECT id FROM Receipt_Tickets
+                     WHERE actor_user_id = ? OR patron_user_id = ?
+                  )'
+        );
+        $deleteReceiptLogs->execute([$user_id, $user_id, $user_id]);
+
+        $deleteReceipts = $pdo->prepare('DELETE FROM Receipt_Tickets WHERE actor_user_id = ? OR patron_user_id = ?');
+        $deleteReceipts->execute([$user_id, $user_id]);
       }
 
       $del = $pdo->prepare('DELETE FROM Users WHERE id = ? LIMIT 1');
@@ -1261,7 +1295,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->rollBack();
       }
       error_log('[admin/users.php] delete_user DB error: ' . $e->getMessage());
-      $_SESSION['flash_error_msg'] = 'We could not delete the account right now. Please try again.';
+      $_SESSION['flash_error_msg'] = $e->getCode() === '23000'
+        ? 'This account is linked to existing records and cannot be deleted. Deactivate it instead.'
+        : 'We could not delete the account right now. Please try again.';
     }
 
     header('Location: ' . $self_url);
