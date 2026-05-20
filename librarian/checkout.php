@@ -25,14 +25,28 @@ $pdo = get_db();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   csrf_verify();
 
+  $action = (string) ($_POST['action'] ?? 'checkout');
   $user_id = (int) ($_POST['user_id'] ?? 0);
   $book_id = (int) ($_POST['book_id'] ?? 0);
+  $pickup_reservation_id = (int) ($_POST['reservation_id'] ?? 0);
 
   $actor_id   = (int) $_SESSION['user_id'];
   $actor_role = (string) $_SESSION['role'];
 
-  if ($user_id < 1 || $book_id < 1) {
+  if (!in_array($action, ['checkout', 'pickup'], true)) {
+    $_SESSION['flash_error'] = 'Invalid checkout action request.';
+    header('Location: ' . BASE_URL . 'librarian/checkout.php');
+    exit;
+  }
+
+  if ($action === 'checkout' && ($user_id < 1 || $book_id < 1)) {
     $_SESSION['flash_error'] = 'Please select both a Borrower and a Book.';
+    header('Location: ' . BASE_URL . 'librarian/checkout.php');
+    exit;
+  }
+
+  if ($action === 'pickup' && $pickup_reservation_id < 1) {
+    $_SESSION['flash_error'] = 'Please select an approved reservation to pick up.';
     header('Location: ' . BASE_URL . 'librarian/checkout.php');
     exit;
   }
@@ -42,6 +56,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   try {
     // Expire stale reservations first
     expire_stale_reservations($pdo);
+
+    if ($action === 'pickup') {
+      $pickup_stmt = $pdo->prepare(
+        'SELECT id, user_id, book_id, status
+           FROM Reservations
+          WHERE id = ?
+          FOR UPDATE'
+      );
+      $pickup_stmt->execute([$pickup_reservation_id]);
+      $pickup_reservation = $pickup_stmt->fetch();
+
+      if (!$pickup_reservation) {
+        $pdo->rollBack();
+        $_SESSION['flash_error'] = 'Approved reservation not found.';
+        header('Location: ' . BASE_URL . 'librarian/checkout.php');
+        exit;
+      }
+
+      if ((string) $pickup_reservation['status'] !== RESERVATION_STATUS_APPROVED) {
+        $pdo->commit();
+        $_SESSION['flash_info'] = 'Reservation is no longer approved for pickup.';
+        header('Location: ' . BASE_URL . 'librarian/checkout.php');
+        exit;
+      }
+
+      $user_id = (int) $pickup_reservation['user_id'];
+      $book_id = (int) $pickup_reservation['book_id'];
+    }
 
     // T008 — Lock the book row and check availability
     $book_stmt = $pdo->prepare(
@@ -189,28 +231,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     );
     $upd_stmt->execute([$book_id]);
 
-    // Fulfill reservation queue deterministically: approved first, fallback pending.
-    $res_pick_stmt = $pdo->prepare(
-      'SELECT id, status
-         FROM Reservations
-        WHERE user_id = ?
-          AND book_id = ?
-          AND status IN (?, ?)
-        ORDER BY
-          CASE status WHEN ? THEN 0 ELSE 1 END ASC,
-          reserved_at ASC,
-          id ASC
-        LIMIT 1
-        FOR UPDATE'
-    );
-    $res_pick_stmt->execute([
-      $user_id,
-      $book_id,
-      RESERVATION_STATUS_APPROVED,
-      RESERVATION_STATUS_PENDING,
-      RESERVATION_STATUS_APPROVED,
-    ]);
-    $reservationToFulfill = $res_pick_stmt->fetch();
+    if ($action === 'pickup') {
+      $reservationToFulfill = [
+        'id' => $pickup_reservation_id,
+        'status' => RESERVATION_STATUS_APPROVED,
+      ];
+    } else {
+      // Fulfill reservation queue deterministically: approved first, fallback pending.
+      $res_pick_stmt = $pdo->prepare(
+        'SELECT id, status
+           FROM Reservations
+          WHERE user_id = ?
+            AND book_id = ?
+            AND status IN (?, ?)
+          ORDER BY
+            CASE status WHEN ? THEN 0 ELSE 1 END ASC,
+            reserved_at ASC,
+            id ASC
+          LIMIT 1
+          FOR UPDATE'
+      );
+      $res_pick_stmt->execute([
+        $user_id,
+        $book_id,
+        RESERVATION_STATUS_APPROVED,
+        RESERVATION_STATUS_PENDING,
+        RESERVATION_STATUS_APPROVED,
+      ]);
+      $reservationToFulfill = $res_pick_stmt->fetch();
+    }
 
     if ($reservationToFulfill) {
       transition_reservation_status(
@@ -257,6 +306,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $pdo->commit();
 
     $receipt_no = (string) ($receipt['receipt_no'] ?? '');
+    $_SESSION['flash_success'] = $action === 'pickup'
+      ? 'Reservation picked up and checked out successfully.'
+      : 'Book checked out successfully.';
     $_SESSION['flash_receipt_no'] = $receipt_no;
     header('Location: ' . BASE_URL . 'librarian/checkout.php');
     exit;
@@ -290,6 +342,20 @@ $books_stmt = $pdo->prepare(
 );
 $books_stmt->execute([]);
 $books = $books_stmt->fetchAll();
+
+// Fetch approved reservations waiting for the borrower to pick up the book
+$pickup_stmt = $pdo->prepare(
+  'SELECT r.id, r.user_id, r.book_id, r.approved_at, r.expires_at,
+          u.full_name AS borrower_name, u.email AS borrower_email,
+          b.title AS book_title, b.author AS book_author, b.available_copies
+     FROM Reservations r
+     JOIN Users u ON r.user_id = u.id
+     JOIN Books b ON r.book_id = b.id
+    WHERE r.status = ?
+    ORDER BY r.expires_at ASC, r.id ASC'
+);
+$pickup_stmt->execute([RESERVATION_STATUS_APPROVED]);
+$ready_pickups = $pickup_stmt->fetchAll();
 
 // Fetch borrowers with unpaid fines
 $fines_stmt = $pdo->prepare(
@@ -363,7 +429,74 @@ $extraStyles = [
       $receipt_modal_print_label = 'Print Ticket';
       require __DIR__ . '/../includes/receipt-success-modal.php';
       ?>
+
       <div class="section-card">
+        <div class="section-card__header">
+          <span class="section-card__title">Approved Reservations Ready for Pickup</span>
+          <?php if (!empty($ready_pickups)): ?>
+            <span class="badge badge-green"><?= count($ready_pickups) ?></span>
+          <?php endif; ?>
+        </div>
+        <div style="padding: var(--space-6)">
+          <?php if (empty($ready_pickups)): ?>
+            <p>No approved reservations are waiting for pickup.</p>
+          <?php else: ?>
+            <div class="tbl-wrapper">
+              <table class="tbl">
+                <thead>
+                  <tr>
+                    <th>Borrower</th>
+                    <th>Email</th>
+                    <th>Book</th>
+                    <th>Approved</th>
+                    <th>Expires</th>
+                    <th>Copies</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php foreach ($ready_pickups as $pickup):
+                    $expires_ts = strtotime((string) $pickup['expires_at']);
+                    $expires_soon = $expires_ts !== false && $expires_ts > time() && (int) ceil(($expires_ts - time()) / 3600) <= 24;
+                    $copies_available = (int) $pickup['available_copies'];
+                  ?>
+                    <tr<?= $expires_soon ? ' style="background:rgba(201,168,76,.1);"' : '' ?>>
+                      <td data-label="Borrower"><?= htmlspecialchars((string) $pickup['borrower_name'], ENT_QUOTES, 'UTF-8') ?></td>
+                      <td data-label="Email"><?= htmlspecialchars((string) $pickup['borrower_email'], ENT_QUOTES, 'UTF-8') ?></td>
+                      <td data-label="Book">
+                        <?= htmlspecialchars((string) $pickup['book_title'], ENT_QUOTES, 'UTF-8') ?>
+                        <?php if (!empty($pickup['book_author'])): ?>
+                          <span style="display:block;color:var(--color-muted);font-size:.85rem;"><?= htmlspecialchars((string) $pickup['book_author'], ENT_QUOTES, 'UTF-8') ?></span>
+                        <?php endif; ?>
+                      </td>
+                      <td data-label="Approved">
+                        <?= !empty($pickup['approved_at']) ? htmlspecialchars(date('d M Y', strtotime((string) $pickup['approved_at'])), ENT_QUOTES, 'UTF-8') : '—' ?>
+                      </td>
+                      <td data-label="Expires">
+                        <strong><?= $expires_ts !== false ? htmlspecialchars(date('d M Y H:i', $expires_ts), ENT_QUOTES, 'UTF-8') : htmlspecialchars((string) $pickup['expires_at'], ENT_QUOTES, 'UTF-8') ?></strong>
+                        <?php if ($expires_soon): ?>
+                          <span class="badge badge-amber" style="margin-left:4px;">Expiring soon</span>
+                        <?php endif; ?>
+                      </td>
+                      <td data-label="Copies"><?= $copies_available ?> available</td>
+                      <td data-label="Action">
+                        <form method="POST" action="<?= htmlspecialchars(BASE_URL . 'librarian/checkout.php', ENT_QUOTES, 'UTF-8') ?>" class="table-action-form">
+                          <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                          <input type="hidden" name="action" value="pickup">
+                          <input type="hidden" name="reservation_id" value="<?= (int) $pickup['id'] ?>">
+                          <button type="submit" class="btn-confirm" <?= $copies_available < 1 ? 'disabled' : '' ?>>Pickup</button>
+                        </form>
+                      </td>
+                    </tr>
+                  <?php endforeach; ?>
+                </tbody>
+              </table>
+            </div>
+          <?php endif; ?>
+        </div>
+      </div>
+
+      <div class="section-card" style="margin-top: var(--space-6)">
         <div class="section-card__header">
           <span class="section-card__title">Checkout Form</span>
         </div>
@@ -375,6 +508,7 @@ $extraStyles = [
           <?php else: ?>
             <form method="POST" action="<?= htmlspecialchars(BASE_URL . 'librarian/checkout.php', ENT_QUOTES, 'UTF-8') ?>">
               <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+              <input type="hidden" name="action" value="checkout">
 
               <div style="margin-bottom: var(--space-5)">
                 <label class="field-label" for="user_id">Borrower</label>
