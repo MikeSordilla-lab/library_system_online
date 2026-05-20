@@ -111,6 +111,16 @@ $extraStyles = [
   'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap',
   BASE_URL . 'assets/css/borrower-redesign.css'
 ];
+
+function borrower_dashboard_date($value): string
+{
+  if (empty($value)) {
+    return '—';
+  }
+
+  $timestamp = strtotime((string) $value);
+  return $timestamp === false ? (string) $value : date('d M Y', $timestamp);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -334,8 +344,8 @@ $extraStyles = [
                             </div>
                           </div>
                         </td>
-                        <td><?= htmlspecialchars($loan['checkout_date'], ENT_QUOTES, 'UTF-8') ?></td>
-                        <td><?= htmlspecialchars($loan['due_date'], ENT_QUOTES, 'UTF-8') ?></td>
+                        <td><?= htmlspecialchars(borrower_dashboard_date($loan['checkout_date']), ENT_QUOTES, 'UTF-8') ?></td>
+                        <td><?= htmlspecialchars(borrower_dashboard_date($loan['due_date']), ENT_QUOTES, 'UTF-8') ?></td>
                         <td>
                           <?php if ($loan['status'] === 'overdue'): ?>
                             <span class="rd-badge rd-b-red">Overdue</span>
@@ -402,8 +412,8 @@ $extraStyles = [
                             </div>
                           </div>
                         </td>
-                        <td><?= htmlspecialchars($res['reserved_at'], ENT_QUOTES, 'UTF-8') ?></td>
-                        <td><?= htmlspecialchars($res['expires_at'], ENT_QUOTES, 'UTF-8') ?></td>
+                        <td><?= htmlspecialchars(borrower_dashboard_date($res['reserved_at']), ENT_QUOTES, 'UTF-8') ?></td>
+                        <td><?= htmlspecialchars(borrower_dashboard_date($res['expires_at']), ENT_QUOTES, 'UTF-8') ?></td>
                         <td><span class="rd-badge rd-b-orange">#<?= (int) $res['queue_position'] ?></span></td>
                         <td>
                           <form method="POST" action="<?= htmlspecialchars(BASE_URL . 'borrower/reserve.php', ENT_QUOTES, 'UTF-8') ?>" style="margin:0;">

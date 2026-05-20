@@ -211,12 +211,12 @@ $extraStyles = [
                 <?php foreach ($rows as $row): ?>
                   <tr>
                     <td data-label="Queue #"><?= (int) ($row['queue_position'] ?? 0) ?></td>
-                    <td data-label="Reserved At"><?= htmlspecialchars((string) $row['reserved_at'], ENT_QUOTES, 'UTF-8') ?></td>
+                    <td data-label="Reserved At"><?= htmlspecialchars(date('d M Y', strtotime((string) $row['reserved_at'])), ENT_QUOTES, 'UTF-8') ?></td>
                     <td data-label="Borrower"><?= htmlspecialchars((string) $row['borrower_name'], ENT_QUOTES, 'UTF-8') ?></td>
                     <td data-label="Email"><?= htmlspecialchars((string) $row['borrower_email'], ENT_QUOTES, 'UTF-8') ?></td>
                     <td data-label="Book"><?= htmlspecialchars((string) $row['book_title'], ENT_QUOTES, 'UTF-8') ?></td>
                     <td data-label="Author"><?= htmlspecialchars((string) ($row['book_author'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
-                    <td data-label="Expires"><?= htmlspecialchars((string) $row['expires_at'], ENT_QUOTES, 'UTF-8') ?></td>
+                    <td data-label="Expires"><?= htmlspecialchars(date('d M Y', strtotime((string) $row['expires_at'])), ENT_QUOTES, 'UTF-8') ?></td>
                     <td data-label="Actions">
                       <form method="POST" action="<?= htmlspecialchars(BASE_URL . 'librarian/reservations.php', ENT_QUOTES, 'UTF-8') ?>" class="table-action-form reservation-action-form">
                         <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
@@ -283,7 +283,7 @@ $extraStyles = [
                       <?= $ar['approved_at'] ? htmlspecialchars(date('d M Y', strtotime($ar['approved_at'])), ENT_QUOTES, 'UTF-8') : '—' ?>
                     </td>
                     <td data-label="Expires">
-                      <strong><?= htmlspecialchars(date('d M Y H:i', $expires_ts), ENT_QUOTES, 'UTF-8') ?></strong>
+                      <strong><?= htmlspecialchars(date('d M Y', $expires_ts), ENT_QUOTES, 'UTF-8') ?></strong>
                       <?php if ($expires_soon): ?>
                         <span class="badge badge-amber" style="margin-left:4px;">Expiring soon</span>
                       <?php endif; ?>

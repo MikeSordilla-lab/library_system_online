@@ -258,7 +258,7 @@ $pageTitle = "Audit Log | LibraLink";
                 <?php foreach ($log_rows as $row): ?>
                   <tr>
                     <td data-label="Timestamp"><?= htmlspecialchars(
-                      $row["created_at"],
+                      !empty($row["created_at"]) ? date('d M Y', strtotime((string) $row["created_at"])) : '—',
                       ENT_QUOTES,
                       "UTF-8",
                     ) ?></td>

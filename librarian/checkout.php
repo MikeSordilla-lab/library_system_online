@@ -473,7 +473,7 @@ $extraStyles = [
                         <?= !empty($pickup['approved_at']) ? htmlspecialchars(date('d M Y', strtotime((string) $pickup['approved_at'])), ENT_QUOTES, 'UTF-8') : '—' ?>
                       </td>
                       <td data-label="Expires">
-                        <strong><?= $expires_ts !== false ? htmlspecialchars(date('d M Y H:i', $expires_ts), ENT_QUOTES, 'UTF-8') : htmlspecialchars((string) $pickup['expires_at'], ENT_QUOTES, 'UTF-8') ?></strong>
+                        <strong><?= $expires_ts !== false ? htmlspecialchars(date('d M Y', $expires_ts), ENT_QUOTES, 'UTF-8') : htmlspecialchars((string) $pickup['expires_at'], ENT_QUOTES, 'UTF-8') ?></strong>
                         <?php if ($expires_soon): ?>
                           <span class="badge badge-amber" style="margin-left:4px;">Expiring soon</span>
                         <?php endif; ?>

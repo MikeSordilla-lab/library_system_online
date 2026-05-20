@@ -281,6 +281,39 @@
   overflow-x: auto;
 }
 
+@media (max-width: 640px) {
+  .admin-themed .tbl-wrapper {
+    padding: 0.85rem;
+  }
+
+  .admin-themed .tbl tr {
+    background: rgba(42, 39, 35, 0.94);
+    border-color: var(--rd-border);
+  }
+
+  .admin-themed .tbl tr:hover {
+    background: rgba(42, 39, 35, 0.94);
+  }
+
+  .admin-themed .tbl td {
+    color: var(--rd-text);
+    text-align: left;
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+    overflow-wrap: anywhere;
+  }
+
+  .admin-themed .tbl td::before {
+    color: var(--rd-primary-light);
+    margin-bottom: 0.45rem;
+  }
+
+  .admin-themed .tbl .badge {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
+
 /* Row states */
 .admin-themed .row-overdue {
   background: rgba(239, 68, 68, 0.08);

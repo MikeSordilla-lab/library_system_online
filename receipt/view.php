@@ -74,7 +74,7 @@ if (!can_access_receipt_ticket($receipt, $viewer_id, $viewer_role)) {
 }
 
 $compact = ((string) ($_GET['compact'] ?? '0')) === '1';
-$model = build_receipt_view_model($pdo, $receipt, true);
+$model = build_receipt_view_model($pdo, $receipt, false);
 $qr_payload = (string) $model['qr_payload'];
 $base_url = defined('BASE_URL') ? (string) constant('BASE_URL') : '/';
 $close_to = sanitize_close_to($_GET['close_to'] ?? '');
@@ -359,12 +359,6 @@ $pageTitle = 'Receipt ' . (string) ($model['receipt_no'] ?? '');
           </tr>
         <?php endforeach; ?>
       </table>
-
-      <div class="section-label">QR Payload</div>
-      <div class="qr"><?= esc($qr_payload) ?></div>
-
-      <div class="section-label">Integrity</div>
-      <div class="qr">hash: <?= esc((string) ($model['payload_hash'] ?? '')) ?><br>sig: <?= esc(substr((string) ($model['payload_signature'] ?? ''), 0, 24)) ?>...</div>
 
       <?php if (!$compact): ?>
         <div class="actions">

@@ -218,7 +218,7 @@ $pageStyles = ob_get_clean();
                     <th>Borrower ID</th>
                   <?php endif; ?>
                   <th>Amount</th>
-                  <th>Status / Format</th>
+                  <th>Status</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -246,15 +246,11 @@ $pageStyles = ob_get_clean();
                         <span class="rd-badge rd-b-blue">
                           <?= htmlspecialchars((string) ($ticket['status'] ?? 'issued'), ENT_QUOTES, 'UTF-8') ?>
                         </span>
-                        <span class="rd-badge rd-b-orange">
-                          <?= htmlspecialchars((string) ($ticket['format'] ?? 'thermal'), ENT_QUOTES, 'UTF-8') ?>
-                        </span>
                       </div>
                     </td>
                     <td>
                       <div style="display:flex; gap:0.25rem; flex-wrap:wrap; align-items:center;">
                         <a class="rd-btn-action" href="<?= htmlspecialchars($base_url . 'receipt/view.php?no=' . rawurlencode((string) $ticket['receipt_no']), ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener">Open</a>
-                        <a class="rd-btn-action" href="<?= htmlspecialchars($base_url . 'receipt/kiosk.php?no=' . rawurlencode((string) $ticket['receipt_no']), ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener">Kiosk</a>
                       </div>
                     </td>
                   </tr>
