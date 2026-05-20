@@ -109,19 +109,19 @@ $stats = [
 
 try {
   $pdo = get_db();
-  $stmt = $pdo->query("SELECT COUNT(*) FROM Users");
-  $stats[0]["value"] = $stmt->fetchColumn();
-
-  $stmt = $pdo->query("SELECT COUNT(*) FROM Loans WHERE status = 'borrowed'");
-  $stats[1]["value"] = $stmt->fetchColumn();
-
   $stmt = $pdo->query(
-    "SELECT COUNT(*) FROM Reservations WHERE status = 'pending'",
+    "SELECT
+      (SELECT COUNT(*) FROM Users) AS total_users,
+      (SELECT COUNT(*) FROM Circulation WHERE status = 'active') AS active_loans,
+      (SELECT COUNT(*) FROM Reservations WHERE status = 'pending') AS pending_reservations,
+      (SELECT COUNT(*) FROM Circulation WHERE status = 'overdue') AS overdue_books"
   );
-  $stats[2]["value"] = $stmt->fetchColumn();
+  $summary = $stmt->fetch() ?: [];
 
-  $stmt = $pdo->query("SELECT COUNT(*) FROM Loans WHERE status = 'overdue'");
-  $stats[3]["value"] = $stmt->fetchColumn();
+  $stats[0]["value"] = number_format((int) ($summary["total_users"] ?? 0));
+  $stats[1]["value"] = number_format((int) ($summary["active_loans"] ?? 0));
+  $stats[2]["value"] = number_format((int) ($summary["pending_reservations"] ?? 0));
+  $stats[3]["value"] = number_format((int) ($summary["overdue_books"] ?? 0));
 } catch (PDOException $e) {
   error_log("[admin/about.php] Stats load DB error: " . $e->getMessage());
 }

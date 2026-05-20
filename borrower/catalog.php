@@ -9,6 +9,7 @@ require_once __DIR__ . '/../includes/auth_guard.php';
 require_once __DIR__ . '/../includes/csrf.php';
 
 $pdo = get_db();
+$currentUserId = (int) $_SESSION['user_id'];
 
 $q = isset($_GET['q']) ? trim((string) $_GET['q']) : '';
 $filter_category = isset($_GET['category']) ? trim((string) $_GET['category']) : '';
@@ -68,7 +69,14 @@ $offset = ($page - 1) * $perPage;
 
 $listSql =
 	'SELECT b.id, b.title, b.author, b.isbn, b.category, b.available_copies, b.total_copies,
-					EXISTS(SELECT 1 FROM book_covers bc WHERE bc.book_id = b.id) AS has_cover
+					EXISTS(SELECT 1 FROM book_covers bc WHERE bc.book_id = b.id) AS has_cover,
+					EXISTS(
+						SELECT 1
+						FROM Reservations r
+						WHERE r.book_id = b.id
+							AND r.user_id = :current_user_id
+							AND r.status IN (\'pending\', \'approved\')
+					) AS has_active_reservation
 	 FROM Books b' .
 	$whereSql .
 	$orderSql .
@@ -78,6 +86,7 @@ $stmt = $pdo->prepare($listSql);
 foreach ($params as $key => $value) {
 	$stmt->bindValue($key, $value, PDO::PARAM_STR);
 }
+$stmt->bindValue(':current_user_id', $currentUserId, PDO::PARAM_INT);
 $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
 $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
@@ -247,7 +256,9 @@ $buildCatalogUrl = function (int $page) use ($q, $filter_category, $filter_avail
 									</div>
 
 									<div class="catalog-book__action">
-										<?php if ((int) $book['available_copies'] > 0): ?>
+										<?php if (!empty($book['has_active_reservation'])): ?>
+											<button type="button" class="catalog-book__btn catalog-book__btn--disabled" disabled aria-disabled="true">Already Reserved</button>
+										<?php elseif ((int) $book['available_copies'] > 0): ?>
 											<button type="button" class="btn-confirm catalog-book__btn js-reserve-btn" data-book-id="<?= (int) $book['id'] ?>" data-book-title="<?= htmlspecialchars($book['title'], ENT_QUOTES, 'UTF-8') ?>">Reserve This Book</button>
 										<?php else: ?>
 											<button type="button" class="catalog-book__btn catalog-book__btn--disabled" disabled aria-disabled="true">Join Waitlist (Unavailable)</button>
