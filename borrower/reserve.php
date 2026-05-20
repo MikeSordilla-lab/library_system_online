@@ -114,6 +114,10 @@ function _reserve_place_error(string $reason_code, PDO $pdo, int $userId): strin
       return 'You already have an active reservation request for this book.';
     case 'duplicate_loan':
       return 'You already have an active loan for this book.';
+    case 'book_not_found':
+      return 'Book not found. It may have been removed from the catalog.';
+    case 'book_not_borrowable':
+      return 'This book is not currently borrowable.';
     default:
       return 'Cannot place reservation. Please try again.';
   }

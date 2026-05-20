@@ -72,11 +72,18 @@ class RenewalEligibilityModule
     }
 
     $resStmt = $pdo->prepare(
-      "SELECT id FROM Reservations
-        WHERE book_id = ? AND status = 'pending' AND user_id != ?
-        LIMIT 1"
+      'SELECT id FROM Reservations
+        WHERE book_id = ?
+          AND status IN (?, ?)
+          AND user_id != ?
+        LIMIT 1'
     );
-    $resStmt->execute([(int) $loan['book_id'], $userId]);
+    $resStmt->execute([
+      (int) $loan['book_id'],
+      RESERVATION_STATUS_PENDING,
+      RESERVATION_STATUS_APPROVED,
+      $userId,
+    ]);
     if ($resStmt->fetch()) {
       return ['eligible' => false, 'reason_code' => 'competing_reservation', 'new_due_date' => null];
     }

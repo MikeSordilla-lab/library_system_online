@@ -22,6 +22,23 @@ class BorrowerReservationModule
 
     expire_stale_reservations($pdo);
 
+    $bookStmt = $pdo->prepare(
+      'SELECT id, total_copies, available_copies
+         FROM Books
+        WHERE id = ?
+        FOR UPDATE'
+    );
+    $bookStmt->execute([$bookId]);
+    $book = $bookStmt->fetch();
+
+    if (!$book) {
+      return ['success' => false, 'reason_code' => 'book_not_found'];
+    }
+
+    if ((int) $book['total_copies'] < 1) {
+      return ['success' => false, 'reason_code' => 'book_not_borrowable'];
+    }
+
     $unpaidFines = get_unpaid_fines_total($pdo, $userId);
     if ($unpaidFines > 0.0) {
       return ['success' => false, 'reason_code' => 'delinquent'];

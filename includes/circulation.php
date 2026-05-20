@@ -115,6 +115,74 @@ function get_overdue_loan_count(PDO $pdo, int $user_id): int
   return (int) $stmt->fetchColumn();
 }
 
+function circulation_currency_code(PDO $pdo): string
+{
+  $code = strtoupper(trim(get_setting($pdo, 'currency_code', 'PHP')));
+  return $code !== '' ? $code : 'PHP';
+}
+
+function circulation_currency_symbol(PDO $pdo): string
+{
+  $code = circulation_currency_code($pdo);
+  $symbols = [
+    'PHP' => '₱',
+    'USD' => '$',
+  ];
+  return $symbols[$code] ?? ($code . ' ');
+}
+
+function format_circulation_money(PDO $pdo, float $amount): string
+{
+  return circulation_currency_symbol($pdo) . number_format($amount, 2);
+}
+
+/**
+ * Mark only returned loans with positive unpaid fines as paid.
+ *
+ * @return array{total: float, rows: int}
+ */
+function mark_returned_positive_fines_paid(PDO $pdo, int $userId): array
+{
+  if (!$pdo->inTransaction()) {
+    throw new RuntimeException('mark_returned_positive_fines_paid must be called inside an active transaction.');
+  }
+
+  $selectStmt = $pdo->prepare(
+    "SELECT id, fine_amount
+       FROM Circulation
+      WHERE user_id = ?
+        AND status = 'returned'
+        AND fine_paid = 0
+        AND fine_amount > 0
+      FOR UPDATE"
+  );
+  $selectStmt->execute([$userId]);
+  $fineRows = $selectStmt->fetchAll();
+
+  $total = 0.0;
+  $fineIds = [];
+  foreach ($fineRows as $row) {
+    $total += (float) $row['fine_amount'];
+    $fineIds[] = (int) $row['id'];
+  }
+
+  if ($total <= 0.0) {
+    return ['total' => 0.0, 'rows' => 0];
+  }
+
+  $placeholders = implode(', ', array_fill(0, count($fineIds), '?'));
+  $upd = $pdo->prepare(
+    "UPDATE Circulation
+        SET fine_paid = 1,
+            fine_paid_at = NOW()
+      WHERE id IN ($placeholders)
+        AND fine_paid = 0"
+  );
+  $upd->execute($fineIds);
+
+  return ['total' => $total, 'rows' => $upd->rowCount()];
+}
+
 /**
  * Transition stale open reservations to expired (preferred) or cancelled fallback.
  *
@@ -229,6 +297,73 @@ function transition_reservation_status(
 }
 
 /**
+ * Return whether a checkout can proceed under reservation rules.
+ *
+ * @return array{allowed: bool, reason_code: string|null, reservation_id?: int}
+ */
+function checkout_reservation_policy(PDO $pdo, int $userId, int $bookId): array
+{
+  if (!$pdo->inTransaction()) {
+    throw new RuntimeException('checkout_reservation_policy must be called inside an active transaction.');
+  }
+
+  $orderSql = reservation_column_exists($pdo, 'approved_at')
+    ? 'approved_at ASC, reserved_at ASC, id ASC'
+    : 'reserved_at ASC, id ASC';
+
+  $stmt = $pdo->prepare(
+    "SELECT id, user_id, status
+       FROM Reservations
+      WHERE book_id = ?
+        AND status = ?
+      ORDER BY {$orderSql}
+      LIMIT 1
+      FOR UPDATE"
+  );
+  $stmt->execute([$bookId, RESERVATION_STATUS_APPROVED]);
+  $approved = $stmt->fetch();
+
+  if ($approved && (int) $approved['user_id'] !== $userId) {
+    return [
+      'allowed' => false,
+      'reason_code' => 'reserved_for_another_borrower',
+      'reservation_id' => (int) $approved['id'],
+    ];
+  }
+
+  return [
+    'allowed' => true,
+    'reason_code' => null,
+    'reservation_id' => $approved ? (int) $approved['id'] : null,
+  ];
+}
+
+function checkout_reservation_to_fulfill(PDO $pdo, int $userId, int $bookId): ?array
+{
+  if (!$pdo->inTransaction()) {
+    throw new RuntimeException('checkout_reservation_to_fulfill must be called inside an active transaction.');
+  }
+
+  $orderSql = reservation_column_exists($pdo, 'approved_at')
+    ? 'approved_at ASC, reserved_at ASC, id ASC'
+    : 'reserved_at ASC, id ASC';
+
+  $stmt = $pdo->prepare(
+    "SELECT id, status
+       FROM Reservations
+      WHERE user_id = ?
+        AND book_id = ?
+        AND status = ?
+      ORDER BY {$orderSql}
+      LIMIT 1
+      FOR UPDATE"
+  );
+  $stmt->execute([$userId, $bookId, RESERVATION_STATUS_APPROVED]);
+  $row = $stmt->fetch();
+  return $row === false ? null : $row;
+}
+
+/**
  * Fetch pending reservations in strict FIFO order.
  *
  * @param PDO $pdo Active PDO connection
@@ -258,6 +393,26 @@ function get_pending_reservation_queue(PDO $pdo): array
   );
   $stmt->execute([RESERVATION_STATUS_PENDING, RESERVATION_STATUS_PENDING]);
   return $stmt->fetchAll();
+}
+
+function complete_checkin_loan(PDO $pdo, int $loanId, float $fine): bool
+{
+  $finePaid = $fine > 0.0 ? 0 : 1;
+  $finePaidAtSql = $fine > 0.0 ? 'NULL' : 'NOW()';
+
+  $stmt = $pdo->prepare(
+    "UPDATE Circulation
+        SET return_date = NOW(),
+            status = 'returned',
+            fine_amount = ?,
+            fine_paid = ?,
+            fine_paid_at = {$finePaidAtSql}
+      WHERE id = ?
+        AND status IN ('active', 'overdue')"
+  );
+  $stmt->execute([$fine, $finePaid, $loanId]);
+
+  return $stmt->rowCount() === 1;
 }
 
 /**
