@@ -773,6 +773,10 @@
   font-size: 0.82rem;
 }
 
+.librarian-themed .librarian-borrowers-page .cat-toolbar__select {
+  min-width: 170px;
+}
+
 .librarian-themed .borrower-delete-confirm {
   display: flex;
   align-items: center;
@@ -973,7 +977,7 @@
 /* ── Stat Cards (Dashboard) ──────────────────────────────────────────── */
 .librarian-themed .stat-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 1.5rem;
   margin-bottom: 2.5rem;
   animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
@@ -1025,6 +1029,7 @@
 .librarian-themed .stat-stripe--gold { background: var(--rd-primary); }
 .librarian-themed .stat-stripe--blue { background: #3b82f6; }
 .librarian-themed .stat-stripe--sage { background: #22c55e; }
+.librarian-themed .stat-stripe--green { background: #10b981; }
 
 /* ── Quick Action Cards (Dashboard) ──────────────────────────────────── */
 .librarian-themed .quick-grid {
@@ -1109,6 +1114,10 @@
 
 /* ── Responsive ──────────────────────────────────────────────────────── */
 @media (max-width: 992px) {
+  .librarian-themed .stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .librarian-themed .quick-grid {
     grid-template-columns: 1fr;
   }

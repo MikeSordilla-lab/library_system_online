@@ -19,6 +19,7 @@ $pdo = get_db();
 $totalBooks         = (int) $pdo->query('SELECT SUM(total_copies) FROM Books')->fetchColumn();
 $activeLoans        = (int) $pdo->query("SELECT COUNT(*) FROM Circulation WHERE status IN ('active','overdue')")->fetchColumn();
 $pendingReservations = (int) $pdo->query("SELECT COUNT(*) FROM Reservations WHERE status = 'pending'")->fetchColumn();
+$totalBorrowers     = (int) $pdo->query("SELECT COUNT(*) FROM Users WHERE role = 'borrower'")->fetchColumn();
 
 $current_page = 'librarian.index';
 $pageTitle    = 'Dashboard | LibraLink';
@@ -60,6 +61,11 @@ $extraStyles = [
           <div class="stat-value"><?= number_format($pendingReservations) ?></div>
           <div class="stat-label">Reservations</div>
           <div class="stat-stripe stat-stripe--sage"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value"><?= number_format($totalBorrowers) ?></div>
+          <div class="stat-label">Borrowers</div>
+          <div class="stat-stripe stat-stripe--green"></div>
         </div>
       </div>
 

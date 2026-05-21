@@ -247,6 +247,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $q = trim((string) ($_GET['q'] ?? ''));
 $q = preg_replace('/\s+/u', ' ', $q) ?? $q;
+$statusFilter = (string) ($_GET['status'] ?? '');
+$loanFilter = (string) ($_GET['loans'] ?? '');
+$reservationFilter = (string) ($_GET['reservations'] ?? '');
+$fineFilter = (string) ($_GET['fines'] ?? '');
+
+if (!in_array($statusFilter, ['', 'verified', 'unverified', 'suspended'], true)) {
+  $statusFilter = '';
+}
+if (!in_array($loanFilter, ['', 'active', 'none'], true)) {
+  $loanFilter = '';
+}
+if (!in_array($reservationFilter, ['', 'open', 'none'], true)) {
+  $reservationFilter = '';
+}
+if (!in_array($fineFilter, ['', 'unpaid', 'none'], true)) {
+  $fineFilter = '';
+}
 
 $where = ['u.role = ?'];
 $params = ['borrower'];
@@ -255,8 +272,31 @@ if ($q !== '') {
   $params[] = '%' . $q . '%';
   $params[] = '%' . $q . '%';
 }
+if ($statusFilter === 'verified') {
+  $where[] = 'u.is_verified = 1 AND u.is_suspended = 0';
+} elseif ($statusFilter === 'unverified') {
+  $where[] = 'u.is_verified = 0 AND u.is_suspended = 0';
+} elseif ($statusFilter === 'suspended') {
+  $where[] = 'u.is_suspended = 1';
+}
+if ($loanFilter === 'active') {
+  $where[] = 'EXISTS (SELECT 1 FROM Circulation c WHERE c.user_id = u.id AND c.status IN (\'active\', \'overdue\'))';
+} elseif ($loanFilter === 'none') {
+  $where[] = 'NOT EXISTS (SELECT 1 FROM Circulation c WHERE c.user_id = u.id AND c.status IN (\'active\', \'overdue\'))';
+}
+if ($reservationFilter === 'open') {
+  $where[] = 'EXISTS (SELECT 1 FROM Reservations r WHERE r.user_id = u.id AND r.status IN (\'pending\', \'approved\'))';
+} elseif ($reservationFilter === 'none') {
+  $where[] = 'NOT EXISTS (SELECT 1 FROM Reservations r WHERE r.user_id = u.id AND r.status IN (\'pending\', \'approved\'))';
+}
+if ($fineFilter === 'unpaid') {
+  $where[] = 'EXISTS (SELECT 1 FROM Circulation c WHERE c.user_id = u.id AND c.fine_paid = 0 AND c.fine_amount > 0)';
+} elseif ($fineFilter === 'none') {
+  $where[] = 'NOT EXISTS (SELECT 1 FROM Circulation c WHERE c.user_id = u.id AND c.fine_paid = 0 AND c.fine_amount > 0)';
+}
 
 $whereSql = ' WHERE ' . implode(' AND ', $where);
+$hasFilters = $q !== '' || $statusFilter !== '' || $loanFilter !== '' || $reservationFilter !== '' || $fineFilter !== '';
 
 $stmt = $pdo->prepare(
   'SELECT u.id, u.full_name, u.email, u.is_verified, u.is_suspended, u.created_at,
@@ -309,13 +349,37 @@ $extraStyles = [
       <form class="cat-toolbar" method="get" action="<?= htmlspecialchars($selfUrl, ENT_QUOTES, 'UTF-8') ?>">
         <div class="cat-toolbar__search-wrap">
           <span class="cat-toolbar__search-icon" aria-hidden="true">&#128269;</span>
-          <input class="cat-toolbar__search" type="search" name="q" value="<?= htmlspecialchars($q, ENT_QUOTES, 'UTF-8') ?>" placeholder="Search borrowers">
+          <input class="cat-toolbar__search" type="search" name="q" value="<?= htmlspecialchars($q, ENT_QUOTES, 'UTF-8') ?>" placeholder="Search name or email">
         </div>
+        <select class="cat-toolbar__select" name="status" aria-label="Filter by borrower status">
+          <option value="" <?= $statusFilter === '' ? 'selected' : '' ?>>All Status</option>
+          <option value="verified" <?= $statusFilter === 'verified' ? 'selected' : '' ?>>Verified</option>
+          <option value="unverified" <?= $statusFilter === 'unverified' ? 'selected' : '' ?>>Unverified</option>
+          <option value="suspended" <?= $statusFilter === 'suspended' ? 'selected' : '' ?>>Suspended</option>
+        </select>
+        <select class="cat-toolbar__select" name="loans" aria-label="Filter by active loans">
+          <option value="" <?= $loanFilter === '' ? 'selected' : '' ?>>All Loans</option>
+          <option value="active" <?= $loanFilter === 'active' ? 'selected' : '' ?>>Has Active Loans</option>
+          <option value="none" <?= $loanFilter === 'none' ? 'selected' : '' ?>>No Active Loans</option>
+        </select>
+        <select class="cat-toolbar__select" name="reservations" aria-label="Filter by open reservations">
+          <option value="" <?= $reservationFilter === '' ? 'selected' : '' ?>>All Reservations</option>
+          <option value="open" <?= $reservationFilter === 'open' ? 'selected' : '' ?>>Has Open Reservations</option>
+          <option value="none" <?= $reservationFilter === 'none' ? 'selected' : '' ?>>No Open Reservations</option>
+        </select>
+        <select class="cat-toolbar__select" name="fines" aria-label="Filter by unpaid fines">
+          <option value="" <?= $fineFilter === '' ? 'selected' : '' ?>>All Fines</option>
+          <option value="unpaid" <?= $fineFilter === 'unpaid' ? 'selected' : '' ?>>Has Unpaid Fines</option>
+          <option value="none" <?= $fineFilter === 'none' ? 'selected' : '' ?>>No Unpaid Fines</option>
+        </select>
         <button class="btn-primary" type="submit">Search</button>
-        <?php if ($q !== ''): ?>
+        <?php if ($hasFilters): ?>
           <a class="btn-ghost" href="<?= htmlspecialchars($selfUrl, ENT_QUOTES, 'UTF-8') ?>">Reset</a>
         <?php endif; ?>
       </form>
+      <div class="cat-count" aria-live="polite">
+        <?= number_format(count($borrowers)) ?> borrower<?= count($borrowers) === 1 ? '' : 's' ?> found
+      </div>
 
       <div class="section-card">
         <div class="section-card__header">
