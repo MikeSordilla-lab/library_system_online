@@ -32,10 +32,11 @@ $actor_role = (string) $_SESSION['role'];
 
 if ($action === 'place') {
   $book_id = (int) ($_POST['book_id'] ?? 0);
+  $place_redirect = _sanitize_borrower_redirect((string) ($_POST['redirect_to'] ?? 'borrower/catalog.php'));
 
   if ($book_id < 1) {
     $_SESSION['flash_error'] = 'Invalid book reference.';
-    header('Location: ' . BASE_URL . 'borrower/catalog.php');
+    header('Location: ' . BASE_URL . $place_redirect);
     exit;
   }
 
@@ -45,7 +46,7 @@ if ($action === 'place') {
     if (!$result['success']) {
       $pdo->rollBack();
       $_SESSION['flash_error'] = _reserve_place_error($result['reason_code'], $pdo, $user_id);
-      header('Location: ' . BASE_URL . 'borrower/catalog.php');
+      header('Location: ' . BASE_URL . $place_redirect);
       exit;
     }
     $pdo->commit();
@@ -53,13 +54,76 @@ if ($action === 'place') {
     if ($pdo->inTransaction()) $pdo->rollBack();
     error_log('[reserve.php] place failed: ' . $e->getMessage());
     $_SESSION['flash_error'] = 'An unexpected error occurred. Please try again.';
-    header('Location: ' . BASE_URL . 'borrower/catalog.php');
+    header('Location: ' . BASE_URL . $place_redirect);
     exit;
   }
 
   $_SESSION['flash_success'] = 'Reservation placed. You are #' . $result['queue_position'] . ' in line.';
   $_SESSION['flash_receipt_no'] = (string) ($result['receipt']['receipt_no'] ?? '');
-  header('Location: ' . BASE_URL . 'borrower/catalog.php');
+  header('Location: ' . BASE_URL . $place_redirect);
+  exit;
+}
+
+if ($action === 'place_bulk') {
+  $bulk_redirect = _sanitize_borrower_redirect((string) ($_POST['redirect_to'] ?? 'borrower/catalog.php'));
+  $rawBookIds = $_POST['book_ids'] ?? [];
+  if (!is_array($rawBookIds)) {
+    $rawBookIds = [];
+  }
+
+  $bookIds = [];
+  foreach ($rawBookIds as $rawBookId) {
+    $bookId = (int) $rawBookId;
+    if ($bookId > 0 && !in_array($bookId, $bookIds, true)) {
+      $bookIds[] = $bookId;
+    }
+  }
+
+  if (empty($bookIds)) {
+    $_SESSION['flash_error'] = 'Select at least one book to reserve.';
+    header('Location: ' . BASE_URL . $bulk_redirect);
+    exit;
+  }
+
+  if (count($bookIds) > 10) {
+    $_SESSION['flash_error'] = 'You can reserve up to 10 selected books at a time.';
+    header('Location: ' . BASE_URL . $bulk_redirect);
+    exit;
+  }
+
+  $pdo->beginTransaction();
+  try {
+    $bulkResult = BorrowerReservationModule::placeBulk($pdo, $user_id, $bookIds, $actor_role);
+    $pdo->commit();
+  } catch (Throwable $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    error_log('[reserve.php] bulk place failed: ' . $e->getMessage());
+    $_SESSION['flash_error'] = 'An unexpected error occurred. Please try again.';
+    header('Location: ' . BASE_URL . $bulk_redirect);
+    exit;
+  }
+
+  $successes = $bulkResult['successes'] ?? [];
+  $failures = [];
+  foreach (($bulkResult['failures'] ?? []) as $failure) {
+    $failures[] = (string) ($failure['title'] ?? 'Book') . ': ' . _reserve_place_error((string) ($failure['reason_code'] ?? ''), $pdo, $user_id);
+  }
+  $firstReceiptNo = (string) ($bulkResult['first_receipt_no'] ?? '');
+
+  if (!empty($successes)) {
+    $count = count($successes);
+    $_SESSION['flash_success'] = $count . ' reservation' . ($count === 1 ? '' : 's') . ' placed.';
+    if (!empty($failures)) {
+      $_SESSION['flash_success'] .= ' Some books were skipped: ' . implode(' ', array_slice($failures, 0, 3));
+    }
+    if ($count === 1 && $firstReceiptNo !== '') {
+      $_SESSION['flash_receipt_no'] = $firstReceiptNo;
+    }
+  } else {
+    $_SESSION['flash_error'] = 'No reservations were placed. ' . implode(' ', array_slice($failures, 0, 3));
+  }
+
+  header('Location: ' . BASE_URL . $bulk_redirect);
   exit;
 }
 

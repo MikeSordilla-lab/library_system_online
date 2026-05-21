@@ -973,7 +973,16 @@ tr.rd-row-overdue td:first-child {
 }
 
 .borrower-dashboard-new .catalog-book__action {
+  display: grid;
+  gap: 0.75rem;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 1rem;
+}
+
+.borrower-dashboard-new .catalog-book__btn {
+  border-radius: 10px;
+  min-height: 46px;
+  padding: 0.75rem 1rem;
 }
 
 .borrower-dashboard-new .catalog-book__btn--disabled {

@@ -144,6 +144,71 @@ class BorrowerReservationModule
   }
 
   /**
+   * Place reservations for multiple books.
+   *
+   * @param PDO $pdo Active database connection inside caller transaction
+   * @param int $userId
+   * @param array<int, int> $bookIds
+   * @param string $actorRole
+   * @return array{successes: array<int, array{title: string, queue_position: int, receipt?: array}>, failures: array<int, array{title: string, reason_code: string}>, first_receipt_no: string}
+   */
+  public static function placeBulk(PDO $pdo, int $userId, array $bookIds, string $actorRole = 'borrower'): array
+  {
+    $cleanBookIds = [];
+    foreach ($bookIds as $bookId) {
+      $bookId = (int) $bookId;
+      if ($bookId > 0 && !in_array($bookId, $cleanBookIds, true)) {
+        $cleanBookIds[] = $bookId;
+      }
+    }
+
+    if (empty($cleanBookIds)) {
+      return ['successes' => [], 'failures' => [], 'first_receipt_no' => ''];
+    }
+
+    $placeholders = implode(', ', array_fill(0, count($cleanBookIds), '?'));
+    $titleStmt = $pdo->prepare("SELECT id, title FROM Books WHERE id IN ($placeholders)");
+    $titleStmt->execute($cleanBookIds);
+
+    $bookTitles = [];
+    foreach ($titleStmt->fetchAll() as $titleRow) {
+      $bookTitles[(int) $titleRow['id']] = (string) $titleRow['title'];
+    }
+
+    $successes = [];
+    $failures = [];
+    $firstReceiptNo = '';
+
+    foreach ($cleanBookIds as $bookId) {
+      $title = $bookTitles[$bookId] ?? ('Book #' . $bookId);
+      $result = self::place($pdo, $userId, $bookId, $actorRole);
+
+      if (!empty($result['success'])) {
+        $successes[] = [
+          'title' => $title,
+          'queue_position' => (int) ($result['queue_position'] ?? 0),
+          'receipt' => $result['receipt'] ?? [],
+        ];
+        if ($firstReceiptNo === '' && !empty($result['receipt']['receipt_no'])) {
+          $firstReceiptNo = (string) $result['receipt']['receipt_no'];
+        }
+        continue;
+      }
+
+      $failures[] = [
+        'title' => $title,
+        'reason_code' => (string) ($result['reason_code'] ?? ''),
+      ];
+    }
+
+    return [
+      'successes' => $successes,
+      'failures' => $failures,
+      'first_receipt_no' => $firstReceiptNo,
+    ];
+  }
+
+  /**
    * Cancel a book reservation.
    *
    * @param PDO $pdo
