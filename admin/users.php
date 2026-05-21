@@ -17,6 +17,7 @@ require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/admin.php';
 require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/avatar.php';
+require_once __DIR__ . '/../includes/circulation.php';
 require_once __DIR__ . '/../src/utils/helpers.php';
 
 $pdo = get_db();
@@ -1227,6 +1228,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
       }
 
+      expire_stale_reservations($pdo);
+
       $dep_stmt = $pdo->prepare(
         'SELECT
             (SELECT COUNT(*) FROM Circulation WHERE user_id = ? AND status IN (\'active\', \'overdue\')) AS open_circulation_count,
@@ -1275,6 +1278,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $deleteReceipts = $pdo->prepare('DELETE FROM Receipt_Tickets WHERE actor_user_id = ? OR patron_user_id = ?');
         $deleteReceipts->execute([$user_id, $user_id]);
       }
+
+      $reservationReviewerSetParts = [];
+      $reservationReviewerWhereParts = [];
+      $reservationReviewerParams = [];
+      if (reservation_column_exists($pdo, 'approved_by')) {
+        $reservationReviewerSetParts[] = 'approved_by = CASE WHEN approved_by = ? THEN NULL ELSE approved_by END';
+        $reservationReviewerWhereParts[] = 'approved_by = ?';
+        $reservationReviewerParams[] = $user_id;
+      }
+      if (reservation_column_exists($pdo, 'rejected_by')) {
+        $reservationReviewerSetParts[] = 'rejected_by = CASE WHEN rejected_by = ? THEN NULL ELSE rejected_by END';
+        $reservationReviewerWhereParts[] = 'rejected_by = ?';
+        $reservationReviewerParams[] = $user_id;
+      }
+      if (!empty($reservationReviewerSetParts)) {
+        $clearReservationApprovals = $pdo->prepare(
+          'UPDATE Reservations
+              SET ' . implode(', ', $reservationReviewerSetParts) . '
+            WHERE ' . implode(' OR ', $reservationReviewerWhereParts)
+        );
+        $clearReservationApprovals->execute(array_merge($reservationReviewerParams, $reservationReviewerParams));
+      }
+
+      $deleteClosedReservations = $pdo->prepare(
+        'DELETE FROM Reservations
+          WHERE user_id = ?
+            AND status NOT IN (\'pending\', \'approved\')'
+      );
+      $deleteClosedReservations->execute([$user_id]);
+
+      $deleteClosedCirculation = $pdo->prepare(
+        'DELETE FROM Circulation
+          WHERE user_id = ?
+            AND status NOT IN (\'active\', \'overdue\')'
+      );
+      $deleteClosedCirculation->execute([$user_id]);
+
+      $clearSystemLogs = $pdo->prepare('UPDATE System_Logs SET actor_id = NULL WHERE actor_id = ?');
+      $clearSystemLogs->execute([$user_id]);
 
       $del = $pdo->prepare('DELETE FROM Users WHERE id = ? LIMIT 1');
       $del->execute([$user_id]);
