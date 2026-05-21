@@ -143,6 +143,23 @@ $approved_rows_stmt = $pdo->prepare(
 $approved_rows_stmt->execute([RESERVATION_STATUS_APPROVED]);
 $approved_rows = $approved_rows_stmt->fetchAll();
 
+$processed_rows_stmt = $pdo->prepare(
+  'SELECT r.id, r.status, r.reserved_at, r.approved_at, r.rejected_at, r.rejection_reason,
+          u.full_name AS borrower_name, u.email AS borrower_email,
+          b.title AS book_title, b.author AS book_author,
+          approver.full_name AS approved_by_name,
+          rejecter.full_name AS rejected_by_name
+     FROM Reservations r
+     JOIN Users u ON r.user_id = u.id
+     JOIN Books b ON r.book_id = b.id
+LEFT JOIN Users approver ON approver.id = r.approved_by
+LEFT JOIN Users rejecter ON rejecter.id = r.rejected_by
+    WHERE r.status IN (?, ?)
+    ORDER BY COALESCE(r.rejected_at, r.approved_at, r.reserved_at) DESC, r.id DESC'
+);
+$processed_rows_stmt->execute([RESERVATION_STATUS_APPROVED, RESERVATION_STATUS_REJECTED]);
+$processed_rows = $processed_rows_stmt->fetchAll();
+
 $flashError = (string) ($_SESSION['flash_error'] ?? '');
 $flashSuccess = (string) ($_SESSION['flash_success'] ?? '');
 $flashInfo = (string) ($_SESSION['flash_info'] ?? '');
@@ -236,8 +253,74 @@ $extraStyles = [
         <?php endif; ?>
       </div>
 
+      <div class="section-card reservation-section-card">
+        <div class="section-card__header">
+          <span class="section-card__title">Approved and Declined Reservations</span>
+          <?php if (!empty($processed_rows)): ?>
+            <span class="badge badge-blue"><?= count($processed_rows) ?></span>
+          <?php endif; ?>
+        </div>
+
+        <?php if (empty($processed_rows)): ?>
+          <div class="empty-state">
+            <span class="empty-state__icon">&#10003;</span>
+            <p>No approved or declined reservations yet.</p>
+          </div>
+        <?php else: ?>
+          <div class="tbl-wrapper">
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Reserved At</th>
+                  <th>Borrower</th>
+                  <th>Email</th>
+                  <th>Book</th>
+                  <th>Author</th>
+                  <th>Processed On</th>
+                  <th>Processed By</th>
+                  <th>Reason</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php foreach ($processed_rows as $processed):
+                  $processedStatus = (string) ($processed['status'] ?? '');
+                  $isApproved = $processedStatus === RESERVATION_STATUS_APPROVED;
+                  $processedAt = $isApproved ? ($processed['approved_at'] ?? '') : ($processed['rejected_at'] ?? '');
+                  $processedBy = $isApproved ? ($processed['approved_by_name'] ?? '') : ($processed['rejected_by_name'] ?? '');
+                ?>
+                  <tr>
+                    <td data-label="Status">
+                      <span class="badge <?= $isApproved ? 'badge-green' : 'badge-red' ?>">
+                        <?= $isApproved ? 'Approved' : 'Declined' ?>
+                      </span>
+                    </td>
+                    <td data-label="Reserved At"><?= htmlspecialchars(date('d M Y', strtotime((string) $processed['reserved_at'])), ENT_QUOTES, 'UTF-8') ?></td>
+                    <td data-label="Borrower"><?= htmlspecialchars((string) $processed['borrower_name'], ENT_QUOTES, 'UTF-8') ?></td>
+                    <td data-label="Email"><?= htmlspecialchars((string) $processed['borrower_email'], ENT_QUOTES, 'UTF-8') ?></td>
+                    <td data-label="Book"><?= htmlspecialchars((string) $processed['book_title'], ENT_QUOTES, 'UTF-8') ?></td>
+                    <td data-label="Author"><?= htmlspecialchars((string) ($processed['book_author'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
+                    <td data-label="Processed On">
+                      <?= $processedAt ? htmlspecialchars(date('d M Y', strtotime((string) $processedAt)), ENT_QUOTES, 'UTF-8') : '&mdash;' ?>
+                    </td>
+                    <td data-label="Processed By">
+                      <?= htmlspecialchars((string) ($processedBy ?: '—'), ENT_QUOTES, 'UTF-8') ?>
+                    </td>
+                    <td data-label="Reason">
+                      <?= !$isApproved && !empty($processed['rejection_reason'])
+                        ? htmlspecialchars((string) $processed['rejection_reason'], ENT_QUOTES, 'UTF-8')
+                        : '&mdash;' ?>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+        <?php endif; ?>
+      </div>
+
       <!-- ── EPIC 1: Approved Reservations (Awaiting Pickup) ───────────────── -->
-      <div class="section-card" style="margin-top:var(--space-4,1.5rem);">
+      <div class="section-card reservation-section-card">
         <div class="section-card__header">
           <span class="section-card__title">Approved — Awaiting Pickup</span>
           <?php if (!empty($approved_rows)): ?>

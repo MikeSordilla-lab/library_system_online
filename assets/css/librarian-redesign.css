@@ -755,6 +755,147 @@
   min-width: 120px;
 }
 
+.librarian-themed .reservation-section-card {
+  margin-top: 1.5rem;
+}
+
+.librarian-themed .borrower-table-person {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.librarian-themed .borrower-table-person strong {
+  color: var(--rd-text-bold);
+}
+
+.librarian-themed .borrower-table-person span {
+  color: var(--rd-text-muted);
+  font-size: 0.82rem;
+}
+
+.librarian-themed .borrower-delete-confirm {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--rd-text-muted);
+  font-size: 0.82rem;
+}
+
+.librarian-themed .borrower-panel-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.librarian-themed .borrower-panel-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.librarian-themed .borrower-side-panel {
+  width: min(440px, 100vw);
+  height: 100%;
+  overflow-y: auto;
+  background: #1c1a17;
+  border-left: 1px solid var(--rd-border);
+  box-shadow: -20px 0 40px rgba(0, 0, 0, 0.35);
+  transform: translateX(100%);
+  transition: transform 0.24s ease;
+}
+
+.librarian-themed .borrower-panel-overlay.active .borrower-side-panel {
+  transform: translateX(0);
+}
+
+.librarian-themed .borrower-panel-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--rd-border);
+}
+
+.librarian-themed .borrower-panel-header h2 {
+  margin: 0 0 0.25rem;
+  color: var(--rd-primary);
+  font-size: 1.35rem;
+}
+
+.librarian-themed .borrower-panel-header p {
+  margin: 0;
+  color: var(--rd-text-muted);
+}
+
+.librarian-themed .borrower-panel-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+}
+
+.librarian-themed .borrower-panel-meta {
+  margin-top: 0.75rem !important;
+  font-size: 0.84rem;
+}
+
+.librarian-themed .borrower-panel-close {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--rd-border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--rd-text);
+  cursor: pointer;
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.librarian-themed .borrower-panel-body {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+.librarian-themed .borrower-panel-section {
+  border: 1px solid var(--rd-border);
+  border-radius: 12px;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.librarian-themed .borrower-panel-section h3 {
+  margin: 0 0 0.85rem;
+  color: var(--rd-text-bold);
+  font-size: 1rem;
+}
+
+.librarian-themed .borrower-panel-section--danger {
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.librarian-themed .borrower-panel-form {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.librarian-themed .borrower-delete-note {
+  margin: 0 0 0.85rem;
+  color: var(--rd-text-muted);
+  font-size: 0.86rem;
+}
+
+.librarian-themed button:disabled,
+.librarian-themed input:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 /* ── Select2 Overrides ───────────────────────────────────────────────── */
 .librarian-themed .select2-container--default .select2-selection--single {
   height: auto;

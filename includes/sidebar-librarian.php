@@ -149,6 +149,20 @@ $key === ($current_page ?? '') ? 'sidebar-item active' : 'sidebar-item';
       </span>
       <span>Generate Records</span>
     </a>
+
+    <div class="sidebar__section-label">Management</div>
+    <a href="<?= BASE_URL ?>librarian/borrowers.php" class="<?= $_sb_nav('librarian.borrowers') ?>">
+      <span class="sidebar-item__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="8" r="3" />
+          <path d="M3.5 19c.9-3.2 2.8-5 5.5-5s4.6 1.8 5.5 5" />
+          <path d="M17 8h4" />
+          <path d="M19 6v4" />
+          <path d="M17 15h4" />
+        </svg>
+      </span>
+      <span>User Management</span>
+    </a>
     <a href="<?= BASE_URL ?>librarian/profile.php" class="<?= $_sb_nav('librarian.profile') ?>">
       <span class="sidebar-item__icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">

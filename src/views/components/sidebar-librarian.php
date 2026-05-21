@@ -53,6 +53,11 @@ $key === ($current_page ?? '') ? 'sidebar-item active' : 'sidebar-item';
     Reservations
   </a>
 
+  <div class="sidebar__section-label">Management</div>
+  <a href="<?= BASE_URL ?>librarian/borrowers.php" class="<?= $_sb_nav('librarian.borrowers') ?>">
+    User Management
+  </a>
+
   <div class="sidebar__avatar-section">
     <div class="sidebar-avatar">
       <div class="sidebar-avatar__initials"><?= htmlspecialchars($_sb_initials, ENT_QUOTES, 'UTF-8') ?></div>
