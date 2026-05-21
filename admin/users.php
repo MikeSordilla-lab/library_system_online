@@ -468,11 +468,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       header('Location: ' . $self_url);
       exit;
     }
-    if ($role_requires_verification($role) && $is_verified !== 1) {
-      $persist_create_user_state('Admin and Librarian accounts must start as verified.', $old_create_user_input);
-      header('Location: ' . $self_url);
-      exit;
+
+    if ($role_requires_verification($role)) {
+      $is_verified = 1;
+      $old_create_user_input['is_verified'] = 1;
     }
+
     if (strlen($password) < 8) {
       $persist_create_user_state('Password must be at least 8 characters.', $old_create_user_input);
       header('Location: ' . $self_url);

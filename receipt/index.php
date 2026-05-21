@@ -8,53 +8,144 @@ $pdo = get_db();
 $viewer_id = (int) $_SESSION['user_id'];
 $viewer_role = (string) $_SESSION['role'];
 
+$q = isset($_GET['q']) ? trim((string) $_GET['q']) : '';
+$filter_status = isset($_GET['status']) ? trim((string) $_GET['status']) : '';
+$filter_type = isset($_GET['type']) ? trim((string) $_GET['type']) : '';
+$date_from = isset($_GET['date_from']) ? trim((string) $_GET['date_from']) : '';
+$date_to = isset($_GET['date_to']) ? trim((string) $_GET['date_to']) : '';
 $page = max(1, (int) ($_GET['page'] ?? 1));
 $per_page = 20;
 $per_page = max(5, min(100, $per_page));
 $offset = ($page - 1) * $per_page;
 
-$where_sql = '';
-$count_params = [];
-if ($viewer_role === 'borrower') {
-  $where_sql = 'WHERE patron_user_id = ?';
-  $count_params = [$viewer_id];
+$datePattern = '/^\d{4}-\d{2}-\d{2}$/';
+if ($date_from !== '' && !preg_match($datePattern, $date_from)) {
+  $date_from = '';
 }
+if ($date_to !== '' && !preg_match($datePattern, $date_to)) {
+  $date_to = '';
+}
+
+$allowed_statuses = [];
+$allowed_types = [];
+try {
+  $base_option_sql = '';
+  $base_option_params = [];
+  if ($viewer_role === 'borrower') {
+    $base_option_sql = ' WHERE patron_user_id = ?';
+    $base_option_params = [$viewer_id];
+  }
+
+  $status_stmt = $pdo->prepare("SELECT DISTINCT status FROM Receipt_Tickets{$base_option_sql} ORDER BY status ASC");
+  $status_stmt->execute($base_option_params);
+  $allowed_statuses = array_values(array_filter(array_map('strval', $status_stmt->fetchAll(PDO::FETCH_COLUMN) ?: [])));
+
+  $type_stmt = $pdo->prepare("SELECT DISTINCT type FROM Receipt_Tickets{$base_option_sql} ORDER BY type ASC");
+  $type_stmt->execute($base_option_params);
+  $allowed_types = array_values(array_filter(array_map('strval', $type_stmt->fetchAll(PDO::FETCH_COLUMN) ?: [])));
+} catch (Throwable $e) {
+  $allowed_statuses = [];
+  $allowed_types = [];
+}
+
+$conditions = [];
+$params = [];
+if ($viewer_role === 'borrower') {
+  $conditions[] = 'patron_user_id = :viewer_id';
+  $params[':viewer_id'] = $viewer_id;
+}
+
+if ($q !== '') {
+  $conditions[] = '(receipt_no LIKE :q_receipt OR type LIKE :q_type OR status LIKE :q_status)';
+  $params[':q_receipt'] = '%' . $q . '%';
+  $params[':q_type'] = '%' . $q . '%';
+  $params[':q_status'] = '%' . $q . '%';
+}
+
+if ($filter_status !== '' && in_array($filter_status, $allowed_statuses, true)) {
+  $conditions[] = 'status = :status';
+  $params[':status'] = $filter_status;
+} elseif ($filter_status !== '') {
+  $filter_status = '';
+}
+
+if ($filter_type !== '' && in_array($filter_type, $allowed_types, true)) {
+  $conditions[] = 'type = :type';
+  $params[':type'] = $filter_type;
+} elseif ($filter_type !== '') {
+  $filter_type = '';
+}
+
+$date_to_sql = '';
+if ($date_to !== '') {
+  $date_to_ts = strtotime($date_to . ' +1 day');
+  if ($date_to_ts !== false) {
+    $date_to_sql = date('Y-m-d', $date_to_ts);
+  } else {
+    $date_to = '';
+  }
+}
+
+if ($date_from !== '') {
+  $conditions[] = 'issued_at >= :date_from';
+  $params[':date_from'] = $date_from . ' 00:00:00';
+}
+if ($date_to !== '' && $date_to_sql !== '') {
+  $conditions[] = 'issued_at < :date_to';
+  $params[':date_to'] = $date_to_sql . ' 00:00:00';
+}
+
+$where_sql = $conditions !== [] ? 'WHERE ' . implode(' AND ', $conditions) : '';
 
 $count_sql = "SELECT COUNT(*) FROM Receipt_Tickets {$where_sql}";
 $count_stmt = $pdo->prepare($count_sql);
-$count_stmt->execute($count_params);
+foreach ($params as $key => $value) {
+  $count_stmt->bindValue($key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+}
+$count_stmt->execute();
 $total_tickets = (int) $count_stmt->fetchColumn();
 $total_pages = max(1, (int) ceil($total_tickets / $per_page));
 $page = min($page, $total_pages);
 $offset = ($page - 1) * $per_page;
 
-if ($viewer_role === 'librarian') {
-  $tickets_stmt = $pdo->prepare(
-    'SELECT ' . receipt_select_clause($pdo) . '
-     FROM Receipt_Tickets
-     ORDER BY issued_at DESC, id DESC
-     LIMIT ' . (int) $per_page . ' OFFSET ' . (int) $offset
-  );
-  $tickets_stmt->execute();
-  $tickets = $tickets_stmt->fetchAll() ?: [];
-} else {
-  $tickets_stmt = $pdo->prepare(
-    'SELECT ' . receipt_select_clause($pdo) . '
-     FROM Receipt_Tickets
-     WHERE patron_user_id = ?
-     ORDER BY issued_at DESC, id DESC
-     LIMIT ' . (int) $per_page . ' OFFSET ' . (int) $offset
-  );
-  $tickets_stmt->execute([$viewer_id]);
-  $tickets = $tickets_stmt->fetchAll() ?: [];
+$tickets_stmt = $pdo->prepare(
+  'SELECT ' . receipt_select_clause($pdo) . '
+   FROM Receipt_Tickets
+   ' . $where_sql . '
+   ORDER BY issued_at DESC, id DESC
+   LIMIT ' . (int) $per_page . ' OFFSET ' . (int) $offset
+);
+foreach ($params as $key => $value) {
+  $tickets_stmt->bindValue($key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
 }
+$tickets_stmt->execute();
+$tickets = $tickets_stmt->fetchAll() ?: [];
 
 $base_url = defined('BASE_URL') ? (string) constant('BASE_URL') : '/';
+$shown_start = $total_tickets > 0 ? $offset + 1 : 0;
+$shown_end = $total_tickets > 0 ? $offset + count($tickets) : 0;
+$has_filters = $q !== '' || $filter_status !== '' || $filter_type !== '' || $date_from !== '' || $date_to !== '';
 
 function build_receipt_page_url(int $p): string
 {
-  global $base_url;
-  return $base_url . 'receipt/?page=' . $p;
+  global $base_url, $q, $filter_status, $filter_type, $date_from, $date_to;
+  $query = ['page' => $p];
+  if ($q !== '') {
+    $query['q'] = $q;
+  }
+  if ($filter_status !== '') {
+    $query['status'] = $filter_status;
+  }
+  if ($filter_type !== '') {
+    $query['type'] = $filter_type;
+  }
+  if ($date_from !== '') {
+    $query['date_from'] = $date_from;
+  }
+  if ($date_to !== '') {
+    $query['date_to'] = $date_to;
+  }
+  return $base_url . 'receipt/?' . http_build_query($query);
 }
 
 $current_page = 'receipt.index';
@@ -84,6 +175,51 @@ ob_start();
 }
 .rd-breadcrumb-sep {
   color: var(--rd-text-muted, #9ca3af);
+}
+.receipt-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.receipt-filters__row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: end;
+}
+.receipt-filters__field {
+  display: flex;
+  flex: 1 1 180px;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.receipt-filters__field label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--rd-text-muted, #6b7280);
+}
+.receipt-filters__field input,
+.receipt-filters__field select {
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--rd-border, #e5e7eb);
+  border-radius: 0.5rem;
+  background: var(--rd-surface, #fff);
+  color: var(--rd-text, #111827);
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+.receipt-filters__actions {
+  display: flex;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+}
+.receipt-results {
+  margin-bottom: 1rem;
+  color: var(--rd-text-muted, #6b7280);
+  font-size: 0.9rem;
 }
 .rd-pagination {
   display: flex;
@@ -158,6 +294,10 @@ ob_start();
   .rd-pagination-controls {
     justify-content: center;
   }
+  .receipt-filters__actions,
+  .receipt-filters__actions .rd-btn {
+    width: 100%;
+  }
 }
 </style>
 <?php
@@ -200,11 +340,62 @@ $pageStyles = ob_get_clean();
         Recent Receipts
       </div>
 
+      <form class="receipt-filters rd-card" method="GET" action="<?= htmlspecialchars($base_url . 'receipt/', ENT_QUOTES, 'UTF-8') ?>" aria-label="Filter receipts">
+        <div class="receipt-filters__row">
+          <div class="receipt-filters__field">
+            <label for="receipt-q">Search</label>
+            <input id="receipt-q" type="search" name="q" value="<?= htmlspecialchars($q, ENT_QUOTES, 'UTF-8') ?>" placeholder="Receipt #, type, or status">
+          </div>
+          <div class="receipt-filters__field">
+            <label for="receipt-status">Status</label>
+            <select id="receipt-status" name="status">
+              <option value="">All statuses</option>
+              <?php foreach ($allowed_statuses as $status): ?>
+                <option value="<?= htmlspecialchars($status, ENT_QUOTES, 'UTF-8') ?>" <?= $filter_status === $status ? 'selected' : '' ?>>
+                  <?= htmlspecialchars(ucfirst($status), ENT_QUOTES, 'UTF-8') ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <div class="receipt-filters__field">
+            <label for="receipt-type">Type</label>
+            <select id="receipt-type" name="type">
+              <option value="">All types</option>
+              <?php foreach ($allowed_types as $type): ?>
+                <option value="<?= htmlspecialchars($type, ENT_QUOTES, 'UTF-8') ?>" <?= $filter_type === $type ? 'selected' : '' ?>>
+                  <?= htmlspecialchars(ucwords(str_replace('_', ' ', $type)), ENT_QUOTES, 'UTF-8') ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+        </div>
+        <div class="receipt-filters__row">
+          <div class="receipt-filters__field">
+            <label for="receipt-date-from">From</label>
+            <input id="receipt-date-from" type="date" name="date_from" value="<?= htmlspecialchars($date_from, ENT_QUOTES, 'UTF-8') ?>">
+          </div>
+          <div class="receipt-filters__field">
+            <label for="receipt-date-to">To</label>
+            <input id="receipt-date-to" type="date" name="date_to" value="<?= htmlspecialchars($date_to, ENT_QUOTES, 'UTF-8') ?>">
+          </div>
+          <div class="receipt-filters__actions">
+            <button type="submit" class="rd-btn rd-btn-primary">Apply</button>
+            <?php if ($has_filters): ?>
+              <a class="rd-btn" style="background:var(--rd-surface); border:1px solid var(--rd-border); color:var(--rd-text); text-decoration:none;" href="<?= htmlspecialchars($base_url . 'receipt/', ENT_QUOTES, 'UTF-8') ?>">Clear</a>
+            <?php endif; ?>
+          </div>
+        </div>
+      </form>
+
+      <div class="receipt-results" role="status" aria-live="polite">
+        Showing <strong><?= (int) $shown_start ?></strong>-<strong><?= (int) $shown_end ?></strong> of <strong><?= (int) $total_tickets ?></strong> receipts
+      </div>
+
       <div class="rd-card" style="margin-bottom: 2rem;">
         <?php if (empty($tickets)): ?>
           <div style="text-align:center; padding: 2rem 0; color: var(--rd-text-muted);">
             <div style="font-size: 3rem; margin-bottom: 1rem; opacity:0.5;">📄</div>
-            <p>No receipts found.</p>
+            <p><?= $has_filters ? 'No receipts match your filters.' : 'No receipts found.' ?></p>
           </div>
         <?php else: ?>
           <div style="overflow-x:auto;">
