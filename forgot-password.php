@@ -27,6 +27,7 @@ redirect_authenticated_user();
 
 $error   = '';
 $success = '';
+$verify_email = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   csrf_verify();
@@ -39,66 +40,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $pdo = get_db();
 
       // Check if user exists
-      $stmt = $pdo->prepare('SELECT id, email, full_name FROM Users WHERE email = ? LIMIT 1');
+      $stmt = $pdo->prepare('SELECT id, email, full_name, role, is_verified FROM Users WHERE email = ? LIMIT 1');
       $stmt->execute([$email]);
       $user = $stmt->fetch();
 
       if ($user) {
-        // Generate secure reset token
-        $reset_token = bin2hex(random_bytes(32));
-
-        // Store reset token in database with expiration time calculated in MySQL (1 hour from NOW)
-        // Using DATE_ADD in SQL avoids timezone mismatch issues between PHP and MySQL
-        $stmt = $pdo->prepare(
-          'UPDATE Users SET password_reset_token = ?, password_reset_expires = DATE_ADD(NOW(), INTERVAL 1 HOUR) WHERE id = ? LIMIT 1'
-        );
-        $stmt->execute([$reset_token, $user['id']]);
-
-        // Send password reset email via PHPMailer
-        $email_sent = false;
-        $email_error = '';
-
-        // Reset link
-        $reset_link = BASE_URL . 'reset-password.php?token=' . urlencode($reset_token);
-
-        $mail_body = '<!DOCTYPE html><html><body>'
-          . '<p>Hello ' . htmlspecialchars($user['full_name'], ENT_QUOTES, 'UTF-8') . ',</p>'
-          . '<p>We received a request to reset your password. Click the button below to create a new password:</p>'
-          . '<p style="text-align:center;margin:24px 0;"><a href="' . htmlspecialchars($reset_link, ENT_QUOTES, 'UTF-8') . '" style="display:inline-block;padding:12px 24px;background-color:#4CAF50;color:white;text-decoration:none;border-radius:4px;font-weight:bold;">Reset Password</a></p>'
-          . '<p>Or copy and paste this link into your browser:</p>'
-          . '<p style="word-break:break-all;"><a href="' . htmlspecialchars($reset_link, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($reset_link, ENT_QUOTES, 'UTF-8') . '</a></p>'
-          . '<p style="color:#666;font-size:0.875rem;">This link will expire in 1 hour.</p>'
-          . '<p style="color:#666;font-size:0.875rem;">If you did not request a password reset, you can safely ignore this email or contact support if you have concerns.</p>'
-          . '</body></html>';
-
-        $mail_alt = "Hello {$user['full_name']},\n\n"
-          . "We received a request to reset your password.\n\n"
-          . "Visit this link to reset your password:\n"
-          . "{$reset_link}\n\n"
-          . "This link will expire in 1 hour.\n\n"
-          . "If you did not request a password reset, you can safely ignore this email.\n";
-
-        $email_sent = send_smtp_mail(
-          $user['email'],
-          $user['full_name'],
-          'Reset your LibraLink password',
-          $mail_body,
-          $mail_alt,
-          $email_error
-        );
-
-        if (!$email_sent) {
-          // Log SMTP failure
-          error_log('[forgot-password.php] PHPMailer failed for user ' . $user['id'] . ': ' . $email_error);
-          log_event($pdo, 'PASSWORD_RESET_EMAIL_FAILED', (int) $user['id'], 'Users', (int) $user['id'], 'FAILURE', null, $email);
-
-          // Show generic message to user
-          $success = 'If an account exists with this email, you will receive password reset instructions.';
+        if ((string) $user['role'] === 'borrower' && (int) $user['is_verified'] !== 1) {
+          $verify_email = (string) $user['email'];
+          $error = 'Please verify your account before requesting a password reset.';
+          log_event($pdo, 'PASSWORD_RESET_BLOCKED_UNVERIFIED', (int) $user['id'], 'Users', (int) $user['id'], 'FAILURE', null, $email);
         } else {
-          // Log successful password reset request
-          log_event($pdo, 'PASSWORD_RESET_REQUESTED', (int) $user['id'], 'Users', (int) $user['id'], 'SUCCESS', null, $email);
+          // Generate secure reset token
+          $reset_token = bin2hex(random_bytes(32));
 
-          $success = 'If an account exists with this email, you will receive password reset instructions.';
+          // Store reset token in database with expiration time calculated in MySQL (1 hour from NOW)
+          // Using DATE_ADD in SQL avoids timezone mismatch issues between PHP and MySQL
+          $stmt = $pdo->prepare(
+            'UPDATE Users SET password_reset_token = ?, password_reset_expires = DATE_ADD(NOW(), INTERVAL 1 HOUR) WHERE id = ? LIMIT 1'
+          );
+          $stmt->execute([$reset_token, $user['id']]);
+
+          // Send password reset email via PHPMailer
+          $email_sent = false;
+          $email_error = '';
+
+          // Reset link
+          $reset_link = BASE_URL . 'reset-password.php?token=' . urlencode($reset_token);
+
+          $mail_body = '<!DOCTYPE html><html><body>'
+            . '<p>Hello ' . htmlspecialchars($user['full_name'], ENT_QUOTES, 'UTF-8') . ',</p>'
+            . '<p>We received a request to reset your password. Click the button below to create a new password:</p>'
+            . '<p style="text-align:center;margin:24px 0;"><a href="' . htmlspecialchars($reset_link, ENT_QUOTES, 'UTF-8') . '" style="display:inline-block;padding:12px 24px;background-color:#4CAF50;color:white;text-decoration:none;border-radius:4px;font-weight:bold;">Reset Password</a></p>'
+            . '<p>Or copy and paste this link into your browser:</p>'
+            . '<p style="word-break:break-all;"><a href="' . htmlspecialchars($reset_link, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($reset_link, ENT_QUOTES, 'UTF-8') . '</a></p>'
+            . '<p style="color:#666;font-size:0.875rem;">This link will expire in 1 hour.</p>'
+            . '<p style="color:#666;font-size:0.875rem;">If you did not request a password reset, you can safely ignore this email or contact support if you have concerns.</p>'
+            . '</body></html>';
+
+          $mail_alt = "Hello {$user['full_name']},\n\n"
+            . "We received a request to reset your password.\n\n"
+            . "Visit this link to reset your password:\n"
+            . "{$reset_link}\n\n"
+            . "This link will expire in 1 hour.\n\n"
+            . "If you did not request a password reset, you can safely ignore this email.\n";
+
+          $email_sent = send_smtp_mail(
+            $user['email'],
+            $user['full_name'],
+            'Reset your LibraLink password',
+            $mail_body,
+            $mail_alt,
+            $email_error
+          );
+
+          if (!$email_sent) {
+            // Log SMTP failure
+            error_log('[forgot-password.php] PHPMailer failed for user ' . $user['id'] . ': ' . $email_error);
+            log_event($pdo, 'PASSWORD_RESET_EMAIL_FAILED', (int) $user['id'], 'Users', (int) $user['id'], 'FAILURE', null, $email);
+
+            // Show generic message to user
+            $success = 'If an account exists with this email, you will receive password reset instructions.';
+          } else {
+            // Log successful password reset request
+            log_event($pdo, 'PASSWORD_RESET_REQUESTED', (int) $user['id'], 'Users', (int) $user['id'], 'SUCCESS', null, $email);
+
+            $success = 'If an account exists with this email, you will receive password reset instructions.';
+          }
         }
       } else {
         // Security: Don't reveal if email exists
@@ -173,6 +180,15 @@ if ($alertType !== '') {
         <p class="auth-panel__sub">Enter your email to receive reset instructions.</p>
 
         <?php if ($success === ''): ?>
+          <?php if ($error !== ''): ?>
+            <div class="flash flash-error" role="alert" aria-live="assertive" aria-atomic="true">
+              <?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?>
+              <?php if ($verify_email !== ''): ?>
+                <a href="<?= htmlspecialchars(BASE_URL . 'verify.php?email=' . urlencode($verify_email), ENT_QUOTES, 'UTF-8') ?>" class="auth-inline-link auth-inline-link--strong">Verify account first</a>.
+              <?php endif; ?>
+            </div>
+          <?php endif; ?>
+
           <form method="post" action="">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
             <div class="form-group">

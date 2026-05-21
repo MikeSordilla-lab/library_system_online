@@ -33,13 +33,15 @@ if ($token === '') {
 
     // Check if token exists and is still valid
     $stmt = $pdo->prepare(
-      'SELECT id, email, password_reset_expires FROM Users 
+      'SELECT id, email, role, is_verified, password_reset_expires FROM Users 
        WHERE password_reset_token = ? AND password_reset_expires > NOW() LIMIT 1'
     );
     $stmt->execute([$token]);
     $reset_user = $stmt->fetch();
 
-    if ($reset_user) {
+    if ($reset_user && (string) $reset_user['role'] === 'borrower' && (int) $reset_user['is_verified'] !== 1) {
+      $error = 'Please verify your account before resetting your password.';
+    } elseif ($reset_user) {
       $token_valid = true;
     } else {
       $error = 'This password reset link has expired or is invalid. Please request a new one.';
@@ -74,10 +76,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $token_valid) {
         // Re-verify token still valid within transaction with row lock
         $verify_stmt = $pdo->prepare(
           'SELECT id FROM Users 
-           WHERE id = ? AND password_reset_token = ? AND password_reset_expires > NOW() 
+           WHERE id = ? AND password_reset_token = ? AND password_reset_expires > NOW()
+             AND NOT (role = ? AND is_verified <> 1)
            FOR UPDATE'
         );
-        $verify_stmt->execute([$reset_user['id'], $token]);
+        $verify_stmt->execute([$reset_user['id'], $token, 'borrower']);
         if (!$verify_stmt->fetch()) {
           $pdo->rollBack();
           $error = 'Password reset link has expired or is invalid.';
@@ -160,8 +163,13 @@ $pageTitle = 'Reset Password | LibraLink';
             <?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?>
           </div>
           <p class="auth-note auth-note--center">
-            <a href="<?= htmlspecialchars(BASE_URL . 'forgot-password.php', ENT_QUOTES, 'UTF-8') ?>"
-              class="auth-inline-link auth-inline-link--strong">Request a new reset link</a>
+            <?php if ($reset_user && (string) ($reset_user['role'] ?? '') === 'borrower' && (int) ($reset_user['is_verified'] ?? 0) !== 1): ?>
+              <a href="<?= htmlspecialchars(BASE_URL . 'verify.php?email=' . urlencode((string) $reset_user['email']), ENT_QUOTES, 'UTF-8') ?>"
+                class="auth-inline-link auth-inline-link--strong">Verify account first</a>
+            <?php else: ?>
+              <a href="<?= htmlspecialchars(BASE_URL . 'forgot-password.php', ENT_QUOTES, 'UTF-8') ?>"
+                class="auth-inline-link auth-inline-link--strong">Request a new reset link</a>
+            <?php endif; ?>
           </p>
         <?php else: ?>
           <form method="post" action="">
