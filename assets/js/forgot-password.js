@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const alertType = body.dataset.alertType;
   const alertTitle = body.dataset.alertTitle;
   const alertMessage = body.dataset.alertMessage;
+  const alertContext = body.dataset.alertContext || '';
 
   if (!alertType || !alertMessage) {
     return;
@@ -14,6 +15,11 @@ document.addEventListener('DOMContentLoaded', function () {
   if (typeof window.sweetAlertUtils !== 'undefined') {
     if (normalizedType === 'success') {
       window.sweetAlertUtils.showSuccess(title, alertMessage, 3000);
+      return;
+    }
+
+    if (alertContext === 'admin_approval') {
+      window.sweetAlertUtils.showInfo('Admin Verification Required', alertMessage, 'OK');
       return;
     }
 

@@ -39,6 +39,18 @@ function csrf_token(): string
 }
 
 /**
+ * Rotate the current CSRF token while keeping the previous token available
+ * for one follow-up POST from a still-open page.
+ */
+function csrf_rotate_token(): void
+{
+  if (!empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_previous_token'] = $_SESSION['csrf_token'];
+  }
+  $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+/**
  * Verify the submitted CSRF token. Regenerates the token on success.
  * Terminates with HTTP 403 if the token is missing or invalid.
  */
@@ -46,12 +58,16 @@ function csrf_verify(): void
 {
   $submitted = $_POST['csrf_token'] ?? '';
   $stored    = $_SESSION['csrf_token'] ?? '';
+  $previous  = $_SESSION['csrf_previous_token'] ?? '';
 
-  if ($stored === '' || !hash_equals($stored, $submitted)) {
+  $valid_current = $stored !== '' && hash_equals($stored, $submitted);
+  $valid_previous = $previous !== '' && hash_equals($previous, $submitted);
+
+  if (!$valid_current && !$valid_previous) {
     http_response_code(403);
     exit('403 Forbidden – Invalid or missing CSRF token.');
   }
 
   // Rotate token after each successful POST (prevents replay within session)
-  $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+  csrf_rotate_token();
 }

@@ -425,8 +425,7 @@ $pageStyles = ob_get_clean();
                     <td>
                       <?php if ($ticket['amount'] !== null): ?>
                         <span style="color:#10b981;font-weight:600;">
-                          <?= htmlspecialchars(number_format((float) $ticket['amount'], 2), ENT_QUOTES, 'UTF-8') ?>
-                          <?= htmlspecialchars((string) $ticket['currency'], ENT_QUOTES, 'UTF-8') ?>
+                          <?= htmlspecialchars(receipt_format_money($ticket['amount'], $ticket['currency'] ?? null), ENT_QUOTES, 'UTF-8') ?>
                         </span>
                       <?php else: ?>
                         <span style="color:var(--rd-text-muted);">—</span>

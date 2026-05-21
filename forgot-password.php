@@ -11,6 +11,7 @@ require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/includes/auth-helpers.php';
 require_once __DIR__ . '/includes/mailer.php';
+require_once __DIR__ . '/includes/staff_approval.php';
 require_once __DIR__ . '/src/utils/rate_limit.php';
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -28,6 +29,7 @@ redirect_authenticated_user();
 $error   = '';
 $success = '';
 $verify_email = '';
+$alert_context = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   csrf_verify();
@@ -40,16 +42,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   } else {
     try {
       $pdo = get_db();
+      $staffApprovalSelect = staff_column_exists($pdo, 'staff_approval_status')
+        ? 'staff_approval_status'
+        : "'" . STAFF_APPROVAL_NONE . "' AS staff_approval_status";
 
       // Check if user exists
-      $stmt = $pdo->prepare('SELECT id, email, full_name, role, is_verified FROM Users WHERE email = ? LIMIT 1');
+      $stmt = $pdo->prepare(
+        'SELECT id, email, full_name, role, is_verified, ' . $staffApprovalSelect . '
+           FROM Users
+          WHERE email = ?
+          LIMIT 1'
+      );
       $stmt->execute([$email]);
       $user = $stmt->fetch();
 
       if ($user) {
-        if ((string) $user['role'] === 'borrower' && (int) $user['is_verified'] !== 1) {
-          $verify_email = (string) $user['email'];
-          $error = 'Please verify your account before requesting a password reset.';
+        if ((int) $user['is_verified'] !== 1) {
+          $alert_context = staff_login_block_context($user);
+          if ($alert_context === 'unverified') {
+            $verify_email = (string) $user['email'];
+            $error = 'Please verify your account before requesting a password reset.';
+          } else {
+            $error = staff_login_block_message($user);
+          }
           log_event($pdo, 'PASSWORD_RESET_BLOCKED_UNVERIFIED', (int) $user['id'], 'Users', (int) $user['id'], 'FAILURE', null, $email);
         } else {
           // Generate secure reset token
@@ -128,6 +143,7 @@ $extraScripts = [
 $alertType = '';
 $alertTitle = '';
 $alertMessage = '';
+$alertContext = '';
 
 if ($success !== '') {
   $alertType = 'success';
@@ -137,6 +153,7 @@ if ($success !== '') {
   $alertType = 'error';
   $alertTitle = 'Error';
   $alertMessage = $error;
+  $alertContext = $alert_context;
 }
 
 $bodyAlertAttributes = '';
@@ -145,6 +162,10 @@ if ($alertType !== '') {
   $safeTitle = htmlspecialchars($alertTitle, ENT_QUOTES, 'UTF-8');
   $safeMessage = htmlspecialchars($alertMessage, ENT_QUOTES, 'UTF-8');
   $bodyAlertAttributes = ' data-alert-type="' . $safeType . '" data-alert-title="' . $safeTitle . '" data-alert-message="' . $safeMessage . '"';
+  if ($alertContext !== '') {
+    $safeContext = htmlspecialchars($alertContext, ENT_QUOTES, 'UTF-8');
+    $bodyAlertAttributes .= ' data-alert-context="' . $safeContext . '"';
+  }
 }
 ?>
 <!DOCTYPE html>
@@ -183,7 +204,7 @@ if ($alertType !== '') {
           <?php if ($error !== ''): ?>
             <div class="flash flash-error" role="alert" aria-live="assertive" aria-atomic="true">
               <?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?>
-              <?php if ($verify_email !== ''): ?>
+              <?php if ($verify_email !== '' && $alert_context !== 'admin_approval'): ?>
                 <a href="<?= htmlspecialchars(BASE_URL . 'verify.php?email=' . urlencode($verify_email), ENT_QUOTES, 'UTF-8') ?>" class="auth-inline-link auth-inline-link--strong">Verify account first</a>.
               <?php endif; ?>
             </div>

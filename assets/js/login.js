@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const body = document.body;
   const alertType = body.dataset.alertType;
   const alertMessage = body.dataset.alertMessage;
+  const alertContext = body.dataset.alertContext || '';
   const alertEmail = body.dataset.alertEmail || '';
   const alertCsrf = body.dataset.alertCsrf || '';
   const baseUrl = body.dataset.baseUrl || '';
@@ -12,11 +13,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const normalizedType = alertType === 'success' ? 'success' : 'error';
   const lowerMessage = alertMessage.toLowerCase();
-  const errorContext = lowerMessage.includes('verify')
+  const errorContext = alertContext || (lowerMessage.includes('verify')
     ? 'unverified'
     : lowerMessage.includes('suspended') || lowerMessage.includes('suspension')
       ? 'suspended'
-      : '';
+      : '');
 
   if (typeof window.sweetAlertUtils !== 'undefined') {
     if (normalizedType === 'success') {

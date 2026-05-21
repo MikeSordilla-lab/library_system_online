@@ -75,14 +75,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $pdo->beginTransaction();
 
   try {
-    $upd_loan = $pdo->prepare(
-      'UPDATE Circulation
-                SET return_date  = NOW(),
-                    status       = \'returned\',
-                    fine_amount  = ?
-              WHERE id = ?'
-    );
-    $upd_loan->execute([$fine, $loan_id]);
+    $updated = complete_checkin_loan($pdo, $loan_id, $fine);
+
+    if (!$updated) {
+      $pdo->rollBack();
+      $_SESSION['flash_error'] = 'Loan was already returned by another request.';
+      header('Location: ' . BASE_URL . 'librarian/checkin.php');
+      exit;
+    }
 
     $upd_book = $pdo->prepare(
       'UPDATE Books
@@ -129,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $has_reservations = (int) $res_check->fetchColumn();
 
     $fine_msg = ($fine > 0.00)
-      ? ' Fine assessed: $' . number_format($fine, 2) . '.'
+      ? ' Total fine assessed: ' . format_circulation_money($pdo, $fine) . '. Borrower cannot borrow another book until this fine is paid.'
       : ' No fine.';
       
     $alert_msg = ($has_reservations > 0) 

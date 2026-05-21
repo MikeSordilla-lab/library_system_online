@@ -15,6 +15,28 @@ if (!defined('RECEIPT_SIGNATURE_FALLBACK_KEY')) {
   define('RECEIPT_SIGNATURE_FALLBACK_KEY', 'receipt-phase1-fallback-key-change-me');
 }
 
+function receipt_default_currency(): string
+{
+  return 'PHP';
+}
+
+function receipt_normalize_currency($currency): string
+{
+  $normalized = strtoupper(trim((string) $currency));
+  return $normalized === '' ? receipt_default_currency() : $normalized;
+}
+
+function receipt_display_currency($currency): string
+{
+  $normalized = receipt_normalize_currency($currency);
+  return $normalized === 'USD' ? receipt_default_currency() : $normalized;
+}
+
+function receipt_format_money($amount, $currency = null): string
+{
+  return number_format((float) $amount, 2) . ' ' . receipt_display_currency($currency);
+}
+
 function receipt_table_columns(PDO $pdo, string $table): array
 {
   static $cache = [];
@@ -94,7 +116,7 @@ function receipt_select_clause(PDO $pdo): string
     "'thermal' AS format",
     "'en_US' AS locale",
     "'UTC' AS timezone",
-    "'USD' AS currency",
+    "'" . receipt_default_currency() . "' AS currency",
     "NULL AS payload_hash",
     "NULL AS payload_signature",
     "NULL AS branch_id",
@@ -165,7 +187,7 @@ function receipt_canonical_payload(array $receipt, array $payload): string
     'reference_table' => (string) ($receipt['reference_table'] ?? ''),
     'reference_id' => (int) ($receipt['reference_id'] ?? 0),
     'amount' => ($receipt['amount'] ?? null) !== null ? (float) $receipt['amount'] : null,
-    'currency' => (string) ($receipt['currency'] ?? 'USD'),
+    'currency' => receipt_normalize_currency($receipt['currency'] ?? null),
     'status' => (string) ($receipt['status'] ?? 'issued'),
     'format' => (string) ($receipt['format'] ?? 'thermal'),
     'locale' => (string) ($receipt['locale'] ?? 'en_US'),
@@ -231,10 +253,7 @@ function issue_receipt_ticket(PDO $pdo, array $data): array
   $payload = receipt_recursive_sort($payload);
 
   $amount = isset($data['amount']) ? (float) $data['amount'] : null;
-  $currency = strtoupper(trim((string) ($data['currency'] ?? 'USD')));
-  if ($currency === '') {
-    $currency = 'USD';
-  }
+  $currency = receipt_normalize_currency($data['currency'] ?? null);
 
   $status = trim((string) ($data['status'] ?? 'issued'));
   if ($status === '') {
@@ -663,11 +682,11 @@ function build_receipt_view_model(PDO $pdo, array $receipt, bool $mask_pii = tru
     $detail_lines[] = ['Due Date', (string) ($payload_clean['due_date'] ?? 'N/A')];
     $detail_lines[] = ['Returned At', (string) ($payload_clean['returned_at'] ?? 'N/A')];
     $detail_lines[] = ['Days Late', (string) ($payload_clean['days_late'] ?? '0')];
-    $detail_lines[] = ['Fine Assessed', number_format((float) ($payload_clean['fine_amount'] ?? 0), 2) . ' ' . (string) ($receipt['currency'] ?? 'USD')];
+    $detail_lines[] = ['Fine Assessed', receipt_format_money($payload_clean['fine_amount'] ?? 0, $receipt['currency'] ?? null)];
   } elseif ($type === 'fine_payment') {
     $detail_lines[] = ['Borrower ID', (string) ($receipt['patron_user_id'] ?? 'N/A')];
     $detail_lines[] = ['Settlement', (string) ($payload_clean['settled_scope'] ?? 'fine_payment')];
-    $detail_lines[] = ['Amount Paid', number_format((float) ($receipt['amount'] ?? 0), 2) . ' ' . (string) ($receipt['currency'] ?? 'USD')];
+    $detail_lines[] = ['Amount Paid', receipt_format_money($receipt['amount'] ?? 0, $receipt['currency'] ?? null)];
   } elseif ($type === 'reservation_place') {
     $detail_lines[] = ['Reservation ID', (string) ($payload_clean['reservation_id'] ?? $receipt['reference_id'])];
     $detail_lines[] = ['Book', (string) ($payload_clean['book_title'] ?? 'N/A')];
@@ -701,7 +720,7 @@ function build_receipt_view_model(PDO $pdo, array $receipt, bool $mask_pii = tru
     'format' => (string) ($receipt['format'] ?? 'thermal'),
     'locale' => (string) ($receipt['locale'] ?? 'en_US'),
     'timezone' => (string) ($receipt['timezone'] ?? 'UTC'),
-    'currency' => (string) ($receipt['currency'] ?? 'USD'),
+    'currency' => receipt_display_currency($receipt['currency'] ?? null),
     'amount' => ($receipt['amount'] ?? null) !== null ? (float) $receipt['amount'] : null,
     'channel' => (string) ($receipt['channel'] ?? 'web'),
     'branch_id' => isset($receipt['branch_id']) ? (int) $receipt['branch_id'] : null,

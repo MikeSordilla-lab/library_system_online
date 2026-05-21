@@ -27,6 +27,12 @@ CREATE TABLE `Users` (
   `is_superadmin` TINYINT(1) NOT NULL DEFAULT 0,
   `is_verified` TINYINT(1) NOT NULL DEFAULT 0,
   `is_suspended` TINYINT(1) NOT NULL DEFAULT 0,
+  `staff_approval_status` VARCHAR(20) NOT NULL DEFAULT 'none',
+  `staff_approved_by` INT UNSIGNED DEFAULT NULL,
+  `staff_approved_at` DATETIME DEFAULT NULL,
+  `staff_rejected_by` INT UNSIGNED DEFAULT NULL,
+  `staff_rejected_at` DATETIME DEFAULT NULL,
+  `staff_rejection_reason` VARCHAR(255) DEFAULT NULL,
   `verification_token` VARCHAR(50) DEFAULT NULL,
   `verified_at` DATETIME DEFAULT NULL,
   `birthdate` DATE DEFAULT NULL,
@@ -41,6 +47,7 @@ CREATE TABLE `Users` (
   UNIQUE KEY `uq_users_email` (`email`),
   KEY `idx_users_role` (`role`),
   KEY `idx_users_is_suspended` (`is_suspended`),
+  KEY `idx_users_staff_approval` (`staff_approval_status`, `role`),
   KEY `idx_users_verified_at` (`verified_at`),
   KEY `idx_users_password_reset_token` (`password_reset_token`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

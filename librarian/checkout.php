@@ -135,14 +135,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // --- NEW LOGIC: Block Delinquent Borrowers (Unpaid Fines or Overdue Books) ---
     // Check for unpaid fines
     $fines_stmt = $pdo->prepare(
-      'SELECT SUM(fine_amount) as total_unpaid FROM Circulation WHERE user_id = ? AND fine_paid = 0'
+      'SELECT SUM(fine_amount) as total_unpaid FROM Circulation WHERE user_id = ? AND fine_paid = 0 AND fine_amount > 0'
     );
     $fines_stmt->execute([$user_id]);
     $unpaid_fines = (float) ($fines_stmt->fetchColumn() ?: 0.0);
 
     if ($unpaid_fines > 0.0) {
       $pdo->rollBack();
-      $_SESSION['flash_error'] = 'Borrower has outstanding unpaid fines ($' . number_format($unpaid_fines, 2) . ') and cannot check out books.';
+      $_SESSION['flash_error'] = 'Borrower has outstanding unpaid fines (' . format_circulation_money($pdo, $unpaid_fines) . ') and cannot borrow another book until paid.';
       header('Location: ' . BASE_URL . 'librarian/checkout.php');
       exit;
     }

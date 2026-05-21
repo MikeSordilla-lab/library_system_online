@@ -42,7 +42,7 @@ try {
     'reference_id' => $reference_id,
     'idempotency_key' => (string) ($body['idempotency_key'] ?? ''),
     'amount' => isset($body['amount']) ? (float) $body['amount'] : null,
-    'currency' => (string) ($body['currency'] ?? 'USD'),
+    'currency' => (string) ($body['currency'] ?? receipt_default_currency()),
     'payload' => is_array($body['payload'] ?? null) ? $body['payload'] : [],
     'status' => (string) ($body['status'] ?? 'issued'),
     'format' => (string) ($body['format'] ?? 'thermal'),

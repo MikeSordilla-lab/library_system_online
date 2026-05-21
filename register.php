@@ -11,6 +11,7 @@ require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/includes/auth-helpers.php';
 require_once __DIR__ . '/includes/mailer.php';
+require_once __DIR__ . '/includes/staff_approval.php';
 require_once __DIR__ . '/src/utils/helpers.php';
 require_once __DIR__ . '/src/utils/rate_limit.php';
 
@@ -39,12 +40,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   // --- 1. Collect & sanitise raw input ---
   $full_name       = trim($_POST['full_name']       ?? '');
   $email           = trim($_POST['email']           ?? '');
+  $account_type    = staff_normalize_registration_role((string) ($_POST['account_type'] ?? 'borrower'));
   $password        = $_POST['password']             ?? '';
   $confirm_password = $_POST['confirm_password']    ?? '';
 
   $old = [
     'full_name' => $full_name,
     'email'     => $email,
+    'account_type' => $account_type,
   ];
 
   // --- 2. Server-side validation (FR-002) ---
@@ -79,6 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
       $pdo = get_db();
+      ensure_staff_approval_support($pdo);
 
       // --- 3. Duplicate email check (FR-003) ---
       $stmt = $pdo->prepare('SELECT id FROM Users WHERE email = ? LIMIT 1');
@@ -97,6 +101,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
       $pdo = get_db();
+      ensure_staff_approval_support($pdo);
+      $registration_state = staff_registration_state($account_type);
 
       // --- 4. Hash password (FR-004) ---
       $password_hash = password_hash($password, PASSWORD_BCRYPT);
@@ -105,20 +111,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $token = (string) random_int(100000, 999999);   // cryptographically random 6-digit code
 
       // --- 6. Insert user row (FR-006, FR-007) ---
-      // role is hard-coded 'borrower' — never accepted from form input
+      // Public registration only allows borrower accounts or pending librarian requests.
       $stmt = $pdo->prepare(
-        'INSERT INTO Users (full_name, email, password_hash, role, is_verified, verification_token)
-                 VALUES (?, ?, ?, \'borrower\', 0, ?)'
+        'INSERT INTO Users
+          (full_name, email, password_hash, role, is_verified, is_suspended, verification_token, staff_approval_status)
+         VALUES
+          (?, ?, ?, ?, ?, ?, ?, ?)'
       );
-      $stmt->execute([$full_name, $email, $password_hash, $token]);
+      $stmt->execute([
+        $full_name,
+        $email,
+        $password_hash,
+        $registration_state['role'],
+        $registration_state['is_verified'],
+        $registration_state['is_suspended'],
+        $account_type === 'borrower' ? $token : null,
+        $registration_state['staff_approval_status'],
+      ]);
       $new_user_id = (int) $pdo->lastInsertId();
 
       // --- 7. Log REGISTER SUCCESS with email (FR-013) ---
       log_event($pdo, 'REGISTER', null, 'Users', $new_user_id, 'SUCCESS', null, $email);
 
-      // --- 8. Send verification email (FR-008, FR-009) ---
-      $email_sent = false;
-      $email_error = '';
+      if ($account_type === 'librarian') {
+        $show_success = true;
+        $show_check_email = false;
+        $check_email_address = $email;
+        log_event($pdo, 'LIBRARIAN_REQUEST_PENDING', null, 'Users', $new_user_id, 'SUCCESS', null, $email);
+      } else {
+        // --- 8. Send verification email (FR-008, FR-009) ---
+        $email_sent = false;
+        $email_error = '';
 
       // Build verification link with email pre-filled
       $verify_link = BASE_URL . 'verify.php?email=' . urlencode($email);
@@ -147,19 +170,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email_error
       );
 
-      if (!$email_sent) {
-        // --- 9. Log SMTP failure with email capture (FR-011) ---
-        error_log('[register.php] PHPMailer failed for user ' . $new_user_id . ': ' . $email_error);
-        log_event($pdo, 'EMAIL_SEND_FAILED', null, 'Users', $new_user_id, 'FAILURE', null, $email);
+        if (!$email_sent) {
+          // --- 9. Log SMTP failure with email capture (FR-011) ---
+          error_log('[register.php] PHPMailer failed for user ' . $new_user_id . ': ' . $email_error);
+          log_event($pdo, 'EMAIL_SEND_FAILED', null, 'Users', $new_user_id, 'FAILURE', null, $email);
 
-        // User record is saved (is_verified=0); show informative error (FR-011)
-        $errors[] = 'Your account was created but we could not send the verification email. '
-          . 'Please contact support to have your account manually verified.';
-      } else {
-        // --- 10. All done — show confirmation page (FR-012) ---
-        $show_success = true;
-        $show_check_email = true;
-        $check_email_address = $email;
+          // User record is saved (is_verified=0); show informative error (FR-011)
+          $errors[] = 'Your account was created but we could not send the verification email. '
+            . 'Please contact support to have your account manually verified.';
+        } else {
+          // --- 10. All done — show confirmation page (FR-012) ---
+          $show_success = true;
+          $show_check_email = true;
+          $check_email_address = $email;
+        }
       }
     } catch (PDOException $e) {
       error_log('[register.php] DB insert failed: ' . $e->getMessage());
@@ -180,6 +204,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $pageTitle = 'Create Account | LibraLink';
+$extraStyles = [
+  BASE_URL . 'assets/css/register.css',
+];
 $extraScripts = [
   ['src' => BASE_URL . 'assets/js/register.js', 'defer' => true],
 ];
@@ -192,8 +219,13 @@ $alertRedirect = '';
 if ($show_success) {
   $alertType = 'success';
   $alertTitle = 'Success';
-  $alertMessage = 'Registration successful! A verification email has been sent. Please check your inbox for your 6-digit code.';
-  $alertRedirect = BASE_URL . 'check-email.php?email=' . urlencode((string) $email);
+  if (($old['account_type'] ?? 'borrower') === 'librarian' || !$show_check_email) {
+    $alertMessage = 'Librarian registration submitted. Please wait for admin approval before logging in.';
+    $alertRedirect = BASE_URL . 'login.php';
+  } else {
+    $alertMessage = 'Registration successful! A verification email has been sent. Please check your inbox for your 6-digit code.';
+    $alertRedirect = BASE_URL . 'check-email.php?email=' . urlencode((string) $email);
+  }
 } elseif (!empty($errors)) {
   $alertType = 'error';
   $alertTitle = 'Registration Failed';
@@ -220,7 +252,7 @@ if ($alertType !== '') {
   <?php require_once __DIR__ . '/includes/head.php'; ?>
 </head>
 
-<body<?= $bodyAlertAttributes ?>>
+<body class="register-page"<?= $bodyAlertAttributes ?>>
   <div class="auth-wrap page-fade-in">
 
     <!-- Left: hero image panel -->
@@ -248,11 +280,17 @@ if ($alertType !== '') {
 
         <?php if ($show_success): ?>
           <div class="flash flash-success" role="alert" aria-live="polite" aria-atomic="true">
-            Registration successful! A verification email has been sent to
-            <strong><?= htmlspecialchars($email, ENT_QUOTES, 'UTF-8') ?></strong>.
-            Please check your inbox for your 6-digit code, then
-            <a href="<?= htmlspecialchars(BASE_URL . 'verify.php?email=' . urlencode((string) $email), ENT_QUOTES, 'UTF-8') ?>"
-              class="auth-inline-link">verify here</a>.
+            <?php if ($show_check_email): ?>
+              Registration successful! A verification email has been sent to
+              <strong><?= htmlspecialchars($email, ENT_QUOTES, 'UTF-8') ?></strong>.
+              Please check your inbox for your 6-digit code, then
+              <a href="<?= htmlspecialchars(BASE_URL . 'verify.php?email=' . urlencode((string) $email), ENT_QUOTES, 'UTF-8') ?>"
+                class="auth-inline-link">verify here</a>.
+            <?php else: ?>
+              Librarian registration submitted for
+              <strong><?= htmlspecialchars($email, ENT_QUOTES, 'UTF-8') ?></strong>.
+              Please wait for admin approval before logging in.
+            <?php endif; ?>
           </div>
         <?php else: ?>
 
@@ -281,6 +319,41 @@ if ($alertType !== '') {
               <label class="field-label" for="email">Email Address</label>
               <input class="field-input" type="email" id="email" name="email" required
                 value="<?= htmlspecialchars($old['email'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+            </div>
+
+            <div class="form-group">
+              <span class="field-label">Account Type</span>
+              <div class="account-type-options" role="radiogroup" aria-label="Choose account type">
+                <label class="account-type-card">
+                  <input type="radio" name="account_type" value="borrower" <?= ($old['account_type'] ?? 'borrower') === 'borrower' ? 'checked' : '' ?>>
+                  <span class="account-type-card__body">
+                    <span class="account-type-card__icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                        <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z" />
+                      </svg>
+                    </span>
+                    <span class="account-type-card__title">Borrower</span>
+                  </span>
+                </label>
+
+                <label class="account-type-card">
+                  <input type="radio" name="account_type" value="librarian" <?= ($old['account_type'] ?? '') === 'librarian' ? 'checked' : '' ?>>
+                  <span class="account-type-card__body">
+                    <span class="account-type-card__icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M8 21h8" />
+                        <path d="M12 17v4" />
+                        <path d="M7 4h10" />
+                        <path d="M6 8h12" />
+                        <path d="M8 12h8" />
+                        <path d="M10 16h4" />
+                      </svg>
+                    </span>
+                    <span class="account-type-card__title">Librarian</span>
+                  </span>
+                </label>
+              </div>
             </div>
 
             <div class="form-group">

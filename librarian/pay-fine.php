@@ -44,16 +44,10 @@ if (!$borrower) {
 $pdo->beginTransaction();
 
 try {
-  // Get total fines
-  $stmt = $pdo->prepare("SELECT SUM(fine_amount) FROM Circulation WHERE user_id = ? AND fine_paid = 0");
-  $stmt->execute([$user_id]);
-  $total_fines = (float) $stmt->fetchColumn();
+  $payment = mark_returned_positive_fines_paid($pdo, $user_id);
+  $total_fines = (float) $payment['total'];
 
   if ($total_fines > 0) {
-    // Update fines to paid
-    $upd = $pdo->prepare("UPDATE Circulation SET fine_paid = 1, fine_paid_at = NOW() WHERE user_id = ? AND fine_paid = 0");
-    $upd->execute([$user_id]);
-    
     // Log payment
     log_circulation($pdo, [
       'actor_id'      => $actor_id,
@@ -73,19 +67,19 @@ try {
       'reference_id'    => $user_id,
       'idempotency_key' => 'fine_payment:user:' . $user_id . ':at:' . date('YmdHi'),
       'amount'          => $total_fines,
-      'currency'        => 'USD',
+      'currency'        => receipt_default_currency(),
       'format'          => 'a4',
       'channel'         => 'librarian_console',
       'payload'         => [
         'patron_name'   => (string) ($borrower['full_name'] ?? ''),
         'patron_email'  => (string) ($borrower['email'] ?? ''),
         'total_fines'   => $total_fines,
-        'settled_scope' => 'all_unpaid_fines',
+        'settled_scope' => 'returned_positive_unpaid_fines',
       ],
     ]);
     
     $pdo->commit();
-    $_SESSION['flash_success'] = 'Successfully cleared fines ($' . number_format($total_fines, 2) . ') for user.';
+    $_SESSION['flash_success'] = 'Successfully cleared fines (' . receipt_format_money($total_fines) . ') for user.';
     $receipt_no = (string) ($receipt['receipt_no'] ?? '');
     $_SESSION['flash_receipt_no'] = $receipt_no;
     header('Location: ' . BASE_URL . 'librarian/checkout.php');

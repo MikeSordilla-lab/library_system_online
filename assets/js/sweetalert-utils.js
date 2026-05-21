@@ -505,6 +505,8 @@ async function showLoginError(error, context = '', email = '', csrfToken = '', b
         <a href="${verifyLink}" style="color: #c9a84c; font-weight: 600;">Open verification page</a>
       </p>
     `;
+  } else if (context === 'admin_approval') {
+    helpText = '<p style="margin-top: 12px; font-size: 0.875rem; color: #8a8278;">Please wait for an administrator to approve your librarian access.</p>';
   } else if (context === 'suspended') {
     helpText = '<p style="margin-top: 12px; font-size: 0.875rem; color: #8a8278;">Please contact the library for assistance.</p>';
   } else {

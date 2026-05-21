@@ -18,10 +18,12 @@ require_once __DIR__ . '/../includes/admin.php';
 require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/avatar.php';
 require_once __DIR__ . '/../includes/circulation.php';
+require_once __DIR__ . '/../includes/staff_approval.php';
 require_once __DIR__ . '/../src/utils/helpers.php';
 
 $pdo = get_db();
 ensure_superadmin_support($pdo);
+ensure_staff_approval_support($pdo);
 
 $actor_id = (int) ($_SESSION['user_id'] ?? 0);
 $self_url = BASE_URL . 'admin/users.php';
@@ -529,6 +531,91 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
       error_log('[admin/users.php] create_user DB error: ' . $e->getMessage());
       $persist_create_user_state('We could not create the account right now. Please try again.', $old_create_user_input);
+    }
+
+    header('Location: ' . $self_url);
+    exit;
+  }
+
+  // -------------------------------------------------------------------------
+  // Approve / Reject Librarian Registration
+  // -------------------------------------------------------------------------
+  if ($post_action === 'approve_librarian_request' || $post_action === 'reject_librarian_request') {
+    $user_id = (int) ($_POST['user_id'] ?? 0);
+    $is_approval = $post_action === 'approve_librarian_request';
+
+    try {
+      $pdo->beginTransaction();
+
+      $stmt = $pdo->prepare(
+        'SELECT id, role, staff_approval_status, is_superadmin
+           FROM Users
+          WHERE id = ?
+          FOR UPDATE'
+      );
+      $stmt->execute([$user_id]);
+      $target = $stmt->fetch();
+
+      if (!$target || !staff_is_pending_librarian_request($target) || is_superadmin_user($target)) {
+        $pdo->rollBack();
+        $_SESSION['flash_error_msg'] = 'That pending librarian request was not found.';
+        header('Location: ' . $self_url);
+        exit;
+      }
+
+      if ($is_approval) {
+        $upd = $pdo->prepare(
+          'UPDATE Users
+              SET is_verified = 1,
+                  is_suspended = 0,
+                  verified_at = COALESCE(verified_at, NOW()),
+                  verification_token = NULL,
+                  staff_approval_status = ?,
+                  staff_approved_by = ?,
+                  staff_approved_at = NOW(),
+                  staff_rejected_by = NULL,
+                  staff_rejected_at = NULL,
+                  staff_rejection_reason = NULL
+            WHERE id = ?
+            LIMIT 1'
+        );
+        $upd->execute([STAFF_APPROVAL_APPROVED, $actor_id, $user_id]);
+      } else {
+        $reason = trim((string) ($_POST['rejection_reason'] ?? ''));
+        $upd = $pdo->prepare(
+          'UPDATE Users
+              SET is_verified = 0,
+                  is_suspended = 1,
+                  verification_token = NULL,
+                  staff_approval_status = ?,
+                  staff_rejected_by = ?,
+                  staff_rejected_at = NOW(),
+                  staff_rejection_reason = NULLIF(?, "")
+            WHERE id = ?
+            LIMIT 1'
+        );
+        $upd->execute([STAFF_APPROVAL_REJECTED, $actor_id, $reason, $user_id]);
+      }
+
+      log_admin_action($pdo, [
+        'actor_id' => $actor_id,
+        'actor_role' => 'admin',
+        'action_type' => $is_approval ? 'librarian_request_approve' : 'librarian_request_reject',
+        'target_entity' => 'Users',
+        'target_id' => $user_id,
+        'outcome' => 'success',
+      ]);
+
+      $pdo->commit();
+      $_SESSION['flash_success'] = $is_approval
+        ? 'Librarian request approved.'
+        : 'Librarian request rejected.';
+    } catch (PDOException $e) {
+      if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+      }
+      error_log('[admin/users.php] librarian request update DB error: ' . $e->getMessage());
+      $_SESSION['flash_error_msg'] = 'We could not update the librarian request right now. Please try again.';
     }
 
     header('Location: ' . $self_url);
@@ -1355,7 +1442,7 @@ $role_filter = trim((string) ($_GET['role'] ?? ''));
 $status_filter = trim((string) ($_GET['status'] ?? ''));
 
 $allowed_role_filters = ['admin', 'librarian', 'borrower'];
-$allowed_status_filters = ['active', 'inactive'];
+$allowed_status_filters = ['active', 'inactive', 'pending_librarian'];
 
 if ($role_filter !== '' && !in_array($role_filter, $allowed_role_filters, true)) {
   $role_filter = '';
@@ -1384,6 +1471,10 @@ if ($status_filter === 'active') {
   $where_parts[] = 'is_suspended = 0';
 } elseif ($status_filter === 'inactive') {
   $where_parts[] = 'is_suspended = 1';
+} elseif ($status_filter === 'pending_librarian') {
+  $where_parts[] = 'role = :pending_role AND staff_approval_status = :pending_staff_status';
+  $query_params[':pending_role'] = 'librarian';
+  $query_params[':pending_staff_status'] = STAFF_APPROVAL_PENDING;
 }
 
 $where_sql = '';
@@ -1396,7 +1487,8 @@ $summary_stmt = $pdo->prepare(
       COUNT(*) AS total_users,
       SUM(CASE WHEN is_suspended = 0 THEN 1 ELSE 0 END) AS active_users,
       SUM(CASE WHEN is_suspended = 1 THEN 1 ELSE 0 END) AS inactive_users,
-      SUM(CASE WHEN role = "admin" THEN 1 ELSE 0 END) AS admin_users
+      SUM(CASE WHEN role = "admin" THEN 1 ELSE 0 END) AS admin_users,
+      SUM(CASE WHEN role = "librarian" AND staff_approval_status = "pending" THEN 1 ELSE 0 END) AS pending_librarian_users
      FROM Users' . $where_sql
 );
 foreach ($query_params as $key => $value) {
@@ -1409,6 +1501,7 @@ $total_users = (int) ($summary['total_users'] ?? 0);
 $active_users = (int) ($summary['active_users'] ?? 0);
 $inactive_users = (int) ($summary['inactive_users'] ?? 0);
 $admin_users = (int) ($summary['admin_users'] ?? 0);
+$pending_librarian_users = (int) ($summary['pending_librarian_users'] ?? 0);
 
 $allowed_per_page = [10, 25, 50, 100];
 $per_page = (int) ($_GET['per_page'] ?? 25);
@@ -1423,7 +1516,9 @@ if ($page > $total_pages) {
 $offset = ($page - 1) * $per_page;
 
 $stmt = $pdo->prepare(
-  'SELECT id, full_name, email, role, is_superadmin, is_verified, is_suspended, avatar_url, created_at
+  'SELECT id, full_name, email, role, is_superadmin, is_verified, is_suspended,
+          staff_approval_status, staff_approved_at, staff_rejected_at,
+          avatar_url, created_at
      FROM Users' . $where_sql . '
     ORDER BY created_at DESC, id DESC
     LIMIT :limit OFFSET :offset'
@@ -1435,6 +1530,17 @@ $stmt->bindValue(':limit', $per_page, PDO::PARAM_INT);
 $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $users = $stmt->fetchAll();
+
+$pending_librarian_stmt = $pdo->prepare(
+  'SELECT id, full_name, email, created_at
+     FROM Users
+    WHERE role = ?
+      AND staff_approval_status = ?
+    ORDER BY created_at ASC, id ASC
+    LIMIT 5'
+);
+$pending_librarian_stmt->execute(['librarian', STAFF_APPROVAL_PENDING]);
+$pending_librarian_requests = $pending_librarian_stmt->fetchAll();
 
 $page_range_start = $total_users > 0 ? ($offset + 1) : 0;
 $page_range_end = $offset + count($users);
@@ -1642,10 +1748,67 @@ $has_feedback = $flash_success !== ''
                   <strong><?= (int) $admin_users ?></strong>
                   <span class="users-stat-label">Admin Accounts</span>
                 </li>
+                <li class="stat-card-tooltip" data-title="Librarian registrations waiting for admin approval">
+                  <span class="rd-stat-icon rd-i-orange" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 6v6l4 2" />
+                      <circle cx="12" cy="12" r="9" />
+                    </svg>
+                  </span>
+                  <strong><?= (int) $pending_librarian_users ?></strong>
+                  <span class="users-stat-label">Librarian Requests</span>
+                </li>
               </ul>
              </div>
            </div>
          </div>
+
+        <?php if (!empty($pending_librarian_requests)): ?>
+          <section class="section-card users-pending-panel" aria-labelledby="pending-librarian-title">
+            <div class="users-pending-panel__header">
+              <div>
+                <span class="users-pending-panel__eyebrow">Action required</span>
+                <h2 id="pending-librarian-title">Pending Librarian Requests</h2>
+              </div>
+              <a class="btn-ghost users-pending-panel__filter" href="<?= htmlspecialchars($self_url . '?status=pending_librarian', ENT_QUOTES, 'UTF-8') ?>">View all</a>
+            </div>
+
+            <div class="users-pending-list">
+              <?php foreach ($pending_librarian_requests as $pending): ?>
+                <?php
+                $pending_id = (int) $pending['id'];
+                $pending_name = htmlspecialchars((string) $pending['full_name'], ENT_QUOTES, 'UTF-8');
+                $pending_email = htmlspecialchars((string) $pending['email'], ENT_QUOTES, 'UTF-8');
+                $pending_created_raw = (string) ($pending['created_at'] ?? '');
+                $pending_created_stamp = $pending_created_raw !== '' ? strtotime($pending_created_raw) : false;
+                $pending_created_text = $pending_created_stamp ? date('M j, Y', $pending_created_stamp) : 'Unknown date';
+                ?>
+                <article class="users-pending-item">
+                  <div class="users-pending-item__avatar" aria-hidden="true"><?= htmlspecialchars(mb_substr((string) $pending['full_name'], 0, 1), ENT_QUOTES, 'UTF-8') ?></div>
+                  <div class="users-pending-item__identity">
+                    <strong><?= $pending_name ?></strong>
+                    <span><?= $pending_email ?></span>
+                    <small>Requested <?= htmlspecialchars($pending_created_text, ENT_QUOTES, 'UTF-8') ?></small>
+                  </div>
+                  <div class="users-pending-item__actions">
+                    <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>">
+                      <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                      <input type="hidden" name="action" value="approve_librarian_request">
+                      <input type="hidden" name="user_id" value="<?= $pending_id ?>">
+                      <button type="submit" class="btn-confirm">Approve</button>
+                    </form>
+                    <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>">
+                      <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                      <input type="hidden" name="action" value="reject_librarian_request">
+                      <input type="hidden" name="user_id" value="<?= $pending_id ?>">
+                      <button type="submit" class="btn-ghost users-btn-danger-outline">Reject</button>
+                    </form>
+                  </div>
+                </article>
+              <?php endforeach; ?>
+            </div>
+          </section>
+        <?php endif; ?>
 
         <div class="section-card users-directory-card" id="users-directory">
           <div class="section-card__header users-directory-header">
@@ -1680,9 +1843,11 @@ $has_feedback = $flash_success !== ''
                   <option value="">All statuses</option>
                   <option value="active" <?= $status_filter === 'active' ? 'selected' : '' ?>>Active</option>
                   <option value="inactive" <?= $status_filter === 'inactive' ? 'selected' : '' ?>>Deactivated</option>
+                  <option value="pending_librarian" <?= $status_filter === 'pending_librarian' ? 'selected' : '' ?>>Pending librarian</option>
                 </select>
               </div>
               <div class="users-filter-actions">
+                <a href="<?= htmlspecialchars($self_url . '?status=pending_librarian', ENT_QUOTES, 'UTF-8') ?>" class="btn-ghost users-filter-chip<?= $status_filter === 'pending_librarian' ? ' is-active' : '' ?>">Pending librarian</a>
                 <button type="submit" class="btn-primary" aria-label="Search users">Search</button>
                 <?php if ($q !== '' || $role_filter !== '' || $status_filter !== ''): ?>
                   <a href="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" class="btn-ghost" aria-label="Clear search">Clear</a>
@@ -1785,6 +1950,8 @@ $has_feedback = $flash_success !== ''
                   $role_requires_verified_flag = $role_requires_verification($role);
                   $verified = (int) ($u['is_verified'] ?? 0) === 1;
                   $suspended = (int) ($u['is_suspended'] ?? 0) === 1;
+                  $staff_approval_status = (string) ($u['staff_approval_status'] ?? STAFF_APPROVAL_NONE);
+                  $is_pending_librarian_request = staff_is_pending_librarian_request($u);
                   $is_superadmin_row = (int) ($u['is_superadmin'] ?? 0) === 1;
                   $created_at_raw = (string) ($u['created_at'] ?? '');
                   $created_at_stamp = $created_at_raw !== '' ? strtotime($created_at_raw) : false;
@@ -1845,6 +2012,11 @@ $has_feedback = $flash_success !== ''
                           <?php if ($role_requires_verified_flag && !$verified): ?>
                             <span class="badge badge-red users-policy-chip">Needs verification</span>
                           <?php endif; ?>
+                          <?php if ($is_pending_librarian_request): ?>
+                            <span class="badge badge-amber users-policy-chip">Pending approval</span>
+                          <?php elseif ($role === 'librarian' && $staff_approval_status === STAFF_APPROVAL_REJECTED): ?>
+                            <span class="badge badge-red users-policy-chip">Rejected request</span>
+                          <?php endif; ?>
                         </div>
                       </div>
                     </td>
@@ -1869,7 +2041,22 @@ $has_feedback = $flash_success !== ''
                         <span class="users-protected-label">Protected account</span>
                       <?php else: ?>
                         <div class="users-ops">
-                          <?php if ($suspended): ?>
+                          <?php if ($is_pending_librarian_request): ?>
+                            <div class="users-row-request-actions" aria-label="Librarian request actions">
+                            <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" class="users-quick-form" data-user-name="<?= $safe_name ?>">
+                              <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                              <input type="hidden" name="action" value="approve_librarian_request">
+                              <input type="hidden" name="user_id" value="<?= $uid ?>">
+                              <button type="submit" class="btn-confirm users-row-action-btn">Approve</button>
+                            </form>
+                            <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" class="users-quick-form" data-user-name="<?= $safe_name ?>">
+                              <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                              <input type="hidden" name="action" value="reject_librarian_request">
+                              <input type="hidden" name="user_id" value="<?= $uid ?>">
+                              <button type="submit" class="btn-ghost users-row-action-btn users-btn-danger-outline">Reject</button>
+                            </form>
+                            </div>
+                          <?php elseif ($suspended): ?>
                             <form method="post" action="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" class="users-quick-form" data-user-name="<?= $safe_name ?>" data-quick-action="activate">
                               <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                               <input type="hidden" name="action" value="activate">

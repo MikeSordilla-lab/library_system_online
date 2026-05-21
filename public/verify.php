@@ -363,6 +363,14 @@ $extraScripts = [
       color: #5f5850;
       font-size: 0.95rem;
     }
+
+    .verify-card .btn-block + .btn-block {
+      margin-top: 12px;
+    }
+
+    .verify-card .auth-note {
+      margin-top: 28px;
+    }
   </style>
 </body>
 

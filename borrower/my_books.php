@@ -7,7 +7,7 @@
  *   1. Active & Overdue Loans    — books currently borrowed + due dates
  *   2. Approved Reservations     — ready to be checked out
  *   3. Pending Reservations      — awaiting librarian decision
- *   4. Rejected Reservations     — declined by librarian (recent 10)
+ *   4. Rejected / Cancelled Reservations — declined by librarian or cancelled by borrower (recent 10)
  *   5. Loan History              — returned books (last 30)
  *
  * POST action=return_request: (future hook — placeholder, actual return is
@@ -155,7 +155,7 @@ $extraStyles = [
         </button>
         <button type="button" class="rd-books-tab" data-books-tab="rejected" role="tab" aria-selected="false" aria-controls="books-panel-rejected">
           <svg class="rd-books-tab-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.25"><path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          Rejected
+          Rejected / Cancelled
           <span><?= count($rejected_reservations) ?></span>
         </button>
         <button type="button" class="rd-books-tab" data-books-tab="history" role="tab" aria-selected="false" aria-controls="books-panel-history">
@@ -170,7 +170,18 @@ $extraStyles = [
           <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.25"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.35-4.35m1.35-5.65a7 7 0 1 1-14 0 7 7 0 0 1 14 0z"/></svg>
           <input id="books-search" type="search" placeholder="Search the selected tab">
         </div>
+        <div class="rd-books-controls">
+          <label class="sr-only" for="books-sort">Sort selected tab</label>
+          <select id="books-sort" class="rd-books-select" aria-label="Sort selected tab"></select>
+          <label class="sr-only" for="books-page-size">Rows per page</label>
+          <select id="books-page-size" class="rd-books-select" aria-label="Rows per page">
+            <option value="10">10 rows</option>
+            <option value="25">25 rows</option>
+            <option value="50">50 rows</option>
+          </select>
+        </div>
       </div>
+      <div class="rd-books-filterchips" id="books-filterchips" aria-label="Quick filters"></div>
 
       <section id="books-panel-borrowed" class="rd-books-panel active" data-books-panel="borrowed" role="tabpanel">
       <!-- Section 1: Active & Overdue Loans -->
@@ -209,8 +220,15 @@ $extraStyles = [
                     $days_overdue = (int)$loan['days_overdue'];
                     $due_ts       = strtotime($loan['due_date']);
                     $days_left    = (int)ceil(($due_ts - time()) / 86400);
+                    $renew_eligible = !empty($loan['renewal_eligible']);
                   ?>
-                  <tr class="<?= $is_overdue ? 'rd-row-overdue' : '' ?>" data-book-row data-book-status="<?= $is_overdue ? 'borrowed overdue' : 'borrowed' ?>">
+                  <tr class="<?= $is_overdue ? 'rd-row-overdue' : '' ?>"
+                      data-book-row
+                      data-book-status="<?= $is_overdue ? 'borrowed overdue' : 'borrowed' ?><?= $renew_eligible ? ' renewable' : '' ?>"
+                      data-sort-title="<?= htmlspecialchars($loan['title'], ENT_QUOTES, 'UTF-8') ?>"
+                      data-sort-author="<?= htmlspecialchars($loan['author'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                      data-sort-due="<?= htmlspecialchars($loan['due_date'], ENT_QUOTES, 'UTF-8') ?>"
+                      data-sort-status="<?= $is_overdue ? 'overdue' : 'borrowed' ?>">
                     <td>
                       <div style="display: flex; gap: 12px; align-items: flex-start;">
                         <img src="<?= htmlspecialchars(BASE_URL . 'public/book-cover.php?book_id=' . (int)$loan['book_id'], ENT_QUOTES, 'UTF-8') ?>"
@@ -245,9 +263,6 @@ $extraStyles = [
                       <?php endif; ?>
                     </td>
                     <td>
-                      <?php
-                        $renew_eligible = !empty($loan['renewal_eligible']);
-                      ?>
                       <?php if ($renew_eligible): ?>
                       <form method="POST" action="<?= htmlspecialchars(BASE_URL . 'borrower/renew.php', ENT_QUOTES, 'UTF-8') ?>" style="margin:0;">
                         <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
@@ -305,10 +320,23 @@ $extraStyles = [
                   $expires_soon   = $hrs_left <= 24 && $hrs_left > 0;
                   $expires_crit   = $hrs_left <= 6 && $hrs_left > 0;
                 ?>
-                <tr data-book-row data-book-status="ready">
+                <tr data-book-row
+                    data-book-status="ready pickup"
+                    data-sort-title="<?= htmlspecialchars($res['title'], ENT_QUOTES, 'UTF-8') ?>"
+                    data-sort-author="<?= htmlspecialchars($res['author'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                    data-sort-due="<?= htmlspecialchars($res['expires_at'], ENT_QUOTES, 'UTF-8') ?>"
+                    data-sort-status="ready pickup">
                   <td>
-                    <span class="rd-pickup-book-title"><?= htmlspecialchars($res['title'], ENT_QUOTES, 'UTF-8') ?></span>
-                    <span class="rd-pickup-book-author"><?= htmlspecialchars($res['author'] ?? '', ENT_QUOTES, 'UTF-8') ?></span>
+                    <div class="rd-book-cell">
+                      <img src="<?= htmlspecialchars(BASE_URL . 'public/book-cover.php?book_id=' . (int)$res['book_id'], ENT_QUOTES, 'UTF-8') ?>"
+                           alt="Cover"
+                           onerror="this.onerror=null;this.src='<?= htmlspecialchars(BASE_URL . 'assets/images/placeholder-book.png', ENT_QUOTES, 'UTF-8') ?>';"
+                           class="rd-book-thumb">
+                      <div>
+                        <span class="rd-pickup-book-title"><?= htmlspecialchars($res['title'], ENT_QUOTES, 'UTF-8') ?></span>
+                        <span class="rd-pickup-book-author"><?= htmlspecialchars($res['author'] ?? '', ENT_QUOTES, 'UTF-8') ?></span>
+                      </div>
+                    </div>
                   </td>
                   <td class="rd-pickup-date"><?= $res['approved_at'] ? htmlspecialchars(date('d M Y', strtotime($res['approved_at'])), ENT_QUOTES, 'UTF-8') : '—' ?></td>
                   <td>
@@ -338,6 +366,7 @@ $extraStyles = [
       </div>
       <?php endif; ?>
       <p class="rd-filter-empty" data-filter-empty hidden>No matching records in this tab.</p>
+      <div class="rd-books-pagination" data-pagination-for="borrowed" hidden></div>
       </section>
 
       <section id="books-panel-pending" class="rd-books-panel" data-books-panel="pending" role="tabpanel" hidden>
@@ -372,7 +401,18 @@ $extraStyles = [
               </thead>
               <tbody>
                 <?php foreach ($pending_reservations as $res): ?>
-                  <tr data-book-row data-book-status="pending">
+                  <?php
+                    $pending_expires_ts = strtotime((string) $res['expires_at']);
+                    $pending_hours_left = $pending_expires_ts === false ? 999 : (int) ceil(($pending_expires_ts - time()) / 3600);
+                    $pending_expires_soon = $pending_hours_left <= 72 && $pending_hours_left > 0;
+                  ?>
+                  <tr data-book-row
+                      data-book-status="pending awaiting approval<?= $pending_expires_soon ? ' expiring soon' : '' ?>"
+                      data-sort-title="<?= htmlspecialchars($res['title'], ENT_QUOTES, 'UTF-8') ?>"
+                      data-sort-author="<?= htmlspecialchars($res['author'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                      data-sort-reserved="<?= htmlspecialchars($res['reserved_at'], ENT_QUOTES, 'UTF-8') ?>"
+                      data-sort-expires="<?= htmlspecialchars($res['expires_at'], ENT_QUOTES, 'UTF-8') ?>"
+                      data-sort-queue="<?= (int)$res['queue_position'] ?>">
                     <td>
                       <div style="display: flex; gap: 12px; align-items: flex-start;">
                         <img src="<?= htmlspecialchars(BASE_URL . 'public/book-cover.php?book_id=' . (int)$res['book_id'], ENT_QUOTES, 'UTF-8') ?>"
@@ -406,13 +446,14 @@ $extraStyles = [
         <?php endif; ?>
       </div>
       <p class="rd-filter-empty" data-filter-empty hidden>No matching pending reservations.</p>
+      <div class="rd-books-pagination" data-pagination-for="pending" hidden></div>
       </section>
 
       <section id="books-panel-rejected" class="rd-books-panel" data-books-panel="rejected" role="tabpanel" hidden>
-      <!-- Section 4: Rejected Reservations -->
+      <!-- Section 4: Rejected / Cancelled Reservations -->
       <div class="rd-section-title">
         <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-        Recently Rejected
+        Recently Rejected / Cancelled
         <?php if (!empty($rejected_reservations)): ?>
           <span class="rd-badge rd-b-red" style="margin-left:8px;"><?= count($rejected_reservations) ?></span>
         <?php endif; ?>
@@ -420,7 +461,7 @@ $extraStyles = [
       <div class="rd-card" style="margin-bottom: 2rem;">
         <?php if (empty($rejected_reservations)): ?>
           <div style="text-align:center; padding: 2rem 0; color: var(--rd-text-muted);">
-            <p>No rejected reservations.</p>
+            <p>No rejected or cancelled reservations.</p>
           </div>
         <?php else: ?>
         <div style="overflow-x:auto;">
@@ -430,20 +471,51 @@ $extraStyles = [
                 <th>Book</th>
                 <th>Author</th>
                 <th>Reserved On</th>
-                <th>Rejected On</th>
+                <th>Ended On</th>
+                <th>Outcome</th>
                 <th>Reason</th>
                 <th>Action</th>
               </tr>
             </thead>
             <tbody>
               <?php foreach ($rejected_reservations as $res): ?>
-                <tr data-book-row data-book-status="rejected">
-                  <td><strong><?= htmlspecialchars($res['title'], ENT_QUOTES, 'UTF-8') ?></strong></td>
+                <?php
+                  $reservation_status = (string) ($res['status'] ?? 'rejected');
+                  $is_cancelled = $reservation_status === 'cancelled';
+                  $ended_at = $is_cancelled
+                    ? ($res['updated_at'] ?? $res['reserved_at'])
+                    : ($res['rejected_at'] ?? $res['updated_at'] ?? $res['reserved_at']);
+                ?>
+                <tr data-book-row
+                    data-book-status="<?= $is_cancelled ? 'cancelled canceled by user' : 'rejected denied not approved librarian' ?>"
+                    data-sort-title="<?= htmlspecialchars($res['title'], ENT_QUOTES, 'UTF-8') ?>"
+                    data-sort-author="<?= htmlspecialchars($res['author'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                    data-sort-reserved="<?= htmlspecialchars($res['reserved_at'], ENT_QUOTES, 'UTF-8') ?>"
+                    data-sort-ended="<?= htmlspecialchars((string) $ended_at, ENT_QUOTES, 'UTF-8') ?>"
+                    data-sort-outcome="<?= $is_cancelled ? 'cancelled' : 'rejected' ?>">
+                  <td>
+                    <div class="rd-book-cell">
+                      <img src="<?= htmlspecialchars(BASE_URL . 'public/book-cover.php?book_id=' . (int)$res['book_id'], ENT_QUOTES, 'UTF-8') ?>"
+                           alt="Cover"
+                           onerror="this.onerror=null;this.src='<?= htmlspecialchars(BASE_URL . 'assets/images/placeholder-book.png', ENT_QUOTES, 'UTF-8') ?>';"
+                           class="rd-book-thumb">
+                      <strong><?= htmlspecialchars($res['title'], ENT_QUOTES, 'UTF-8') ?></strong>
+                    </div>
+                  </td>
                   <td><?= htmlspecialchars($res['author'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
                   <td><?= htmlspecialchars(date('d M Y', strtotime($res['reserved_at'])), ENT_QUOTES, 'UTF-8') ?></td>
-                  <td><?= $res['rejected_at'] ? htmlspecialchars(date('d M Y', strtotime($res['rejected_at'])), ENT_QUOTES, 'UTF-8') : '—' ?></td>
+                  <td><?= $ended_at ? htmlspecialchars(date('d M Y', strtotime((string) $ended_at)), ENT_QUOTES, 'UTF-8') : '—' ?></td>
                   <td>
-                    <?php if (!empty($res['rejection_reason'])): ?>
+                    <?php if ($is_cancelled): ?>
+                      <span class="rd-badge rd-b-orange">Cancelled by you</span>
+                    <?php else: ?>
+                      <span class="rd-badge rd-b-red">Rejected by librarian</span>
+                    <?php endif; ?>
+                  </td>
+                  <td>
+                    <?php if ($is_cancelled): ?>
+                      <span style="color:var(--rd-text-muted);">Cancelled from reservation</span>
+                    <?php elseif (!empty($res['rejection_reason'])): ?>
                       <span title="<?= htmlspecialchars($res['rejection_reason'], ENT_QUOTES, 'UTF-8') ?>">
                         <?= htmlspecialchars(mb_strimwidth($res['rejection_reason'], 0, 60, '…'), ENT_QUOTES, 'UTF-8') ?>
                       </span>
@@ -461,7 +533,8 @@ $extraStyles = [
         </div>
         <?php endif; ?>
       </div>
-      <p class="rd-filter-empty" data-filter-empty hidden>No matching rejected reservations.</p>
+      <p class="rd-filter-empty" data-filter-empty hidden>No matching rejected or cancelled reservations.</p>
+      <div class="rd-books-pagination" data-pagination-for="rejected" hidden></div>
       </section>
 
       <section id="books-panel-history" class="rd-books-panel" data-books-panel="history" role="tabpanel" hidden>
@@ -496,8 +569,22 @@ $extraStyles = [
                   <?php
                     $returned_late = strtotime($h['return_date']) > strtotime($h['due_date']);
                   ?>
-                  <tr data-book-row data-book-status="<?= $returned_late ? 'late ' : '' ?><?= (float)$h['fine_amount'] > 0 ? ($h['fine_paid'] ? 'fine-paid' : 'fine-unpaid') : 'fine-none' ?>">
-                    <td><strong><?= htmlspecialchars($h['title'], ENT_QUOTES, 'UTF-8') ?></strong></td>
+                  <tr data-book-row
+                      data-book-status="<?= $returned_late ? 'late ' : '' ?><?= (float)$h['fine_amount'] > 0 ? ($h['fine_paid'] ? 'fine-paid' : 'fine-unpaid') : 'fine-none' ?>"
+                      data-sort-title="<?= htmlspecialchars($h['title'], ENT_QUOTES, 'UTF-8') ?>"
+                      data-sort-author="<?= htmlspecialchars($h['author'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                      data-sort-borrowed="<?= htmlspecialchars($h['checkout_date'], ENT_QUOTES, 'UTF-8') ?>"
+                      data-sort-returned="<?= htmlspecialchars($h['return_date'], ENT_QUOTES, 'UTF-8') ?>"
+                      data-sort-fine="<?= htmlspecialchars((string) (float)$h['fine_amount'], ENT_QUOTES, 'UTF-8') ?>">
+                    <td>
+                      <div class="rd-book-cell">
+                        <img src="<?= htmlspecialchars(BASE_URL . 'public/book-cover.php?book_id=' . (int)$h['book_id'], ENT_QUOTES, 'UTF-8') ?>"
+                             alt="Cover"
+                             onerror="this.onerror=null;this.src='<?= htmlspecialchars(BASE_URL . 'assets/images/placeholder-book.png', ENT_QUOTES, 'UTF-8') ?>';"
+                             class="rd-book-thumb">
+                        <strong><?= htmlspecialchars($h['title'], ENT_QUOTES, 'UTF-8') ?></strong>
+                      </div>
+                    </td>
                     <td><?= htmlspecialchars($h['author'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
                     <td><?= htmlspecialchars(date('d M Y', strtotime($h['checkout_date'])), ENT_QUOTES, 'UTF-8') ?></td>
                     <td><?= htmlspecialchars(date('d M Y', strtotime($h['due_date'])), ENT_QUOTES, 'UTF-8') ?></td>
@@ -535,6 +622,7 @@ $extraStyles = [
         <?php endif; ?>
       </div>
       <p class="rd-filter-empty" data-filter-empty hidden>No matching history records.</p>
+      <div class="rd-books-pagination" data-pagination-for="history" hidden></div>
       </section>
 
     </main>
@@ -618,6 +706,7 @@ $extraStyles = [
     .rd-books-filterbar {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 0.75rem;
       margin: 0 0 1.25rem;
       flex-wrap: wrap;
@@ -651,6 +740,74 @@ $extraStyles = [
     .rd-books-search input::placeholder {
       color: #9a8f80;
     }
+    .rd-book-cell {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .rd-book-thumb {
+      width: 40px;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 4px;
+      flex-shrink: 0;
+      border: 1px solid var(--rd-border, #e2e8f0);
+      background: rgba(255,255,255,0.35);
+    }
+    .rd-books-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      flex-wrap: wrap;
+    }
+    .rd-books-select {
+      min-height: 44px;
+      padding: 0 2.25rem 0 0.85rem;
+      border: 1px solid rgba(201, 168, 76, 0.24);
+      border-radius: 10px;
+      background:
+        linear-gradient(45deg, transparent 50%, #9a8f80 50%) right 1rem center / 6px 6px no-repeat,
+        linear-gradient(135deg, #9a8f80 50%, transparent 50%) right 0.72rem center / 6px 6px no-repeat,
+        rgba(42, 39, 35, 0.08);
+      color: #4c463e;
+      font: inherit;
+      font-weight: 700;
+      appearance: none;
+      cursor: pointer;
+    }
+    .rd-books-select:focus {
+      outline: 0;
+      border-color: rgba(201, 168, 76, 0.56);
+      box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.12);
+    }
+    .rd-books-filterchips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      margin: -0.45rem 0 1.25rem;
+    }
+    .rd-filter-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 34px;
+      padding: 0.45rem 0.8rem;
+      border: 1px solid rgba(201, 168, 76, 0.18);
+      border-radius: 999px;
+      background: rgba(76, 70, 62, 0.08);
+      color: #7f7466;
+      font: inherit;
+      font-size: 0.86rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+    .rd-filter-chip:hover,
+    .rd-filter-chip.active {
+      border-color: rgba(201, 168, 76, 0.5);
+      background: rgba(201, 168, 76, 0.18);
+      color: var(--rd-primary);
+    }
     .rd-books-panel[hidden] {
       display: none;
     }
@@ -659,6 +816,47 @@ $extraStyles = [
       color: var(--rd-text-muted);
       font-weight: 700;
       text-align: center;
+    }
+    .rd-books-pagination {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin: 1rem 0 0;
+      flex-wrap: wrap;
+      color: var(--rd-text-muted);
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+    .rd-pagination-pages {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+    }
+    .rd-page-btn {
+      min-width: 36px;
+      min-height: 34px;
+      padding: 0.35rem 0.65rem;
+      border: 1px solid rgba(201, 168, 76, 0.2);
+      border-radius: 8px;
+      background: rgba(76, 70, 62, 0.08);
+      color: #6f6559;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .rd-page-btn:hover,
+    .rd-page-btn.active {
+      border-color: rgba(201, 168, 76, 0.52);
+      background: var(--rd-primary);
+      color: #2c281f;
+    }
+    .rd-page-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      background: rgba(76, 70, 62, 0.06);
+      color: #8f8374;
     }
     /* Additions for lifecycle component matching dashboard style */
     .rd-lifecycle {
@@ -698,6 +896,14 @@ $extraStyles = [
       .rd-lifecycle-arrow { display: none; }
       .rd-books-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .rd-books-tab { width: 100%; }
+      .rd-books-filterbar,
+      .rd-books-controls,
+      .rd-books-select {
+        width: 100%;
+      }
+      .rd-books-pagination {
+        justify-content: center;
+      }
     }
   </style>
 
@@ -727,12 +933,253 @@ $extraStyles = [
       var tabs = Array.prototype.slice.call(document.querySelectorAll('[data-books-tab]'));
       var panels = Array.prototype.slice.call(document.querySelectorAll('[data-books-panel]'));
       var search = document.getElementById('books-search');
+      var sortSelect = document.getElementById('books-sort');
+      var pageSizeSelect = document.getElementById('books-page-size');
+      var chipsWrap = document.getElementById('books-filterchips');
       if (!tabs.length || !panels.length) return;
+
+      var state = {
+        tab: 'borrowed',
+        filter: 'all',
+        page: 1,
+        pageSize: pageSizeSelect ? parseInt(pageSizeSelect.value, 10) || 10 : 10,
+        sort: ''
+      };
+
+      var configs = {
+        borrowed: {
+          search: 'Search borrowed books',
+          filters: [
+            ['all', 'All'],
+            ['borrowed', 'Borrowed'],
+            ['overdue', 'Overdue'],
+            ['renewable', 'Renewable'],
+            ['ready', 'Ready pickup']
+          ],
+          sorts: [
+            ['due-asc', 'Due date'],
+            ['title-asc', 'Title A-Z'],
+            ['author-asc', 'Author A-Z'],
+            ['status-asc', 'Status']
+          ],
+          sorters: {
+            'due-asc': { field: 'due', type: 'date', dir: 1 },
+            'title-asc': { field: 'title', type: 'text', dir: 1 },
+            'author-asc': { field: 'author', type: 'text', dir: 1 },
+            'status-asc': { field: 'status', type: 'text', dir: 1 }
+          }
+        },
+        pending: {
+          search: 'Search pending reservations',
+          filters: [
+            ['all', 'All'],
+            ['awaiting approval', 'Awaiting approval'],
+            ['expiring soon', 'Expiring soon']
+          ],
+          sorts: [
+            ['reserved-desc', 'Reserved newest'],
+            ['reserved-asc', 'Reserved oldest'],
+            ['expires-asc', 'Expires soonest'],
+            ['queue-asc', 'Queue #']
+          ],
+          sorters: {
+            'reserved-desc': { field: 'reserved', type: 'date', dir: -1 },
+            'reserved-asc': { field: 'reserved', type: 'date', dir: 1 },
+            'expires-asc': { field: 'expires', type: 'date', dir: 1 },
+            'queue-asc': { field: 'queue', type: 'number', dir: 1 }
+          }
+        },
+        rejected: {
+          search: 'Search rejected or cancelled reservations',
+          filters: [
+            ['all', 'All'],
+            ['rejected', 'Rejected by librarian'],
+            ['cancelled', 'Cancelled by you']
+          ],
+          sorts: [
+            ['ended-desc', 'Ended newest'],
+            ['reserved-desc', 'Reserved newest'],
+            ['outcome-asc', 'Outcome'],
+            ['title-asc', 'Title A-Z']
+          ],
+          sorters: {
+            'ended-desc': { field: 'ended', type: 'date', dir: -1 },
+            'reserved-desc': { field: 'reserved', type: 'date', dir: -1 },
+            'outcome-asc': { field: 'outcome', type: 'text', dir: 1 },
+            'title-asc': { field: 'title', type: 'text', dir: 1 }
+          }
+        },
+        history: {
+          search: 'Search loan history',
+          filters: [
+            ['all', 'All'],
+            ['late', 'Returned late'],
+            ['fine-unpaid', 'Fine unpaid'],
+            ['fine-paid', 'Fine paid']
+          ],
+          sorts: [
+            ['returned-desc', 'Returned newest'],
+            ['borrowed-desc', 'Borrowed newest'],
+            ['fine-desc', 'Fine highest'],
+            ['title-asc', 'Title A-Z']
+          ],
+          sorters: {
+            'returned-desc': { field: 'returned', type: 'date', dir: -1 },
+            'borrowed-desc': { field: 'borrowed', type: 'date', dir: -1 },
+            'fine-desc': { field: 'fine', type: 'money', dir: -1 },
+            'title-asc': { field: 'title', type: 'text', dir: 1 }
+          }
+        }
+      };
 
       function getActivePanel() {
         return panels.filter(function(panel) {
           return !panel.hidden;
         })[0] || panels[0];
+      }
+
+      function activeConfig() {
+        return configs[state.tab] || configs.borrowed;
+      }
+
+      function cellValue(row, col) {
+        var cell = row.children[col];
+        return cell ? cell.textContent.trim() : '';
+      }
+
+      function sortValue(row, sorter) {
+        if (sorter.field) {
+          return row.getAttribute('data-sort-' + sorter.field) || '';
+        }
+        return cellValue(row, sorter.col);
+      }
+
+      function parseDateValue(value) {
+        if (!value || value === '—') return 0;
+        var parsed = Date.parse(value);
+        return Number.isNaN(parsed) ? 0 : parsed;
+      }
+
+      function parseNumberValue(value) {
+        var clean = String(value || '').replace(/[^0-9.-]/g, '');
+        var parsed = parseFloat(clean);
+        return Number.isNaN(parsed) ? 0 : parsed;
+      }
+
+      function sortRows(rows) {
+        var config = activeConfig();
+        var sorter = config.sorters[state.sort];
+        if (!sorter) return rows;
+
+        return rows.slice().sort(function(a, b) {
+          var av = sortValue(a, sorter);
+          var bv = sortValue(b, sorter);
+
+          if (sorter.type === 'date') {
+            av = parseDateValue(av);
+            bv = parseDateValue(bv);
+          } else if (sorter.type === 'number' || sorter.type === 'money') {
+            av = parseNumberValue(av);
+            bv = parseNumberValue(bv);
+          } else {
+            av = av.toLowerCase();
+            bv = bv.toLowerCase();
+          }
+
+          if (av < bv) return -1 * sorter.dir;
+          if (av > bv) return 1 * sorter.dir;
+          return (parseInt(a.dataset.originalIndex || '0', 10) - parseInt(b.dataset.originalIndex || '0', 10));
+        });
+      }
+
+      function renderChips() {
+        if (!chipsWrap) return;
+        var config = activeConfig();
+        chipsWrap.innerHTML = '';
+
+        config.filters.forEach(function(item) {
+          var button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'rd-filter-chip' + (state.filter === item[0] ? ' active' : '');
+          button.setAttribute('data-filter-value', item[0]);
+          button.textContent = item[1];
+          button.addEventListener('click', function() {
+            state.filter = item[0];
+            state.page = 1;
+            renderChips();
+            applyBooksFilter();
+          });
+          chipsWrap.appendChild(button);
+        });
+      }
+
+      function renderSort() {
+        if (!sortSelect) return;
+        var config = activeConfig();
+        sortSelect.innerHTML = '';
+
+        config.sorts.forEach(function(item) {
+          var option = document.createElement('option');
+          option.value = item[0];
+          option.textContent = 'Sort: ' + item[1];
+          sortSelect.appendChild(option);
+        });
+
+        state.sort = config.sorts[0] ? config.sorts[0][0] : '';
+        sortSelect.value = state.sort;
+      }
+
+      function renderPagination(panel, visibleRows, totalRows) {
+        var pagination = panel.querySelector('[data-pagination-for]');
+        if (!pagination) return;
+
+        if (totalRows <= state.pageSize) {
+          pagination.hidden = true;
+          pagination.innerHTML = '';
+          return;
+        }
+
+        var totalPages = Math.max(1, Math.ceil(totalRows / state.pageSize));
+        state.page = Math.min(Math.max(1, state.page), totalPages);
+
+        var start = totalRows === 0 ? 0 : ((state.page - 1) * state.pageSize) + 1;
+        var end = Math.min(totalRows, state.page * state.pageSize);
+        pagination.hidden = false;
+        pagination.innerHTML = '';
+
+        var summary = document.createElement('span');
+        summary.textContent = 'Showing ' + start + '-' + end + ' of ' + totalRows;
+        pagination.appendChild(summary);
+
+        var pages = document.createElement('div');
+        pages.className = 'rd-pagination-pages';
+
+        function addButton(label, page, disabled, active) {
+          var button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'rd-page-btn' + (active ? ' active' : '');
+          button.textContent = label;
+          button.disabled = disabled;
+          button.addEventListener('click', function() {
+            state.page = page;
+            applyBooksFilter();
+          });
+          pages.appendChild(button);
+        }
+
+        addButton('Previous', state.page - 1, state.page === 1, false);
+        for (var i = 1; i <= totalPages; i += 1) {
+          if (i === 1 || i === totalPages || Math.abs(i - state.page) <= 1) {
+            addButton(String(i), i, false, i === state.page);
+          } else if (i === state.page - 2 || i === state.page + 2) {
+            var dots = document.createElement('span');
+            dots.textContent = '...';
+            pages.appendChild(dots);
+          }
+        }
+        addButton('Next', state.page + 1, state.page === totalPages, false);
+
+        pagination.appendChild(pages);
       }
 
       function applyBooksFilter() {
@@ -741,21 +1188,58 @@ $extraStyles = [
         var rows = Array.prototype.slice.call(panel.querySelectorAll('[data-book-row]'));
         var empty = panel.querySelector('[data-filter-empty]');
         var hasActiveFilter = query !== '';
-        var visibleCount = 0;
+        var configFilter = state.filter;
+        var matchedRows;
+
+        rows.forEach(function(row, index) {
+          if (!row.dataset.originalIndex) {
+            row.dataset.originalIndex = String(index);
+          }
+        });
+
+        matchedRows = rows.filter(function(row) {
+          var matchesText = query === '' || row.textContent.toLowerCase().indexOf(query) !== -1;
+          var statusText = (row.getAttribute('data-book-status') || '').toLowerCase();
+          var matchesFilter = configFilter === 'all' || statusText.indexOf(configFilter) !== -1;
+          return matchesText && matchesFilter;
+        });
+
+        matchedRows = sortRows(matchedRows);
+        matchedRows.forEach(function(row) {
+          if (row.parentNode) {
+            row.parentNode.appendChild(row);
+          }
+        });
+
+        var totalMatched = matchedRows.length;
+        var startIndex = (state.page - 1) * state.pageSize;
+        var endIndex = startIndex + state.pageSize;
+
+        if (startIndex >= totalMatched && totalMatched > 0) {
+          state.page = Math.ceil(totalMatched / state.pageSize);
+          startIndex = (state.page - 1) * state.pageSize;
+          endIndex = startIndex + state.pageSize;
+        }
 
         rows.forEach(function(row) {
-          var matchesText = query === '' || row.textContent.toLowerCase().indexOf(query) !== -1;
-          var matches = matchesText;
-          row.hidden = !matches;
-          if (matches) visibleCount += 1;
+          row.hidden = true;
+        });
+
+        matchedRows.forEach(function(row, index) {
+          row.hidden = index < startIndex || index >= endIndex;
         });
 
         if (empty) {
-          empty.hidden = !hasActiveFilter || visibleCount > 0 || rows.length === 0;
+          empty.hidden = (!hasActiveFilter && state.filter === 'all') || totalMatched > 0 || rows.length === 0;
         }
+
+        renderPagination(panel, matchedRows.slice(startIndex, endIndex), totalMatched);
       }
 
       function activateTab(name) {
+        state.tab = name;
+        state.filter = 'all';
+        state.page = 1;
         tabs.forEach(function(tab) {
           var isActive = tab.getAttribute('data-books-tab') === name;
           tab.classList.toggle('active', isActive);
@@ -768,6 +1252,12 @@ $extraStyles = [
           panel.hidden = !isActive;
         });
 
+        if (search) {
+          search.value = '';
+          search.placeholder = activeConfig().search;
+        }
+        renderSort();
+        renderChips();
         applyBooksFilter();
       }
 
@@ -777,8 +1267,27 @@ $extraStyles = [
         });
       });
 
-      if (search) search.addEventListener('input', applyBooksFilter);
-      applyBooksFilter();
+      if (search) {
+        search.addEventListener('input', function() {
+          state.page = 1;
+          applyBooksFilter();
+        });
+      }
+      if (sortSelect) {
+        sortSelect.addEventListener('change', function() {
+          state.sort = sortSelect.value;
+          state.page = 1;
+          applyBooksFilter();
+        });
+      }
+      if (pageSizeSelect) {
+        pageSizeSelect.addEventListener('change', function() {
+          state.pageSize = parseInt(pageSizeSelect.value, 10) || 10;
+          state.page = 1;
+          applyBooksFilter();
+        });
+      }
+      activateTab('borrowed');
     }());
   </script>
 </body>

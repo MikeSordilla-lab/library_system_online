@@ -10,6 +10,7 @@
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/includes/auth-helpers.php';
+require_once __DIR__ . '/includes/staff_approval.php';
 require_once __DIR__ . '/src/utils/rate_limit.php';
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -62,10 +63,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
       $pdo = get_db();
+      $staffApprovalSelect = staff_column_exists($pdo, 'staff_approval_status')
+        ? 'staff_approval_status'
+        : "'" . STAFF_APPROVAL_NONE . "' AS staff_approval_status";
 
       // FR-021: Lookup by email using prepared statement
       $stmt = $pdo->prepare(
-        'SELECT id, full_name, email, password_hash, role, is_verified, is_suspended,
+        'SELECT id, full_name, email, password_hash, role, is_verified, is_suspended, ' . $staffApprovalSelect . ',
                 failed_login_attempts, locked_until
          FROM Users
          WHERE email = ? OR full_name = ?
@@ -91,8 +95,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // FR-022: Block unverified accounts
         if ((int) $user['is_verified'] !== 1) {
           // Non-generic message only for unverified — spec allows this (FR-025 covers "wrong creds")
-          $error = 'Please verify your email before logging in.';
-          $error_context = 'unverified';
+          $error = staff_login_block_message($user);
+          $error_context = staff_login_block_context($user);
           $unverified_email = (string) $user['email'];
           // Still log as LOGIN_FAILED with null actor (FR-026), capturing email for audit trail
           log_event($pdo, 'LOGIN_FAILED', null, null, null, 'FAILURE', null, $identifier);
@@ -165,9 +169,11 @@ $alertMessage = '';
 $alertEmail = '';
 $alertCsrf = '';
 $alertBaseUrl = '';
+$alertContext = '';
 if ($error !== '') {
   $alertType = 'error';
   $alertMessage = $error;
+  $alertContext = $error_context;
   if ($error_context === 'unverified' && $unverified_email !== '') {
     $alertEmail = $unverified_email;
     $alertCsrf = csrf_token();
@@ -183,6 +189,10 @@ if ($alertType !== '') {
   $safeAlertType = htmlspecialchars($alertType, ENT_QUOTES, 'UTF-8');
   $safeAlertMessage = htmlspecialchars($alertMessage, ENT_QUOTES, 'UTF-8');
   $bodyAlertAttributes = ' data-alert-type="' . $safeAlertType . '" data-alert-message="' . $safeAlertMessage . '"';
+  if ($alertContext !== '') {
+    $safeAlertContext = htmlspecialchars($alertContext, ENT_QUOTES, 'UTF-8');
+    $bodyAlertAttributes .= ' data-alert-context="' . $safeAlertContext . '"';
+  }
   if ($alertEmail !== '') {
     $safeAlertEmail = htmlspecialchars($alertEmail, ENT_QUOTES, 'UTF-8');
     $bodyAlertAttributes .= ' data-alert-email="' . $safeAlertEmail . '"';

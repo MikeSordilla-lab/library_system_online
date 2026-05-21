@@ -30,9 +30,14 @@ class BorrowerAccountSummaryModule
   {
     $hasRenewalCount = circulation_column_exists($pdo, 'renewal_count');
     $hasApprovedAt = reservation_column_exists($pdo, 'approved_at');
+    $hasUpdatedAt = reservation_column_exists($pdo, 'updated_at');
 
     $renewalSelect = $hasRenewalCount ? ', c.renewal_count' : '';
     $approvedAtSelect = $hasApprovedAt ? 'r.approved_at AS approved_at' : 'NULL AS approved_at';
+    $updatedAtSelect = $hasUpdatedAt ? 'r.updated_at AS updated_at' : 'NULL AS updated_at';
+    $rejectedOrder = $hasUpdatedAt
+      ? 'COALESCE(r.rejected_at, r.updated_at, r.reserved_at) DESC'
+      : 'COALESCE(r.rejected_at, r.reserved_at) DESC';
 
     $activeStmt = $pdo->prepare(
       "SELECT c.id, c.book_id, c.checkout_date, c.due_date, c.status{$renewalSelect},
@@ -58,7 +63,7 @@ class BorrowerAccountSummaryModule
     unset($loan);
 
     $approvedStmt = $pdo->prepare(
-      "SELECT r.id, {$approvedAtSelect}, r.expires_at, b.title, b.author
+      "SELECT r.id, r.book_id, {$approvedAtSelect}, r.expires_at, b.title, b.author
          FROM Reservations r
          JOIN Books b ON r.book_id = b.id
         WHERE r.user_id = ? AND r.status = 'approved'
@@ -78,18 +83,18 @@ class BorrowerAccountSummaryModule
     $pendingReservations = $pendingStmt->fetchAll();
 
     $rejectedStmt = $pdo->prepare(
-      "SELECT r.id, r.reserved_at, r.rejected_at, r.rejection_reason, b.title, b.author
+      "SELECT r.id, r.book_id, r.status, r.reserved_at, r.rejected_at, {$updatedAtSelect}, r.rejection_reason, b.title, b.author
          FROM Reservations r
          JOIN Books b ON r.book_id = b.id
-        WHERE r.user_id = ? AND r.status = 'rejected'
-        ORDER BY r.rejected_at DESC
+        WHERE r.user_id = ? AND r.status IN ('rejected', 'cancelled')
+        ORDER BY {$rejectedOrder}
         LIMIT 10"
     );
     $rejectedStmt->execute([$userId]);
     $rejectedReservations = $rejectedStmt->fetchAll();
 
     $historyStmt = $pdo->prepare(
-      "SELECT c.id, c.checkout_date, c.due_date, c.return_date,
+      "SELECT c.id, c.book_id, c.checkout_date, c.due_date, c.return_date,
               c.fine_amount, c.fine_paid,
               b.title, b.author
          FROM Circulation c
