@@ -35,6 +35,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   if ($email === '') {
     $error = 'Please enter your email address.';
+  } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    $error = 'Please enter a valid email address.';
   } else {
     try {
       $pdo = get_db();
@@ -108,10 +110,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           }
         }
       } else {
-        // Security: Don't reveal if email exists
-        $success = 'If an account exists with this email, you will receive password reset instructions.';
-        // Still log attempt (without user_id since account doesn't exist)
-        log_event($pdo, 'PASSWORD_RESET_REQUESTED', null, null, null, 'INFO', null, $email);
+        $error = 'No account was found with that email address.';
+        log_event($pdo, 'PASSWORD_RESET_EMAIL_NOT_FOUND', null, null, null, 'FAILURE', null, $email);
       }
     } catch (PDOException $e) {
       error_log('[forgot-password.php] DB error: ' . $e->getMessage());
