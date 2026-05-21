@@ -95,9 +95,6 @@
 
   let hasInitializedBulkState = false;
   let scrollLocks = 0;
-  let searchDebounceTimer = null;
-  const SEARCH_DEBOUNCE_MS = 300;
-
   function getSweetAlertUtils() {
     return (typeof window !== 'undefined' && window.sweetAlertUtils) ? window.sweetAlertUtils : null;
   }
@@ -1263,19 +1260,11 @@
           return;
         }
         searchInput.focus();
-      }, 100);
-    }
-
-    // Search debounce: auto-submit form after typing stops
-    if (searchInput && searchForm) {
-      searchInput.addEventListener('input', function () {
-        if (searchDebounceTimer) {
-          clearTimeout(searchDebounceTimer);
+        if (searchInput.value && typeof searchInput.setSelectionRange === 'function') {
+          var end = searchInput.value.length;
+          searchInput.setSelectionRange(end, end);
         }
-        searchDebounceTimer = setTimeout(function () {
-          searchForm.requestSubmit();
-        }, SEARCH_DEBOUNCE_MS);
-      });
+      }, 100);
     }
 
     // Per-page selector: auto-submit on change
@@ -1355,9 +1344,19 @@
     }
   }
 
-  function showFlashMessages() {
+  function successTitleForMessage(message) {
+    return message === 'User account created.' ? 'User Added' : 'Success';
+  }
+
+  function showFlashMessages(attempt) {
+    attempt = attempt || 0;
     var swal = getSweetAlertUtils();
     if (!swal) {
+      if (attempt < 10) {
+        window.setTimeout(function () {
+          showFlashMessages(attempt + 1);
+        }, 100);
+      }
       return;
     }
 
@@ -1368,7 +1367,7 @@
       var message = flashSuccess.getAttribute('data-message');
       if (message) {
         window.setTimeout(function () {
-          swal.showSuccess('Success', message, 3000);
+          swal.showSuccess(successTitleForMessage(message), message, 3000);
         }, 280);
       }
     }
