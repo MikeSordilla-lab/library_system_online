@@ -23,6 +23,22 @@ if (!defined('AVATAR_BASE_URL')) {
   define('AVATAR_BASE_URL', BASE_URL . 'assets/avatars/');
 }
 
+function avatar_filename($avatar_url): string
+{
+  $filename = basename((string) $avatar_url);
+  if ($filename === '' || $filename === '.' || $filename === '..') {
+    return '';
+  }
+
+  return $filename;
+}
+
+function avatar_storage_path($avatar_url): string
+{
+  $filename = avatar_filename($avatar_url);
+  return $filename !== '' ? AVATAR_UPLOAD_DIR . $filename : '';
+}
+
 /**
  * Validate uploaded avatar file using proper security checks
  * @param array $file $_FILES element for the upload
@@ -93,9 +109,9 @@ function save_avatar_upload($file, $user_id)
     @mkdir(AVATAR_UPLOAD_DIR, 0755, true);
   }
 
-  // Generate unique filename: avatar_<user_id>_<timestamp>.<ext>
+  // Generate unique filename: avatar_<user_id>_<timestamp>_<random>.<ext>
   $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-  $filename = 'avatar_' . $user_id . '_' . time() . '.' . $ext;
+  $filename = 'avatar_' . $user_id . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
   $filepath = AVATAR_UPLOAD_DIR . $filename;
 
   // Move uploaded file
@@ -110,23 +126,14 @@ function save_avatar_upload($file, $user_id)
 }
 
 /**
- * Delete old avatar file and return new avatar URL
+ * Build the relative avatar URL stored in the database.
  * @param int $user_id User ID
- * @param string|null $old_avatar_filename Old avatar filename to delete
+ * @param string|null $old_avatar_filename Old avatar filename, kept for backward compatibility
  * @param string $new_filename New avatar filename to use
  * @return string Avatar URL for database storage
  */
 function update_user_avatar($user_id, $old_avatar_filename, $new_filename)
 {
-  // Delete old avatar if exists
-  if ($old_avatar_filename) {
-    $old_path = AVATAR_UPLOAD_DIR . $old_avatar_filename;
-    if (file_exists($old_path)) {
-      @unlink($old_path);
-    }
-  }
-
-  // Return relative path for database storage
   return 'assets/avatars/' . $new_filename;
 }
 
@@ -136,7 +143,7 @@ function update_user_avatar($user_id, $old_avatar_filename, $new_filename)
  * @param string $full_name User's full name for fallback initials
  * @return array ['type' => 'image'|'initials', 'url' => string|null, 'initials' => string]
  */
-function get_avatar_display($avatar_url, $full_name)
+function get_avatar_display($avatar_url, $full_name, $size = null)
 {
   $initials = '';
   if ($full_name) {
@@ -146,8 +153,12 @@ function get_avatar_display($avatar_url, $full_name)
   }
 
   if ($avatar_url) {
-    $full_path = AVATAR_BASE_URL . basename($avatar_url);
-    return ['type' => 'image', 'url' => $full_path, 'initials' => $initials];
+    $filename = avatar_filename($avatar_url);
+    $local_path = avatar_storage_path($avatar_url);
+    if ($filename !== '' && $local_path !== '' && is_file($local_path)) {
+      $full_path = AVATAR_BASE_URL . $filename;
+      return ['type' => 'image', 'url' => $full_path, 'initials' => $initials];
+    }
   }
 
   return ['type' => 'initials', 'url' => null, 'initials' => $initials];
@@ -164,7 +175,7 @@ function delete_user_avatar($avatar_url)
     return true;
   }
 
-  $filename = basename($avatar_url);
+  $filename = avatar_filename($avatar_url);
   if ($filename === '' || $filename === '.' || $filename === '..') {
     return false;
   }
@@ -216,11 +227,20 @@ function process_avatar_upload($user_id, $current_avatar, $file, $pdo)
   }
 
   // Update database
-  $new_avatar_url = update_user_avatar($user_id, basename($current_avatar), $save_result['filename']);
+  $old_avatar_filename = avatar_filename($current_avatar);
+  $new_avatar_url = update_user_avatar($user_id, $old_avatar_filename, $save_result['filename']);
 
   try {
     $stmt = $pdo->prepare('UPDATE Users SET avatar_url = ? WHERE id = ?');
     $stmt->execute([$new_avatar_url, $user_id]);
+
+    if ($old_avatar_filename !== '' && $old_avatar_filename !== $save_result['filename']) {
+      delete_user_avatar($old_avatar_filename);
+    }
+
+    if (session_status() === PHP_SESSION_ACTIVE && (int) ($_SESSION['user_id'] ?? 0) === (int) $user_id) {
+      $_SESSION['avatar_url'] = $new_avatar_url;
+    }
 
     return [
       'success' => true,

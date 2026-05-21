@@ -738,6 +738,207 @@
 .librarian-themed .badge--returned { background: rgba(16, 185, 129, 0.15); color: #34d399; }
 
 /* ── Reservations page ───────────────────────────────────────────────── */
+.librarian-themed .reservation-page-header {
+  gap: 1rem;
+}
+
+.librarian-themed .reservation-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.librarian-themed .reservation-stat-card {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  gap: 0.3rem;
+  padding: 1.15rem 1.25rem;
+  border: 1px solid var(--rd-border);
+  border-radius: 16px;
+  background: var(--rd-surface);
+  box-shadow: var(--rd-shadow);
+}
+
+.librarian-themed .reservation-stat-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--rd-primary);
+}
+
+.librarian-themed .reservation-stat-card--pending::before {
+  background: #60a5fa;
+}
+
+.librarian-themed .reservation-stat-card--approved::before {
+  background: #34d399;
+}
+
+.librarian-themed .reservation-stat-card--processed::before {
+  background: #fbbf24;
+}
+
+.librarian-themed .reservation-stat-card__label,
+.librarian-themed .reservation-stat-card span:last-child {
+  color: var(--rd-text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.librarian-themed .reservation-stat-card strong {
+  color: var(--rd-text-bold);
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.librarian-themed .reservation-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+  padding: 0.5rem;
+  border: 1px solid rgba(201, 168, 76, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.librarian-themed .reservation-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-height: 42px;
+  padding: 0.7rem 1.05rem;
+  border: 1px solid rgba(201, 168, 76, 0.14);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--rd-text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 800;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.librarian-themed .reservation-tab:hover,
+.librarian-themed .reservation-tab.active {
+  border-color: rgba(201, 168, 76, 0.5);
+  background: rgba(201, 168, 76, 0.12);
+  color: var(--rd-primary);
+  transform: translateY(-1px);
+}
+
+.librarian-themed .reservation-tab span {
+  min-width: 28px;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(201, 168, 76, 0.18);
+  color: var(--rd-primary);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.librarian-themed .reservation-filterbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0 0 1.25rem;
+  flex-wrap: wrap;
+}
+
+.librarian-themed .reservation-search {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: min(560px, 100%);
+  min-height: 44px;
+  padding: 0 0.85rem;
+  border: 1px solid rgba(201, 168, 76, 0.24);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--rd-text-muted);
+}
+
+.librarian-themed .reservation-search:focus-within {
+  border-color: rgba(201, 168, 76, 0.56);
+  box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.12);
+}
+
+.librarian-themed .reservation-search input {
+  width: 100%;
+  min-width: 180px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--rd-text);
+  font: inherit;
+  font-weight: 600;
+}
+
+.librarian-themed .reservation-search input::placeholder {
+  color: var(--rd-text-muted);
+}
+
+.librarian-themed .reservation-panel[hidden] {
+  display: none;
+}
+
+.librarian-themed .reservation-panel .section-card {
+  margin-bottom: 0;
+}
+
+.librarian-themed .reservation-main {
+  display: block;
+  color: var(--rd-text-bold);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.librarian-themed .reservation-sub {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--rd-text-muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.librarian-themed .reservation-queue-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  padding: 0.32rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.librarian-themed .reservation-section-note {
+  margin: 0;
+  padding: 0 1.5rem 0.5rem;
+  color: var(--rd-text-muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.librarian-themed .reservation-row-warning {
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.librarian-themed .reservation-filter-empty {
+  margin: 1rem 0 0;
+  color: var(--rd-text-muted);
+  font-weight: 700;
+  text-align: center;
+}
+
 .librarian-themed .table-action-form {
   display: flex;
   flex-wrap: wrap;
@@ -756,7 +957,7 @@
 }
 
 .librarian-themed .reservation-section-card {
-  margin-top: 1.5rem;
+  margin-top: 0;
 }
 
 .librarian-themed .borrower-table-person {
@@ -1124,6 +1325,23 @@
 }
 
 @media (max-width: 768px) {
+  .librarian-themed .reservation-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .librarian-themed .reservation-page-header {
+    align-items: flex-start;
+  }
+
+  .librarian-themed .reservation-tabs {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .librarian-themed .reservation-tab {
+    width: 100%;
+  }
+
   .librarian-themed .stat-grid {
     grid-template-columns: 1fr;
   }
