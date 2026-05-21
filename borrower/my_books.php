@@ -142,6 +142,37 @@ $extraStyles = [
         </div>
       </div>
 
+      <div class="rd-books-tabs" role="tablist" aria-label="My books sections">
+        <button type="button" class="rd-books-tab active" data-books-tab="borrowed" role="tab" aria-selected="true" aria-controls="books-panel-borrowed">
+          <svg class="rd-books-tab-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.25"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+          Borrowed
+          <span><?= count($active_loans) + count($approved_reservations) ?></span>
+        </button>
+        <button type="button" class="rd-books-tab" data-books-tab="pending" role="tab" aria-selected="false" aria-controls="books-panel-pending">
+          <svg class="rd-books-tab-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.25"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Pending
+          <span><?= count($pending_reservations) ?></span>
+        </button>
+        <button type="button" class="rd-books-tab" data-books-tab="rejected" role="tab" aria-selected="false" aria-controls="books-panel-rejected">
+          <svg class="rd-books-tab-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.25"><path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Rejected
+          <span><?= count($rejected_reservations) ?></span>
+        </button>
+        <button type="button" class="rd-books-tab" data-books-tab="history" role="tab" aria-selected="false" aria-controls="books-panel-history">
+          <svg class="rd-books-tab-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.25"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a5 5 0 015 5v2M3 10l6 6M3 10l6-6"/></svg>
+          History
+          <span><?= count($loan_history) ?></span>
+        </button>
+      </div>
+
+      <div class="rd-books-filterbar" aria-label="Filter visible books section">
+        <div class="rd-books-search">
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.25"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.35-4.35m1.35-5.65a7 7 0 1 1-14 0 7 7 0 0 1 14 0z"/></svg>
+          <input id="books-search" type="search" placeholder="Search the selected tab">
+        </div>
+      </div>
+
+      <section id="books-panel-borrowed" class="rd-books-panel active" data-books-panel="borrowed" role="tabpanel">
       <!-- Section 1: Active & Overdue Loans -->
       <div class="rd-section-title">
         <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
@@ -179,7 +210,7 @@ $extraStyles = [
                     $due_ts       = strtotime($loan['due_date']);
                     $days_left    = (int)ceil(($due_ts - time()) / 86400);
                   ?>
-                  <tr class="<?= $is_overdue ? 'rd-row-overdue' : '' ?>">
+                  <tr class="<?= $is_overdue ? 'rd-row-overdue' : '' ?>" data-book-row data-book-status="<?= $is_overdue ? 'borrowed overdue' : 'borrowed' ?>">
                     <td>
                       <div style="display: flex; gap: 12px; align-items: flex-start;">
                         <img src="<?= htmlspecialchars(BASE_URL . 'public/book-cover.php?book_id=' . (int)$loan['book_id'], ENT_QUOTES, 'UTF-8') ?>"
@@ -274,7 +305,7 @@ $extraStyles = [
                   $expires_soon   = $hrs_left <= 24 && $hrs_left > 0;
                   $expires_crit   = $hrs_left <= 6 && $hrs_left > 0;
                 ?>
-                <tr>
+                <tr data-book-row data-book-status="ready">
                   <td>
                     <span class="rd-pickup-book-title"><?= htmlspecialchars($res['title'], ENT_QUOTES, 'UTF-8') ?></span>
                     <span class="rd-pickup-book-author"><?= htmlspecialchars($res['author'] ?? '', ENT_QUOTES, 'UTF-8') ?></span>
@@ -306,7 +337,10 @@ $extraStyles = [
         </div>
       </div>
       <?php endif; ?>
+      <p class="rd-filter-empty" data-filter-empty hidden>No matching records in this tab.</p>
+      </section>
 
+      <section id="books-panel-pending" class="rd-books-panel" data-books-panel="pending" role="tabpanel" hidden>
       <!-- Section 3: Pending Reservations -->
       <div class="rd-section-title">
         <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -338,7 +372,7 @@ $extraStyles = [
               </thead>
               <tbody>
                 <?php foreach ($pending_reservations as $res): ?>
-                  <tr>
+                  <tr data-book-row data-book-status="pending">
                     <td>
                       <div style="display: flex; gap: 12px; align-items: flex-start;">
                         <img src="<?= htmlspecialchars(BASE_URL . 'public/book-cover.php?book_id=' . (int)$res['book_id'], ENT_QUOTES, 'UTF-8') ?>"
@@ -371,15 +405,24 @@ $extraStyles = [
           </div>
         <?php endif; ?>
       </div>
+      <p class="rd-filter-empty" data-filter-empty hidden>No matching pending reservations.</p>
+      </section>
 
+      <section id="books-panel-rejected" class="rd-books-panel" data-books-panel="rejected" role="tabpanel" hidden>
       <!-- Section 4: Rejected Reservations -->
-      <?php if (!empty($rejected_reservations)): ?>
       <div class="rd-section-title">
         <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
         Recently Rejected
-        <span class="rd-badge rd-b-red" style="margin-left:8px;"><?= count($rejected_reservations) ?></span>
+        <?php if (!empty($rejected_reservations)): ?>
+          <span class="rd-badge rd-b-red" style="margin-left:8px;"><?= count($rejected_reservations) ?></span>
+        <?php endif; ?>
       </div>
       <div class="rd-card" style="margin-bottom: 2rem;">
+        <?php if (empty($rejected_reservations)): ?>
+          <div style="text-align:center; padding: 2rem 0; color: var(--rd-text-muted);">
+            <p>No rejected reservations.</p>
+          </div>
+        <?php else: ?>
         <div style="overflow-x:auto;">
           <table class="rd-table-glass">
             <thead>
@@ -394,7 +437,7 @@ $extraStyles = [
             </thead>
             <tbody>
               <?php foreach ($rejected_reservations as $res): ?>
-                <tr>
+                <tr data-book-row data-book-status="rejected">
                   <td><strong><?= htmlspecialchars($res['title'], ENT_QUOTES, 'UTF-8') ?></strong></td>
                   <td><?= htmlspecialchars($res['author'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
                   <td><?= htmlspecialchars(date('d M Y', strtotime($res['reserved_at'])), ENT_QUOTES, 'UTF-8') ?></td>
@@ -416,9 +459,12 @@ $extraStyles = [
             </tbody>
           </table>
         </div>
+        <?php endif; ?>
       </div>
-      <?php endif; ?>
+      <p class="rd-filter-empty" data-filter-empty hidden>No matching rejected reservations.</p>
+      </section>
 
+      <section id="books-panel-history" class="rd-books-panel" data-books-panel="history" role="tabpanel" hidden>
       <!-- Section 5: Loan History -->
       <div class="rd-section-title">
         <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
@@ -433,7 +479,7 @@ $extraStyles = [
           </div>
         <?php else: ?>
           <div style="overflow-x:auto;">
-            <table class="rd-table-glass">
+            <table class="rd-table-glass" id="loan-history-table">
               <thead>
                 <tr>
                   <th>Book</th>
@@ -450,7 +496,7 @@ $extraStyles = [
                   <?php
                     $returned_late = strtotime($h['return_date']) > strtotime($h['due_date']);
                   ?>
-                  <tr>
+                  <tr data-book-row data-book-status="<?= $returned_late ? 'late ' : '' ?><?= (float)$h['fine_amount'] > 0 ? ($h['fine_paid'] ? 'fine-paid' : 'fine-unpaid') : 'fine-none' ?>">
                     <td><strong><?= htmlspecialchars($h['title'], ENT_QUOTES, 'UTF-8') ?></strong></td>
                     <td><?= htmlspecialchars($h['author'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
                     <td><?= htmlspecialchars(date('d M Y', strtotime($h['checkout_date'])), ENT_QUOTES, 'UTF-8') ?></td>
@@ -488,6 +534,8 @@ $extraStyles = [
           </div>
         <?php endif; ?>
       </div>
+      <p class="rd-filter-empty" data-filter-empty hidden>No matching history records.</p>
+      </section>
 
     </main>
   </div>
@@ -513,6 +561,104 @@ $extraStyles = [
       width: 100%;
       max-width: 520px;
       z-index: 1;
+    }
+    .rd-books-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin: 0 0 1.25rem;
+      padding: 0.5rem;
+      border: 1px solid rgba(201, 168, 76, 0.18);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.45);
+    }
+    .rd-books-tab {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.55rem;
+      min-height: 42px;
+      padding: 0.75rem 1.15rem;
+      border: 1px solid rgba(201, 168, 76, 0.14);
+      border-radius: 8px;
+      background: rgba(76, 70, 62, 0.1);
+      color: #8f8374;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .rd-books-tab-icon {
+      width: 20px;
+      height: 20px;
+      flex: 0 0 auto;
+    }
+    .rd-books-tab:hover,
+    .rd-books-tab.active {
+      border-color: rgba(201, 168, 76, 0.5);
+      background: var(--rd-surface);
+      color: var(--rd-primary);
+      box-shadow: 0 10px 24px rgba(44, 40, 33, 0.18);
+      transform: translateY(-1px);
+    }
+    .rd-books-tab span {
+      min-width: 28px;
+      padding: 0.18rem 0.5rem;
+      border-radius: 999px;
+      background: rgba(201, 168, 76, 0.24);
+      color: var(--rd-primary);
+      font-size: 0.8rem;
+      line-height: 1.4;
+    }
+    .rd-books-tab.active span,
+    .rd-books-tab:hover span {
+      background: rgba(201, 168, 76, 0.28);
+      color: #f1d46e;
+    }
+    .rd-books-filterbar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin: 0 0 1.25rem;
+      flex-wrap: wrap;
+    }
+    .rd-books-search {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      width: min(520px, 100%);
+      min-height: 44px;
+      padding: 0 0.8rem;
+      border: 1px solid rgba(201, 168, 76, 0.24);
+      border-radius: 10px;
+      background: rgba(42, 39, 35, 0.08);
+      color: #8f8374;
+    }
+    .rd-books-search:focus-within {
+      border-color: rgba(201, 168, 76, 0.56);
+      box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.12);
+    }
+    .rd-books-search input {
+      width: 100%;
+      min-width: 180px;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: #4c463e;
+      font: inherit;
+      font-weight: 600;
+    }
+    .rd-books-search input::placeholder {
+      color: #9a8f80;
+    }
+    .rd-books-panel[hidden] {
+      display: none;
+    }
+    .rd-filter-empty {
+      margin: 1rem 0 0;
+      color: var(--rd-text-muted);
+      font-weight: 700;
+      text-align: center;
     }
     /* Additions for lifecycle component matching dashboard style */
     .rd-lifecycle {
@@ -542,7 +688,7 @@ $extraStyles = [
       border-color: rgba(201, 168, 76, 0.2);
     }
     .rd-lifecycle-step .icon { width: 24px; height: 24px; }
-    .rd-lifecycle-step .label { font-size: 0.85rem; font-weight: 600; color: var(--rd-text-main); }
+    .rd-lifecycle-step .label { font-size: 0.85rem; font-weight: 600; color: var(--rd-text); }
     .rd-lifecycle-arrow {
       color: var(--rd-text-muted);
       font-size: 1.5rem;
@@ -550,6 +696,8 @@ $extraStyles = [
     @media (max-width: 768px) {
       .rd-lifecycle { justify-content: center; }
       .rd-lifecycle-arrow { display: none; }
+      .rd-books-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .rd-books-tab { width: 100%; }
     }
   </style>
 
@@ -573,6 +721,64 @@ $extraStyles = [
           closeModal();
         }
       });
+    }());
+
+    (function() {
+      var tabs = Array.prototype.slice.call(document.querySelectorAll('[data-books-tab]'));
+      var panels = Array.prototype.slice.call(document.querySelectorAll('[data-books-panel]'));
+      var search = document.getElementById('books-search');
+      if (!tabs.length || !panels.length) return;
+
+      function getActivePanel() {
+        return panels.filter(function(panel) {
+          return !panel.hidden;
+        })[0] || panels[0];
+      }
+
+      function applyBooksFilter() {
+        var panel = getActivePanel();
+        var query = search ? search.value.trim().toLowerCase() : '';
+        var rows = Array.prototype.slice.call(panel.querySelectorAll('[data-book-row]'));
+        var empty = panel.querySelector('[data-filter-empty]');
+        var hasActiveFilter = query !== '';
+        var visibleCount = 0;
+
+        rows.forEach(function(row) {
+          var matchesText = query === '' || row.textContent.toLowerCase().indexOf(query) !== -1;
+          var matches = matchesText;
+          row.hidden = !matches;
+          if (matches) visibleCount += 1;
+        });
+
+        if (empty) {
+          empty.hidden = !hasActiveFilter || visibleCount > 0 || rows.length === 0;
+        }
+      }
+
+      function activateTab(name) {
+        tabs.forEach(function(tab) {
+          var isActive = tab.getAttribute('data-books-tab') === name;
+          tab.classList.toggle('active', isActive);
+          tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        });
+
+        panels.forEach(function(panel) {
+          var isActive = panel.getAttribute('data-books-panel') === name;
+          panel.classList.toggle('active', isActive);
+          panel.hidden = !isActive;
+        });
+
+        applyBooksFilter();
+      }
+
+      tabs.forEach(function(tab) {
+        tab.addEventListener('click', function() {
+          activateTab(tab.getAttribute('data-books-tab'));
+        });
+      });
+
+      if (search) search.addEventListener('input', applyBooksFilter);
+      applyBooksFilter();
     }());
   </script>
 </body>
