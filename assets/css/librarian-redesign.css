@@ -254,9 +254,11 @@
 }
 
 .librarian-themed .flash-success {
-  background: rgba(16, 185, 129, 0.12);
-  border-left: 4px solid var(--rd-success);
-  color: #6ee7b7;
+  background: #DFF7EA;
+  border: 2px solid var(--rd-success);
+  color: #047857;
+  font-weight: 700;
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.18);
 }
 
 .librarian-themed .flash-info {

@@ -101,9 +101,9 @@
   --bg-secondary: var(--cream);
 
   /* Semantic Status & UI Colors */
-  --success-bg: #d1fae5;
-  --success-text: #065f46;
-  --success-border: #6ee7b7;
+  --success-bg: #DFF7EA;
+  --success-text: #047857;
+  --success-border: #10B981;
 
   --warning-bg: #fef3c7;
   --warning-text: #92400e;
@@ -4069,8 +4069,10 @@ a:focus-visible {
 }
 .flash-success {
   background: var(--success-bg);
-  border: 1px solid var(--success-border);
+  border: 2px solid var(--success-border);
   color: var(--success-text);
+  font-weight: 700;
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.18);
 }
 .flash-success::before {
   content: "✓";

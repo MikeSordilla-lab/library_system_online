@@ -476,7 +476,7 @@ $extraStyles  = [
     /* Flash */
     .flash { padding: 1rem 1.25rem; border-radius: 12px; margin-bottom: 1.5rem; font-weight: 500; }
     .flash-error   { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); color: #fca5a5; }
-    .flash-success { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3); color: #6ee7b7; }
+    .flash-success { background: #DFF7EA; border: 2px solid #10B981; color: #047857; font-weight: 700; box-shadow: 0 8px 24px rgba(16,185,129,0.18); }
 
     /* sr-only */
     .sr-only { position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0; }

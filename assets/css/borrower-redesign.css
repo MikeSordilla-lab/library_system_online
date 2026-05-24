@@ -389,31 +389,28 @@
 
 /* Alert block */
 .rd-alert {
-  background: linear-gradient(
-    135deg,
-    rgba(16, 185, 129, 0.08),
-    rgba(16, 185, 129, 0.03)
-  );
-  border-left: 4px solid var(--rd-success);
+  background: #DFF7EA;
+  border: 2px solid var(--rd-success);
   border-radius: 12px;
   padding: 1.5rem;
   margin-bottom: 2rem;
   display: flex;
   align-items: flex-start;
   gap: 1rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.18);
 }
 
 .rd-alert-icon {
   font-size: 1.75rem;
   flex-shrink: 0;
   line-height: 1;
+  color: #047857;
 }
 
 .rd-alert-heading {
-  color: #34d399;
+  color: #047857;
   font-size: 1.1rem;
-  font-weight: 600;
+  font-weight: 700;
   margin: 0 0 0.35rem 0;
   display: flex;
   align-items: center;
@@ -421,14 +418,14 @@
 }
 
 .rd-alert-body {
-  color: rgba(236, 232, 219, 0.7);
+  color: #065f46;
   font-size: 0.95rem;
   margin: 0 0 1rem 0;
   line-height: 1.5;
 }
 
 .rd-alert-body strong {
-  color: #34d399;
+  color: #047857;
 }
 
 .rd-alert-table-wrap {
