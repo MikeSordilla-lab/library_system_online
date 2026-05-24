@@ -161,6 +161,18 @@ $pdo->exec(
       WHERE status = 'active' AND due_date < NOW()"
 );
 
+// Count active + overdue total (for pagination)
+$count_loans_stmt = $pdo->query(
+  "SELECT COUNT(*) FROM Circulation WHERE status IN ('active', 'overdue')"
+);
+$loans_total = (int) $count_loans_stmt->fetchColumn();
+
+$loans_per_page = 15;
+$loans_page = max(1, (int) ($_GET['loans_page'] ?? 1));
+$loans_total_pages = max(1, (int) ceil($loans_total / $loans_per_page));
+$loans_page = min($loans_page, $loans_total_pages);
+$loans_offset = ($loans_page - 1) * $loans_per_page;
+
 // Query active + overdue loans joined with Users and Books
 $loans_stmt = $pdo->prepare(
   'SELECT c.id, c.user_id, c.book_id, c.due_date, c.status,
@@ -169,9 +181,10 @@ $loans_stmt = $pdo->prepare(
        JOIN Books       b ON c.book_id  = b.id
        JOIN Users       u ON c.user_id  = u.id
       WHERE c.status IN (\'active\', \'overdue\')
-      ORDER BY c.due_date ASC'
+      ORDER BY c.due_date ASC
+      LIMIT ? OFFSET ?'
 );
-$loans_stmt->execute([]);
+$loans_stmt->execute([$loans_per_page, $loans_offset]);
 $loans = $loans_stmt->fetchAll();
 
 // ---------------------------------------------------------------------------
@@ -254,6 +267,7 @@ $returned_loans = $returned_stmt->fetchAll();
 
 function returned_filter_url($filter_value, $search, $base_url, $page = '') {
     $params = [];
+    if (isset($_GET['loans_page']) && $_GET['loans_page'] > 1) $params['loans_page'] = (int) $_GET['loans_page'];
     if ($search !== '') $params['returned_search'] = $search;
     if ($filter_value !== '') $params['returned_filter'] = $filter_value;
     if ($page !== '') $params['returned_page'] = $page;
@@ -451,6 +465,36 @@ $extraStyles = [
               </tbody>
             </table>
           </div>
+
+          <?php if ($loans_total_pages > 1): ?>
+          <nav class="returned-pagination" aria-label="Active loans pagination">
+            <?php if ($loans_page > 1): ?>
+              <a class="btn-ghost" href="<?= htmlspecialchars(BASE_URL . 'librarian/checkin.php?' . http_build_query(array_merge($_GET, ['loans_page' => $loans_page - 1])), ENT_QUOTES, 'UTF-8') ?>" aria-label="Go to previous page">&larr; Previous</a>
+            <?php else: ?>
+              <span class="returned-pagination__disabled" aria-disabled="true">&larr; Previous</span>
+            <?php endif; ?>
+
+            <div class="returned-pagination__pages">
+              <?php
+              $l_start = max(1, $loans_page - 2);
+              $l_end = min($loans_total_pages, $loans_page + 2);
+              for ($i = $l_start; $i <= $l_end; $i++):
+              ?>
+                <?php if ($i === $loans_page): ?>
+                  <span class="returned-pagination__current" aria-current="page"><?= (int) $i ?></span>
+                <?php else: ?>
+                  <a class="returned-pagination__link" href="<?= htmlspecialchars(BASE_URL . 'librarian/checkin.php?' . http_build_query(array_merge($_GET, ['loans_page' => $i])), ENT_QUOTES, 'UTF-8') ?>"><?= (int) $i ?></a>
+                <?php endif; ?>
+              <?php endfor; ?>
+            </div>
+
+            <?php if ($loans_page < $loans_total_pages): ?>
+              <a class="btn-ghost" href="<?= htmlspecialchars(BASE_URL . 'librarian/checkin.php?' . http_build_query(array_merge($_GET, ['loans_page' => $loans_page + 1])), ENT_QUOTES, 'UTF-8') ?>" aria-label="Go to next page">Next &rarr;</a>
+            <?php else: ?>
+              <span class="returned-pagination__disabled" aria-disabled="true">Next &rarr;</span>
+            <?php endif; ?>
+          </nav>
+          <?php endif; ?>
         <?php endif; ?>
       </div>
 
