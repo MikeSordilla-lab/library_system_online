@@ -261,6 +261,14 @@ $extraStyles = [
           <span aria-hidden="true">⌕</span>
           <input id="reservation-search" type="search" placeholder="Search selected tab by borrower, email, book, or date">
         </div>
+        <div class="reservation-controls">
+          <label class="sr-only" for="reservation-page-size">Rows per page</label>
+          <select id="reservation-page-size" class="reservation-select" aria-label="Rows per page">
+            <option value="5">5 rows</option>
+            <option value="10" selected>10 rows</option>
+            <option value="25">25 rows</option>
+          </select>
+        </div>
       </div>
 
       <section id="reservation-panel-pending" class="reservation-panel active" data-reservation-panel="pending" role="tabpanel">
@@ -331,6 +339,7 @@ $extraStyles = [
         <?php endif; ?>
       </div>
       <p class="reservation-filter-empty" data-reservation-empty hidden>No matching pending reservations.</p>
+      <div class="reservation-pagination" data-pagination-for="pending" hidden></div>
       </section>
 
       <section id="reservation-panel-pickup" class="reservation-panel" data-reservation-panel="pickup" role="tabpanel" hidden>
@@ -407,6 +416,7 @@ $extraStyles = [
         <?php endif; ?>
       </div>
       <p class="reservation-filter-empty" data-reservation-empty hidden>No matching approved reservations.</p>
+      <div class="reservation-pagination" data-pagination-for="pickup" hidden></div>
       </section>
 
       <section id="reservation-panel-processed" class="reservation-panel" data-reservation-panel="processed" role="tabpanel" hidden>
@@ -489,16 +499,145 @@ $extraStyles = [
         <?php endif; ?>
       </div>
       <p class="reservation-filter-empty" data-reservation-empty hidden>No matching reservation history.</p>
+      <div class="reservation-pagination" data-pagination-for="processed" hidden></div>
       </section>
 
     </main>
   </div>
+  <style>
+    .reservation-pagination {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin: 1rem 0 0;
+      flex-wrap: wrap;
+      color: var(--rd-text-muted, #8f8374);
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+    .res-pagination-summary {
+      white-space: nowrap;
+    }
+    .res-pagination-center {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .res-pagination-pages {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+    }
+    .res-page-btn {
+      min-width: 36px;
+      min-height: 34px;
+      padding: 0.35rem 0.65rem;
+      border: 1px solid rgba(201, 168, 76, 0.2);
+      border-radius: 8px;
+      background: rgba(76, 70, 62, 0.08);
+      color: #6f6559;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .res-page-btn:hover:not(:disabled) {
+      border-color: rgba(201, 168, 76, 0.52);
+      background: var(--rd-primary, #c9a84c);
+      color: #2c281f;
+    }
+    .res-page-btn.active {
+      border-color: rgba(201, 168, 76, 0.52);
+      background: var(--rd-primary, #c9a84c);
+      color: #2c281f;
+    }
+    .res-page-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      background: rgba(76, 70, 62, 0.06);
+      color: #8f8374;
+    }
+    .res-page-dots {
+      color: var(--rd-text-muted, #8f8374);
+      font-weight: 700;
+      padding: 0 0.2rem;
+    }
+    .res-pagination-rpp {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      white-space: nowrap;
+    }
+    .res-pagination-rpp-label {
+      font-size: 0.85rem;
+      color: var(--rd-text-muted, #8f8374);
+      font-weight: 700;
+    }
+    .reservation-select {
+      min-height: 44px;
+      padding: 0 2.25rem 0 0.85rem;
+      border: 1px solid rgba(201, 168, 76, 0.24);
+      border-radius: 10px;
+      background:
+        linear-gradient(45deg, transparent 50%, #9a8f80 50%) right 1rem center / 6px 6px no-repeat,
+        linear-gradient(135deg, #9a8f80 50%, transparent 50%) right 0.72rem center / 6px 6px no-repeat,
+        rgba(42, 39, 35, 0.08);
+      color: #4c463e;
+      font: inherit;
+      font-weight: 700;
+      appearance: none;
+      cursor: pointer;
+    }
+    .reservation-select:focus {
+      outline: 0;
+      border-color: rgba(201, 168, 76, 0.56);
+      box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.12);
+    }
+    .res-pagination-rpp-select {
+      min-height: 34px;
+      padding: 0 2rem 0 0.65rem;
+      font-size: 0.85rem;
+      width: auto;
+    }
+    @media (max-width: 768px) {
+      .reservation-pagination {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.6rem;
+      }
+      .res-pagination-center {
+        width: 100%;
+        justify-content: center;
+      }
+      .res-pagination-rpp {
+        width: 100%;
+        justify-content: center;
+      }
+      .reservation-controls {
+        width: 100%;
+      }
+      .reservation-select {
+        width: 100%;
+      }
+    }
+  </style>
   <script>
     (function() {
       var tabs = Array.prototype.slice.call(document.querySelectorAll('[data-reservation-tab]'));
       var panels = Array.prototype.slice.call(document.querySelectorAll('[data-reservation-panel]'));
       var search = document.getElementById('reservation-search');
+      var pageSizeSelect = document.getElementById('reservation-page-size');
       if (!tabs.length || !panels.length) return;
+
+      var state = {
+        tab: 'pending',
+        filter: 'all',
+        page: 1,
+        pages: { pending: 1, pickup: 1, processed: 1 },
+        pageSize: pageSizeSelect ? parseInt(pageSizeSelect.value, 10) || 10 : 10
+      };
 
       function activePanel() {
         return panels.filter(function(panel) {
@@ -567,6 +706,103 @@ $extraStyles = [
         return true;
       }
 
+      function sortRowsByTs(rows, dir) {
+        rows.sort(function(a, b) {
+          var aTs = parseInt(a.getAttribute('data-ts-sort') || '0');
+          var bTs = parseInt(b.getAttribute('data-ts-sort') || '0');
+          return dir === 'oldest' ? aTs - bTs : bTs - aTs;
+        });
+      }
+
+      function renderPagination(panel, totalRows) {
+        var pagination = panel.querySelector('[data-pagination-for]');
+        if (!pagination) return;
+
+        if (totalRows <= state.pageSize) {
+          pagination.hidden = true;
+          pagination.innerHTML = '';
+          return;
+        }
+
+        var totalPages = Math.max(1, Math.ceil(totalRows / state.pageSize));
+        state.page = Math.min(Math.max(1, state.page), totalPages);
+
+        var start = totalRows === 0 ? 0 : ((state.page - 1) * state.pageSize) + 1;
+        var end = Math.min(totalRows, state.page * state.pageSize);
+        pagination.hidden = false;
+        pagination.innerHTML = '';
+
+        var summary = document.createElement('span');
+        summary.className = 'res-pagination-summary';
+        summary.textContent = 'Showing ' + start + '\u2013' + end + ' of ' + totalRows + ' records';
+        pagination.appendChild(summary);
+
+        var center = document.createElement('div');
+        center.className = 'res-pagination-center';
+
+        var pagesWrap = document.createElement('div');
+        pagesWrap.className = 'res-pagination-pages';
+
+        function addBtn(label, page, disabled, active) {
+          var button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'res-page-btn' + (active ? ' active' : '');
+          button.textContent = label;
+          button.disabled = disabled;
+          button.addEventListener('click', function() {
+            state.page = page;
+            state.pages[state.tab] = page;
+            applyFilter();
+          });
+          pagesWrap.appendChild(button);
+        }
+
+        addBtn('Previous', state.page - 1, state.page === 1, false);
+        for (var i = 1; i <= totalPages; i += 1) {
+          if (i === 1 || i === totalPages || Math.abs(i - state.page) <= 1) {
+            addBtn(String(i), i, false, i === state.page);
+          } else if (i === state.page - 2 || i === state.page + 2) {
+            var dots = document.createElement('span');
+            dots.className = 'res-page-dots';
+            dots.textContent = '\u2026';
+            pagesWrap.appendChild(dots);
+          }
+        }
+        addBtn('Next', state.page + 1, state.page === totalPages, false);
+
+        center.appendChild(pagesWrap);
+
+        var rppWrap = document.createElement('div');
+        rppWrap.className = 'res-pagination-rpp';
+        var rppLabel = document.createElement('label');
+        rppLabel.textContent = 'Rows per page:';
+        rppLabel.className = 'res-pagination-rpp-label';
+        var rppSelect = document.createElement('select');
+        rppSelect.className = 'reservation-select res-pagination-rpp-select';
+        rppSelect.setAttribute('aria-label', 'Rows per page');
+        [5, 10, 25].forEach(function(val) {
+          var opt = document.createElement('option');
+          opt.value = String(val);
+          opt.textContent = val;
+          if (state.pageSize === val) opt.selected = true;
+          rppSelect.appendChild(opt);
+        });
+        rppSelect.addEventListener('change', function() {
+          state.pageSize = parseInt(rppSelect.value, 10) || 10;
+          state.page = 1;
+          state.pages[state.tab] = 1;
+          if (pageSizeSelect) pageSizeSelect.value = rppSelect.value;
+          applyFilter();
+        });
+        rppWrap.appendChild(rppLabel);
+        rppWrap.appendChild(rppSelect);
+
+        pagination.appendChild(center);
+        pagination.appendChild(rppWrap);
+
+        if (pageSizeSelect) pageSizeSelect.value = String(state.pageSize);
+      }
+
       function applyFilter() {
         var panel = activePanel();
         var query = search ? search.value.trim().toLowerCase() : '';
@@ -575,37 +811,61 @@ $extraStyles = [
         var panelName = panel.getAttribute('data-reservation-panel');
         var rows = Array.prototype.slice.call(panel.querySelectorAll('[data-reservation-row]'));
         var empty = panel.querySelector('[data-reservation-empty]');
-        var shown = 0;
+
+        state.tab = panelName;
+        state.filter = filterVal;
+        state.page = state.pages[state.tab] || 1;
+
+        rows.forEach(function(row, index) {
+          if (!row.dataset.originalIndex) {
+            row.dataset.originalIndex = String(index);
+          }
+        });
 
         // Handle sort-only filters
         if (filterVal === 'oldest' || filterVal === 'newest') {
           var tbody = panel.querySelector('tbody');
           if (tbody) {
-            rows.sort(function(a, b) {
-              var aTs = parseInt(a.getAttribute('data-ts-sort') || '0');
-              var bTs = parseInt(b.getAttribute('data-ts-sort') || '0');
-              return filterVal === 'oldest' ? aTs - bTs : bTs - aTs;
-            });
+            sortRowsByTs(rows, filterVal);
             rows.forEach(function(row) { tbody.appendChild(row); });
           }
         }
 
-        // Apply search + status/date filter
-        rows.forEach(function(row) {
+        // Determine matched rows (search + status/date filter)
+        var matchedRows = rows.filter(function(row) {
           var matchesSearch = query === '' || row.textContent.toLowerCase().indexOf(query) !== -1;
           var matchesFilter = matchesRowFilter(row, filterVal, panelName);
-          row.hidden = !(matchesSearch && matchesFilter);
-          if (!row.hidden) shown++;
+          return matchesSearch && matchesFilter;
+        });
+
+        var totalMatched = matchedRows.length;
+        var startIndex = (state.page - 1) * state.pageSize;
+        var endIndex = startIndex + state.pageSize;
+
+        if (startIndex >= totalMatched && totalMatched > 0) {
+          state.page = Math.ceil(totalMatched / state.pageSize);
+          state.pages[state.tab] = state.page;
+          startIndex = (state.page - 1) * state.pageSize;
+          endIndex = startIndex + state.pageSize;
+        }
+
+        rows.forEach(function(row) { row.hidden = true; });
+
+        matchedRows.forEach(function(row, index) {
+          row.hidden = index < startIndex || index >= endIndex;
         });
 
         if (empty) {
           var hasQuery = query !== '';
           var hasFilter = filterVal !== 'all';
-          empty.hidden = rows.length === 0 || shown > 0 || (!hasQuery && !hasFilter);
+          empty.hidden = rows.length === 0 || totalMatched > 0 || (!hasQuery && !hasFilter);
         }
+
+        renderPagination(panel, totalMatched);
       }
 
       function activate(name) {
+        state.tab = name;
         tabs.forEach(function(tab) {
           var selected = tab.getAttribute('data-reservation-tab') === name;
           tab.classList.toggle('active', selected);
@@ -618,6 +878,7 @@ $extraStyles = [
           panel.hidden = !selected;
         });
 
+        if (search) search.value = '';
         applyFilter();
       }
 
@@ -642,7 +903,21 @@ $extraStyles = [
         });
       });
 
-      if (search) search.addEventListener('input', applyFilter);
+      if (search) {
+        search.addEventListener('input', function() {
+          state.page = 1;
+          state.pages[state.tab] = 1;
+          applyFilter();
+        });
+      }
+      if (pageSizeSelect) {
+        pageSizeSelect.addEventListener('change', function() {
+          state.pageSize = parseInt(pageSizeSelect.value, 10) || 10;
+          state.page = 1;
+          state.pages[state.tab] = 1;
+          applyFilter();
+        });
+      }
       applyFilter();
     }());
   </script>
