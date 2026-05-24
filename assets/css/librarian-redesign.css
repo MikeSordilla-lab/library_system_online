@@ -207,12 +207,18 @@
 }
 
 /* Row states */
-.librarian-themed .row-overdue {
-  background: rgba(239, 68, 68, 0.08);
+.librarian-themed .row-overdue td {
+  background: rgba(180, 80, 60, 0.12) !important;
+  color: var(--rd-text-bold);
 }
 
-.librarian-themed .row-overdue:hover {
-  background: rgba(239, 68, 68, 0.12) !important;
+.librarian-themed .row-overdue:hover td {
+  background: rgba(180, 80, 60, 0.18) !important;
+}
+
+.librarian-themed .row-overdue td .badge-amber {
+  color: #fde68a;
+  background: rgba(180, 80, 60, 0.25);
 }
 
 /* ── Badges ──────────────────────────────────────────────────────────── */
