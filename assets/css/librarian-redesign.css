@@ -623,6 +623,25 @@
   color: var(--rd-text-muted);
 }
 
+.librarian-themed .records-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.librarian-themed .records-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(201, 168, 76, 0.35);
+  border-radius: 999px;
+  background: rgba(201, 168, 76, 0.1);
+  color: var(--rd-primary);
+  padding: 0.35rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
 .librarian-themed .records-stat-row {
   display: flex;
   flex-wrap: wrap;
@@ -663,6 +682,8 @@
 .librarian-themed .records-stat-chip--overdue  { border-left: 4px solid #ef4444; }
 .librarian-themed .records-stat-chip--returned { border-left: 4px solid #22c55e; }
 .librarian-themed .records-stat-chip--fines    { border-left: 4px solid #f59e0b; }
+.librarian-themed .records-stat-chip--collected { border-left: 4px solid #14b8a6; }
+.librarian-themed .records-stat-chip--unpaid   { border-left: 4px solid #fb7185; }
 
 .librarian-themed .records-table-wrap {
   padding: 1rem 1.5rem;
@@ -673,15 +694,15 @@
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  font-size: 0.88rem;
-  color: var(--rd-text);
+  font-size: 0.92rem;
+  color: var(--rd-text-bold);
 }
 
 .librarian-themed .records-table th {
   background: rgba(255, 255, 255, 0.03);
   text-align: left;
-  padding: 0.75rem 1rem;
-  font-size: 0.75rem;
+  padding: 0.9rem 1rem;
+  font-size: 0.77rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .04em;
@@ -691,10 +712,11 @@
 }
 
 .librarian-themed .records-table td {
-  padding: 0.75rem 1rem;
+  padding: 0.95rem 1rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-  color: var(--rd-text);
+  color: var(--rd-text-bold);
   vertical-align: middle;
+  line-height: 1.45;
 }
 
 .librarian-themed .records-table tr:last-child td {
@@ -712,6 +734,14 @@
   flex-wrap: wrap;
   gap: 0.75rem;
   margin-bottom: 1rem;
+}
+
+.librarian-themed .records-report-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.65rem;
 }
 
 .librarian-themed .records-count-label {
@@ -744,6 +774,56 @@
 .librarian-themed .badge--active   { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
 .librarian-themed .badge--overdue  { background: rgba(239, 68, 68, 0.15); color: #f87171; }
 .librarian-themed .badge--returned { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+.librarian-themed .badge--returned_late { background: rgba(245, 158, 11, 0.18); color: #fbbf24; }
+
+.librarian-themed .records-empty-state {
+  padding: 2.75rem 2rem;
+  text-align: center;
+  color: var(--rd-text-muted);
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.librarian-themed .records-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.librarian-themed .records-per-page-form {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: var(--rd-text-muted);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.librarian-themed .records-per-page-form .field-select {
+  width: auto;
+  min-width: 86px;
+}
+
+.librarian-themed .records-pagination__nav {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.librarian-themed .records-pagination__page {
+  color: var(--rd-text-muted);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.librarian-themed .records-pagination__disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
 
 /* ── Reservations page ───────────────────────────────────────────────── */
 .librarian-themed .reservation-page-header {

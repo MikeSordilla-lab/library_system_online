@@ -136,6 +136,153 @@ function format_circulation_money(PDO $pdo, float $amount): string
   return circulation_currency_symbol($pdo) . number_format($amount, 2);
 }
 
+function circulation_report_type_options(): array
+{
+  return [
+    'circulation_records' => 'Circulation Records',
+    'returned_books' => 'Returned Books',
+    'overdue_records' => 'Overdue Records',
+    'fines_report' => 'Fines Report',
+    'borrower_history' => 'Borrower History',
+  ];
+}
+
+function circulation_normalize_report_type(string $type): string
+{
+  return array_key_exists($type, circulation_report_type_options()) ? $type : 'circulation_records';
+}
+
+function circulation_report_type_label(string $type): string
+{
+  $options = circulation_report_type_options();
+  return $options[circulation_normalize_report_type($type)];
+}
+
+function circulation_status_label(string $status): string
+{
+  $labels = [
+    CIRCULATION_STATUS_ACTIVE => 'Active',
+    CIRCULATION_STATUS_OVERDUE => 'Overdue',
+    CIRCULATION_STATUS_RETURNED => 'Returned',
+    CIRCULATION_STATUS_RETURNED_LATE => 'Returned Late',
+  ];
+  return $labels[$status] ?? ucfirst(str_replace('_', ' ', $status));
+}
+
+function circulation_late_days(string $dueDate, ?string $returnDate = null, ?DateTimeImmutable $now = null): int
+{
+  if (trim($dueDate) === '') {
+    return 0;
+  }
+
+  try {
+    $due = new DateTimeImmutable($dueDate);
+    $end = trim((string) $returnDate) !== '' ? new DateTimeImmutable((string) $returnDate) : ($now ?? new DateTimeImmutable('now'));
+  } catch (Throwable $e) {
+    return 0;
+  }
+
+  $lateSeconds = $end->getTimestamp() - $due->getTimestamp();
+  if ($lateSeconds <= 0) {
+    return 0;
+  }
+
+  return (int) ceil($lateSeconds / SECONDS_PER_DAY);
+}
+
+function circulation_effective_status(array $record, ?DateTimeImmutable $now = null): string
+{
+  $dueDate = (string) ($record['due_date'] ?? '');
+  $returnDate = trim((string) ($record['return_date'] ?? ''));
+  $storedStatus = (string) ($record['status'] ?? CIRCULATION_STATUS_ACTIVE);
+
+  if ($returnDate !== '') {
+    return circulation_late_days($dueDate, $returnDate, $now) > 0
+      ? CIRCULATION_STATUS_RETURNED_LATE
+      : CIRCULATION_STATUS_RETURNED;
+  }
+
+  if ($dueDate !== '' && circulation_late_days($dueDate, null, $now) > 0) {
+    return CIRCULATION_STATUS_OVERDUE;
+  }
+
+  return in_array($storedStatus, [CIRCULATION_STATUS_ACTIVE, CIRCULATION_STATUS_OVERDUE, CIRCULATION_STATUS_RETURNED], true)
+    ? $storedStatus
+    : CIRCULATION_STATUS_ACTIVE;
+}
+
+function circulation_calculated_fine(int $daysLate, float $dailyRate): float
+{
+  return round(max(0, $daysLate) * max(0.0, $dailyRate), 2);
+}
+
+function circulation_enrich_report_record(array $record, float $dailyRate, ?DateTimeImmutable $now = null): array
+{
+  $effectiveStatus = circulation_effective_status($record, $now);
+  $returnDate = trim((string) ($record['return_date'] ?? ''));
+  $daysLate = circulation_late_days((string) ($record['due_date'] ?? ''), $returnDate !== '' ? $returnDate : null, $now);
+  $fine = circulation_calculated_fine($daysLate, $dailyRate);
+
+  $record['effective_status'] = $effectiveStatus;
+  $record['status_label'] = circulation_status_label($effectiveStatus);
+  $record['days_late'] = $daysLate;
+  $record['daily_fine_rate'] = $dailyRate;
+  $record['calculated_fine'] = $fine;
+  $record['fine_breakdown'] = $daysLate . ' day' . ($daysLate === 1 ? '' : 's') . ' late x ' . number_format($dailyRate, 2) . ' = ' . number_format($fine, 2);
+
+  return $record;
+}
+
+function circulation_report_summary(array $records): array
+{
+  $summary = [
+    'total_records' => count($records),
+    'active' => 0,
+    'overdue' => 0,
+    'returned' => 0,
+    'returned_late' => 0,
+    'total_fines' => 0.0,
+    'collected_fines' => 0.0,
+    'unpaid_fines' => 0.0,
+  ];
+
+  foreach ($records as $record) {
+    $status = (string) ($record['effective_status'] ?? $record['status'] ?? '');
+    if (array_key_exists($status, $summary)) {
+      $summary[$status]++;
+    }
+
+    $fine = (float) ($record['calculated_fine'] ?? $record['fine_amount'] ?? 0);
+    $summary['total_fines'] += $fine;
+
+    if ((int) ($record['fine_paid'] ?? 0) === 1) {
+      $summary['collected_fines'] += $fine;
+    } else {
+      $summary['unpaid_fines'] += $fine;
+    }
+  }
+
+  return $summary;
+}
+
+function circulation_record_matches_report_type(array $record, string $reportType): bool
+{
+  $status = (string) ($record['effective_status'] ?? '');
+
+  switch (circulation_normalize_report_type($reportType)) {
+    case 'returned_books':
+      return in_array($status, [CIRCULATION_STATUS_RETURNED, CIRCULATION_STATUS_RETURNED_LATE], true);
+    case 'overdue_records':
+      return $status === CIRCULATION_STATUS_OVERDUE;
+    case 'fines_report':
+      return (float) ($record['calculated_fine'] ?? 0) > 0.0;
+    case 'borrower_history':
+    case 'circulation_records':
+    default:
+      return true;
+  }
+}
+
 /**
  * Mark only returned loans with positive unpaid fines as paid.
  *

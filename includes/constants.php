@@ -59,6 +59,7 @@ define('ROLE_BORROWER', 'borrower');
 define('CIRCULATION_STATUS_ACTIVE', 'active');
 define('CIRCULATION_STATUS_OVERDUE', 'overdue');
 define('CIRCULATION_STATUS_RETURNED', 'returned');
+define('CIRCULATION_STATUS_RETURNED_LATE', 'returned_late');
 
 // Reservation status constants
 define('RESERVATION_STATUS_PENDING', 'pending');
