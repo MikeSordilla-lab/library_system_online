@@ -57,6 +57,9 @@ $key === ($current_page ?? '') ? 'sidebar-item active' : 'sidebar-item';
   <a href="<?= BASE_URL ?>librarian/borrowers.php" class="<?= $_sb_nav('librarian.borrowers') ?>">
     User Management
   </a>
+  <a href="<?= BASE_URL ?>librarian/clear_fines.php" class="<?= $_sb_nav('librarian.clear_fines') ?>">
+    Clear Fines
+  </a>
 
   <div class="sidebar__avatar-section">
     <div class="sidebar-avatar">

@@ -163,6 +163,17 @@ $key === ($current_page ?? '') ? 'sidebar-item active' : 'sidebar-item';
       </span>
       <span>User Management</span>
     </a>
+    <a href="<?= BASE_URL ?>librarian/clear_fines.php" class="<?= $_sb_nav('librarian.clear_fines') ?>">
+      <span class="sidebar-item__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="5" width="20" height="14" rx="2" />
+          <path d="M2 10h20" />
+          <path d="M8 15h3" />
+          <path d="M14 15h2" />
+        </svg>
+      </span>
+      <span>Clear Fines</span>
+    </a>
     <a href="<?= BASE_URL ?>librarian/profile.php" class="<?= $_sb_nav('librarian.profile') ?>">
       <span class="sidebar-item__icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">

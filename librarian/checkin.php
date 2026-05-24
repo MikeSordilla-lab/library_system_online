@@ -289,6 +289,83 @@ $extraStyles = [
     .returned-pagination__link:hover { background:rgba(255,255,255,0.1); border-color:var(--rd-primary); color:var(--rd-primary); }
     .returned-pagination__current { display:inline-flex; align-items:center; justify-content:center; min-width:36px; min-height:36px; border-radius:8px; background:var(--rd-primary); color:#1c1a17; font-weight:700; font-size:0.85rem; }
     .returned-pagination__disabled { color:var(--rd-text-muted); padding:0.5rem 0.75rem; font-size:0.85rem; }
+
+    /* ── Returned Books History — Search & Filter Panel ────────────── */
+    .returned-search-area {
+      padding: 1.75rem 1.75rem 0.75rem;
+      background: #332F2A;
+      border-bottom: 1px solid rgba(212, 175, 55, 0.35);
+    }
+    .returned-search-area .returned-search-label {
+      display: block;
+      margin: 0 0 0.75rem 0;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #B8B0A3;
+    }
+    .returned-search-area .returned-search-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: flex-end;
+    }
+    .returned-search-area .returned-search-field {
+      flex: 1;
+      min-width: 200px;
+    }
+    .returned-search-area .returned-search-field .field-input {
+      background: #3B362F;
+      border-color: rgba(255,255,255,0.08);
+      color: #F5F0E6;
+    }
+    .returned-search-area .returned-search-field .field-input:focus {
+      border-color: rgba(212, 175, 55, 0.6);
+      box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.12);
+    }
+    .returned-search-area .returned-search-field .field-input::placeholder {
+      color: #B8B0A3;
+      opacity: 1;
+    }
+    .returned-search-area .returned-search-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+    .returned-search-area .returned-chips-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      padding-bottom: 0.75rem;
+    }
+    .returned-search-area .returned-chip {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 9999px;
+      padding: 0.4rem 1rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.06);
+      color: #B8B0A3;
+    }
+    .returned-search-area .returned-chip:hover {
+      background: rgba(212, 175, 55, 0.12);
+      color: #D4AF37;
+      border-color: rgba(212, 175, 55, 0.3);
+    }
+    .returned-search-area .returned-chip--active {
+      background: rgba(212, 175, 55, 0.18);
+      color: #D4AF37;
+      border-color: #D4AF37;
+    }
+    .returned-search-area .returned-chip--active:hover {
+      background: rgba(212, 175, 55, 0.25);
+    }
   </style>
 </head>
 
@@ -383,21 +460,21 @@ $extraStyles = [
           <span class="section-card__title">Returned Books History</span>
         </div>
 
-        <div class="records-filter-card" style="border:none;background:transparent;padding:0 1.5rem 0.5rem;">
+        <div class="returned-search-area">
           <form method="GET" action="<?= htmlspecialchars(BASE_URL . 'librarian/checkin.php', ENT_QUOTES, 'UTF-8') ?>">
-            <div class="records-filter-row">
-              <div class="records-filter-group" style="flex:1;">
-                <label for="returned-search">Search (Name / Book / Loan #)</label>
+            <span class="returned-search-label">Search (Name / Book / Loan #)</span>
+            <div class="returned-search-row">
+              <div class="returned-search-field">
                 <input class="field-input" type="text" id="returned-search" name="returned_search"
                        placeholder="Search returned books..."
                        value="<?= htmlspecialchars($returned_search, ENT_QUOTES, 'UTF-8') ?>">
               </div>
-              <div style="display:flex;gap:var(--space-2);align-items:flex-end;flex-shrink:0;">
+              <div class="returned-search-actions">
                 <button type="submit" class="btn-primary">Search</button>
                 <a href="<?= htmlspecialchars(BASE_URL . 'librarian/checkin.php', ENT_QUOTES, 'UTF-8') ?>" class="btn-ghost">Reset</a>
               </div>
             </div>
-            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;">
+            <div class="returned-chips-row">
               <?php $filter_chips = [
                 '' => 'All Returned',
                 'today' => 'Returned Today',
@@ -408,7 +485,7 @@ $extraStyles = [
               ]; ?>
               <?php foreach ($filter_chips as $fc_val => $fc_label): ?>
                 <a href="<?= htmlspecialchars(returned_filter_url($fc_val, $returned_search, BASE_URL . 'librarian/checkin.php'), ENT_QUOTES, 'UTF-8') ?>"
-                   style="display:inline-flex;align-items:center;border-radius:9999px;padding:6px 16px;font-size:0.8rem;font-weight:500;text-decoration:none;transition:all 0.2s;border:1px solid transparent;<?= $returned_filter === $fc_val ? 'background:rgba(201,168,76,0.15);color:var(--rd-primary);border-color:var(--rd-primary);' : 'background:rgba(255,255,255,0.06);color:var(--rd-text-muted);' ?>">
+                   class="returned-chip<?= $returned_filter === $fc_val ? ' returned-chip--active' : '' ?>">
                   <?= htmlspecialchars($fc_label, ENT_QUOTES, 'UTF-8') ?>
                 </a>
               <?php endforeach; ?>

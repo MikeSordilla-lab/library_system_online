@@ -357,18 +357,6 @@ $pickup_stmt = $pdo->prepare(
 $pickup_stmt->execute([RESERVATION_STATUS_APPROVED]);
 $ready_pickups = $pickup_stmt->fetchAll();
 
-// Fetch borrowers with unpaid fines
-$fines_stmt = $pdo->prepare(
-  'SELECT u.id, u.full_name, SUM(c.fine_amount) as total_fines 
-   FROM Users u 
-   JOIN Circulation c ON u.id = c.user_id 
-   WHERE c.fine_paid = 0 AND c.fine_amount > 0 
-   GROUP BY u.id, u.full_name 
-   ORDER BY u.full_name ASC'
-);
-$fines_stmt->execute();
-$users_with_fines = $fines_stmt->fetchAll();
-
 // Flash messages
 $flash_error   = $_SESSION['flash_error']   ?? '';
 $flash_success = $_SESSION['flash_success'] ?? '';
@@ -387,6 +375,72 @@ $extraStyles = [
   BASE_URL . 'assets/css/borrower-redesign.css',
   BASE_URL . 'assets/css/librarian-redesign.css'
 ];
+?>
+<?php
+// ── Checked-Out Books Query ───────────────────────────────────────────────
+$filter_co_search = trim((string) ($_GET['co_search'] ?? ''));
+$filter_co_period = trim((string) ($_GET['co_period'] ?? ''));
+
+$co_where = ["c.status IN ('active', 'overdue')"];
+$co_params = [];
+
+if ($filter_co_search !== '') {
+    $co_where[] = '(c.id = ? OR u.full_name LIKE ? OR u.email LIKE ? OR b.title LIKE ?)';
+    $co_params[] = is_numeric($filter_co_search) ? (int) $filter_co_search : 0;
+    $like = '%' . $filter_co_search . '%';
+    $co_params[] = $like;
+    $co_params[] = $like;
+    $co_params[] = $like;
+}
+
+if ($filter_co_period === 'active') {
+    $co_where[] = "c.status = 'active' AND c.due_date >= NOW()";
+} elseif ($filter_co_period === 'due_today') {
+    $co_where[] = 'DATE(c.due_date) = CURDATE()';
+} elseif ($filter_co_period === 'overdue') {
+    $co_where[] = 'c.due_date < NOW()';
+} elseif ($filter_co_period === 'this_week') {
+    $co_where[] = 'YEARWEEK(c.checkout_date, 1) = YEARWEEK(CURDATE(), 1)';
+} elseif ($filter_co_period === 'this_month') {
+    $co_where[] = 'YEAR(c.checkout_date) = YEAR(CURDATE()) AND MONTH(c.checkout_date) = MONTH(CURDATE())';
+}
+
+$co_where_sql = 'WHERE ' . implode(' AND ', $co_where);
+
+$co_stmt = $pdo->prepare(
+    "SELECT c.id, c.checkout_date, c.due_date, c.status,
+            u.full_name AS borrower_name, u.email AS borrower_email,
+            b.title AS book_title
+       FROM Circulation c
+       JOIN Users u ON u.id = c.user_id
+       JOIN Books b ON b.id = c.book_id
+       {$co_where_sql}
+       ORDER BY c.due_date ASC, c.checkout_date DESC
+       LIMIT 500"
+);
+$co_stmt->execute($co_params);
+$checked_out_loans = $co_stmt->fetchAll();
+
+$co_total = count($checked_out_loans);
+$co_active_count = 0;
+$co_overdue_count = 0;
+$co_due_today_count = 0;
+$co_today = date('Y-m-d');
+$co_now_ts = time();
+
+foreach ($checked_out_loans as &$co_loan) {
+    $co_due_ts = strtotime($co_loan['due_date']);
+    $co_loan['_is_overdue'] = $co_due_ts < $co_now_ts;
+    $co_loan['_is_due_today'] = date('Y-m-d', $co_due_ts) === $co_today;
+    if ($co_loan['_is_overdue']) {
+        $co_overdue_count++;
+    } elseif ($co_loan['_is_due_today']) {
+        $co_due_today_count++;
+    } else {
+        $co_active_count++;
+    }
+}
+unset($co_loan);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -541,34 +595,135 @@ $extraStyles = [
         </div>
       </div>
 
-      <div class="section-card" style="margin-top: var(--space-6)">
+      <!-- ── Checked-Out Books History ──────────────────────────────────── -->
+      <div class="records-filter-card no-print" style="margin-top: var(--space-6)">
+        <form method="GET" action="">
+          <div class="records-filter-row">
+            <div class="records-filter-group" style="flex: 2 1 280px;">
+              <label for="co_search">Search (Loan #, Name, Email, Book)</label>
+              <input class="field-input" type="text" id="co_search" name="co_search"
+                     placeholder="e.g. Juan dela Cruz or book title..."
+                     value="<?= htmlspecialchars($filter_co_search, ENT_QUOTES, 'UTF-8') ?>">
+            </div>
+            <?php if ($filter_co_period !== ''): ?>
+              <input type="hidden" name="co_period" value="<?= htmlspecialchars($filter_co_period, ENT_QUOTES, 'UTF-8') ?>">
+            <?php endif; ?>
+            <div style="display:flex;gap:0.5rem;align-items:flex-end;flex-shrink:0;">
+              <button type="submit" class="btn-primary">Search</button>
+              <a href="<?= htmlspecialchars(BASE_URL . 'librarian/checkout.php', ENT_QUOTES, 'UTF-8') ?>" class="btn-ghost">Reset</a>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="records-stat-row no-print">
+        <?php
+        $chip_query_parts = [];
+        if ($filter_co_search !== '') {
+            $chip_query_parts['co_search'] = $filter_co_search;
+        }
+        $chip_base_query = http_build_query($chip_query_parts);
+        $chips = [
+            ['label' => 'All Checked-Out', 'period' => '',       'count' => $co_total],
+            ['label' => 'Active',          'period' => 'active',  'count' => $co_active_count],
+            ['label' => 'Due Today',       'period' => 'due_today', 'count' => $co_due_today_count],
+            ['label' => 'Overdue',         'period' => 'overdue', 'count' => $co_overdue_count],
+            ['label' => 'This Week',       'period' => 'this_week', 'count' => $co_total],
+            ['label' => 'This Month',      'period' => 'this_month', 'count' => $co_total],
+        ];
+        foreach ($chips as $chip):
+            $is_active = $filter_co_period === $chip['period'] || ($filter_co_period === '' && $chip['period'] === '');
+            $chip_url = '?' . $chip_base_query;
+            if ($chip['period'] !== '') {
+                $chip_url .= ($chip_base_query !== '' ? '&' : '') . 'co_period=' . rawurlencode($chip['period']);
+            }
+            $chip_style = $is_active ? 'border-color:var(--rd-primary);background:rgba(201,168,76,0.08);' : '';
+        ?>
+          <a href="<?= htmlspecialchars($chip_url, ENT_QUOTES, 'UTF-8') ?>"
+             class="records-stat-chip"
+             style="text-decoration:none;cursor:pointer;<?= $chip_style ?>">
+            <span class="records-stat-chip__value"><?= number_format($chip['count']) ?></span>
+            <span class="records-stat-chip__label"><?= htmlspecialchars($chip['label'], ENT_QUOTES, 'UTF-8') ?></span>
+          </a>
+        <?php endforeach; ?>
+      </div>
+
+      <div class="records-actions-bar no-print">
+        <span class="records-count-label">
+          Showing <strong><?= number_format($co_total) ?></strong> checked-out record<?= $co_total !== 1 ? 's' : '' ?>
+          <?php if ($filter_co_search !== '' || $filter_co_period !== ''): ?>
+            <em>(filtered)</em>
+          <?php endif; ?>
+        </span>
+      </div>
+
+      <div class="section-card">
         <div class="section-card__header">
-          <span class="section-card__title">Clear Fines</span>
+          <span class="section-card__title">Checked-Out Books History</span>
+          <?php if ($co_total > 0): ?>
+            <span class="badge badge-blue"><?= number_format($co_total) ?></span>
+          <?php endif; ?>
         </div>
-        <div style="padding: var(--space-6)">
-          <?php if (empty($users_with_fines)): ?>
-            <p>No borrowers have outstanding fines.</p>
+        <div class="records-table-wrap">
+          <?php if (empty($checked_out_loans)): ?>
+            <div class="empty-state">
+              <span class="empty-state__icon">&#128218;</span>
+              <p>No checked-out books found.</p>
+            </div>
           <?php else: ?>
-            <form method="POST" action="<?= htmlspecialchars(BASE_URL . 'librarian/pay-fine.php', ENT_QUOTES, 'UTF-8') ?>">
-              <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-
-              <div style="margin-bottom: var(--space-5)">
-                <label class="field-label" for="fine_user_id">Select Borrower to Clear Fines</label>
-                <select class="field-select select2-fines" id="fine_user_id" name="user_id" required>
-                  <option value="">&mdash; Select a Borrower &mdash;</option>
-                  <?php foreach ($users_with_fines as $u): ?>
-                    <option value="<?= (int) $u['id'] ?>">
-                      <?= htmlspecialchars($u['full_name'], ENT_QUOTES, 'UTF-8') ?> — ₱<?= number_format((float) $u['total_fines'], 2) ?>
-                    </option>
-                  <?php endforeach; ?>
-                </select>
-              </div>
-
-              <button type="submit" class="btn-primary">Mark as Paid</button>
-            </form>
+            <table class="records-table">
+              <thead>
+                <tr>
+                  <th>Loan #</th>
+                  <th>Borrower Name</th>
+                  <th>Email</th>
+                  <th>Book Title</th>
+                  <th>Check-Out Date</th>
+                  <th>Due Date</th>
+                  <th>Copies</th>
+                  <th>Status</th>
+                  <th class="col-action no-print">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php foreach ($checked_out_loans as $co_loan):
+                  $co_id = (int) $co_loan['id'];
+                  $co_checkout = !empty($co_loan['checkout_date']) ? date('M d, Y', strtotime($co_loan['checkout_date'])) : '—';
+                  $co_due      = !empty($co_loan['due_date'])      ? date('M d, Y', strtotime($co_loan['due_date']))      : '—';
+                  if ($co_loan['_is_overdue']) {
+                      $co_badge_class = 'badge-red';
+                      $co_status_label = 'Overdue';
+                      $co_row_class = 'row-overdue';
+                  } elseif ($co_loan['_is_due_today']) {
+                      $co_badge_class = 'badge-amber';
+                      $co_status_label = 'Due Today';
+                      $co_row_class = '';
+                  } else {
+                      $co_badge_class = 'badge-blue';
+                      $co_status_label = 'Active';
+                      $co_row_class = '';
+                  }
+                ?>
+                  <tr class="<?= $co_row_class ?>">
+                    <td><?= $co_id ?></td>
+                    <td><?= htmlspecialchars($co_loan['borrower_name'], ENT_QUOTES, 'UTF-8') ?></td>
+                    <td><?= htmlspecialchars($co_loan['borrower_email'], ENT_QUOTES, 'UTF-8') ?></td>
+                    <td><?= htmlspecialchars($co_loan['book_title'], ENT_QUOTES, 'UTF-8') ?></td>
+                    <td><?= htmlspecialchars($co_checkout, ENT_QUOTES, 'UTF-8') ?></td>
+                    <td><?= htmlspecialchars($co_due, ENT_QUOTES, 'UTF-8') ?></td>
+                    <td>1</td>
+                    <td><span class="badge <?= $co_badge_class ?>"><?= $co_status_label ?></span></td>
+                    <td class="col-action no-print">
+                      <a class="btn-sm" href="<?= htmlspecialchars(BASE_URL . 'librarian/checkin.php?loan_id=' . $co_id, ENT_QUOTES, 'UTF-8') ?>">View Details</a>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
           <?php endif; ?>
         </div>
       </div>
+
     </main>
   </div>
 
@@ -585,11 +740,6 @@ $extraStyles = [
       });
       $('.select2-book').select2({
         placeholder: '— Type to search book title —',
-        allowClear: true,
-        width: '100%'
-      });
-      $('.select2-fines').select2({
-        placeholder: '— Type to search borrower —',
         allowClear: true,
         width: '100%'
       });

@@ -27,7 +27,7 @@ $actor_role = (string) $_SESSION['role'];
 
 if ($user_id < 1) {
   $_SESSION['flash_error'] = 'Invalid user selected.';
-  header('Location: ' . BASE_URL . 'librarian/checkout.php');
+  header('Location: ' . BASE_URL . 'librarian/clear_fines.php');
   exit;
 }
 
@@ -37,7 +37,7 @@ $borrower = $borrower_stmt->fetch();
 
 if (!$borrower) {
   $_SESSION['flash_error'] = 'Borrower not found.';
-  header('Location: ' . BASE_URL . 'librarian/checkout.php');
+  header('Location: ' . BASE_URL . 'librarian/clear_fines.php');
   exit;
 }
 
@@ -82,7 +82,7 @@ try {
     $_SESSION['flash_success'] = 'Successfully cleared fines (' . receipt_format_money($total_fines) . ') for user.';
     $receipt_no = (string) ($receipt['receipt_no'] ?? '');
     $_SESSION['flash_receipt_no'] = $receipt_no;
-    header('Location: ' . BASE_URL . 'librarian/checkout.php');
+    header('Location: ' . BASE_URL . 'librarian/clear_fines.php');
     exit;
   } else {
     $pdo->rollBack();
@@ -94,5 +94,5 @@ try {
   $_SESSION['flash_error'] = 'Failed to process payment.';
 }
 
-header('Location: ' . BASE_URL . 'librarian/checkout.php');
+header('Location: ' . BASE_URL . 'librarian/clear_fines.php');
 exit;
