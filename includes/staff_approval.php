@@ -40,20 +40,31 @@ function staff_is_pending_librarian_request(array $user): bool
     && (string) ($user['staff_approval_status'] ?? STAFF_APPROVAL_NONE) === STAFF_APPROVAL_PENDING;
 }
 
+function staff_requires_admin_login_gate(array $user): bool
+{
+  $role = (string) ($user['role'] ?? '');
+  $status = (string) ($user['staff_approval_status'] ?? STAFF_APPROVAL_NONE);
+
+  return $role === 'librarian'
+    && (int) ($user['is_verified'] ?? 0) === 1
+    && in_array($status, [STAFF_APPROVAL_PENDING, STAFF_APPROVAL_REJECTED], true);
+}
+
 function staff_login_block_message(array $user): string
 {
   $status = (string) ($user['staff_approval_status'] ?? STAFF_APPROVAL_NONE);
+  $role = (string) ($user['role'] ?? '');
+
+  if ($role === 'librarian' && $status === STAFF_APPROVAL_REJECTED) {
+    return 'Your librarian registration was not approved. Please contact the library.';
+  }
+
+  if ($role === 'librarian' && (int) ($user['is_verified'] ?? 0) !== 1) {
+    return 'Your librarian account needs email verification first, then admin verification before you can sign in.';
+  }
 
   if (staff_is_pending_librarian_request($user)) {
-    return 'Your librarian registration is waiting for admin approval.';
-  }
-
-  if ((string) ($user['role'] ?? '') === 'librarian' && (int) ($user['is_verified'] ?? 0) !== 1) {
     return 'Your librarian account needs admin verification before you can sign in.';
-  }
-
-  if ((string) ($user['role'] ?? '') === 'librarian' && $status === STAFF_APPROVAL_REJECTED) {
-    return 'Your librarian registration was not approved. Please contact the library.';
   }
 
   return 'Please verify your email before logging in.';
@@ -61,7 +72,18 @@ function staff_login_block_message(array $user): string
 
 function staff_login_block_context(array $user): string
 {
-  if ((string) ($user['role'] ?? '') === 'librarian') {
+  $role = (string) ($user['role'] ?? '');
+  $status = (string) ($user['staff_approval_status'] ?? STAFF_APPROVAL_NONE);
+
+  if ($role === 'librarian' && $status === STAFF_APPROVAL_REJECTED) {
+    return 'admin_approval';
+  }
+
+  if ((int) ($user['is_verified'] ?? 0) !== 1) {
+    return 'unverified';
+  }
+
+  if ($role === 'librarian') {
     return 'admin_approval';
   }
 

@@ -47,6 +47,8 @@ if (!empty($_SESSION['flash_error'])) {
 // FR-016: Show "verified" notice when redirected from verify.php
 if (isset($_GET['message']) && $_GET['message'] === 'verified') {
   $notice = 'Your email has been verified. You may now log in.';
+} elseif (isset($_GET['message']) && $_GET['message'] === 'librarian_email_verified') {
+  $notice = 'Your email has been verified. Please wait for admin approval before logging in.';
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -99,6 +101,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           $error_context = staff_login_block_context($user);
           $unverified_email = (string) $user['email'];
           // Still log as LOGIN_FAILED with null actor (FR-026), capturing email for audit trail
+          log_event($pdo, 'LOGIN_FAILED', null, null, null, 'FAILURE', null, $identifier);
+        } elseif (staff_requires_admin_login_gate($user)) {
+          $error = staff_login_block_message($user);
+          $error_context = staff_login_block_context($user);
           log_event($pdo, 'LOGIN_FAILED', null, null, null, 'FAILURE', null, $identifier);
         } elseif ((int) $user['is_suspended'] === 1) {
           // Feature 005: Block suspended accounts — checked after password_verify to avoid

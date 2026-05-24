@@ -125,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $registration_state['role'],
         $registration_state['is_verified'],
         $registration_state['is_suspended'],
-        $account_type === 'borrower' ? $token : null,
+        $token,
         $registration_state['staff_approval_status'],
       ]);
       $new_user_id = (int) $pdo->lastInsertId();
@@ -134,17 +134,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       log_event($pdo, 'REGISTER', null, 'Users', $new_user_id, 'SUCCESS', null, $email);
 
       if ($account_type === 'librarian') {
-        $show_success = true;
-        $show_check_email = false;
-        $check_email_address = $email;
         log_event($pdo, 'LIBRARIAN_REQUEST_PENDING', null, 'Users', $new_user_id, 'SUCCESS', null, $email);
-      } else {
-        // --- 8. Send verification email (FR-008, FR-009) ---
-        $email_sent = false;
-        $email_error = '';
+      }
+
+      // --- 8. Send verification email (FR-008, FR-009) ---
+      $email_sent = false;
+      $email_error = '';
 
       // Build verification link with email pre-filled
       $verify_link = BASE_URL . 'verify.php?email=' . urlencode($email);
+      $librarian_note_html = $account_type === 'librarian'
+        ? '<p>After email verification, an admin must approve your librarian request before you can sign in.</p>'
+        : '';
+      $librarian_note_text = $account_type === 'librarian'
+        ? "\nAfter email verification, an admin must approve your librarian request before you can sign in.\n"
+        : '';
 
       $mail_body = '<!DOCTYPE html><html><body>'
         . '<p>Hello ' . htmlspecialchars($full_name, ENT_QUOTES, 'UTF-8') . ',</p>'
@@ -152,12 +156,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         . '<p style="font-size:32px;font-weight:bold;letter-spacing:8px;text-align:center;margin:24px 0;">'
         . htmlspecialchars($token, ENT_QUOTES, 'UTF-8')
         . '</p>'
+        . $librarian_note_html
         . '<p style="text-align:center;"><a href="' . htmlspecialchars($verify_link, ENT_QUOTES, 'UTF-8') . '" style="display:inline-block;padding:10px 20px;background-color:#4CAF50;color:white;text-decoration:none;border-radius:4px;">Verify Email</a></p>'
         . '<p style="text-align:center;">Or visit <a href="' . htmlspecialchars($verify_link, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($verify_link, ENT_QUOTES, 'UTF-8') . '</a> and enter this code.</p>'
         . '<p>If you did not register, you can safely ignore this email.</p>'
         . '</body></html>';
 
       $mail_alt = "Hello {$full_name},\n\nYour verification code is: {$token}\n\n"
+        . $librarian_note_text
         . 'Visit ' . $verify_link . " and enter this code.\n\n"
         . "If you did not register, you can safely ignore this email.";
 
@@ -184,7 +190,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           $show_check_email = true;
           $check_email_address = $email;
         }
-      }
     } catch (PDOException $e) {
       error_log('[register.php] DB insert failed: ' . $e->getMessage());
       // Log REGISTER FAILURE with email capture if we have a PDO connection
@@ -219,8 +224,11 @@ $alertRedirect = '';
 if ($show_success) {
   $alertType = 'success';
   $alertTitle = 'Success';
-  if (($old['account_type'] ?? 'borrower') === 'librarian' || !$show_check_email) {
-    $alertMessage = 'Librarian registration submitted. Please wait for admin approval before logging in.';
+  if (($old['account_type'] ?? 'borrower') === 'librarian') {
+    $alertMessage = 'Librarian registration submitted. Please verify your email, then wait for admin approval.';
+    $alertRedirect = BASE_URL . 'check-email.php?email=' . urlencode((string) $email);
+  } elseif (!$show_check_email) {
+    $alertMessage = 'Registration submitted. Please wait for support before logging in.';
     $alertRedirect = BASE_URL . 'login.php';
   } else {
     $alertMessage = 'Registration successful! A verification email has been sent. Please check your inbox for your 6-digit code.';
@@ -286,6 +294,9 @@ if ($alertType !== '') {
               Please check your inbox for your 6-digit code, then
               <a href="<?= htmlspecialchars(BASE_URL . 'verify.php?email=' . urlencode((string) $email), ENT_QUOTES, 'UTF-8') ?>"
                 class="auth-inline-link">verify here</a>.
+              <?php if (($old['account_type'] ?? 'borrower') === 'librarian'): ?>
+                After email verification, please wait for admin approval before logging in.
+              <?php endif; ?>
             <?php else: ?>
               Librarian registration submitted for
               <strong><?= htmlspecialchars($email, ENT_QUOTES, 'UTF-8') ?></strong>.
