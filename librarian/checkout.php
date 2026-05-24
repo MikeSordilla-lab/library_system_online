@@ -377,37 +377,80 @@ $extraStyles = [
 ];
 ?>
 <?php
-// ── Checked-Out Books Query ───────────────────────────────────────────────
-$filter_co_search = trim((string) ($_GET['co_search'] ?? ''));
-$filter_co_period = trim((string) ($_GET['co_period'] ?? ''));
-
-$co_where = ["c.status IN ('active', 'overdue')"];
-$co_params = [];
-
-if ($filter_co_search !== '') {
-    $co_where[] = '(c.id = ? OR u.full_name LIKE ? OR u.email LIKE ? OR b.title LIKE ?)';
-    $co_params[] = is_numeric($filter_co_search) ? (int) $filter_co_search : 0;
-    $like = '%' . $filter_co_search . '%';
-    $co_params[] = $like;
-    $co_params[] = $like;
-    $co_params[] = $like;
+// ── Helper: build checkout filter URL ──────────────────────────────────
+function co_filter_url($base_url, $search, $status, $date, $page = '') {
+    $params = [];
+    if ($search !== '') $params['co_search'] = $search;
+    if ($status  !== '') $params['co_status']  = $status;
+    if ($date    !== '') $params['co_date']    = $date;
+    if ($page    !== '') $params['co_page']    = $page;
+    return $base_url . ($params ? '?' . http_build_query($params) : '');
 }
 
-if ($filter_co_period === 'active') {
+// ── Checked-Out Books — Paginated Query ─────────────────────────────────
+$co_search = trim((string) ($_GET['co_search'] ?? ''));
+$co_status = trim((string) ($_GET['co_status'] ?? ''));
+$co_date   = trim((string) ($_GET['co_date'] ?? ''));
+$co_page   = max(1, (int) ($_GET['co_page'] ?? 1));
+$co_per_page = 15;
+
+$allowed_status = ['', 'active', 'due_today', 'overdue'];
+$allowed_date   = ['', 'this_week', 'this_month'];
+if (!in_array($co_status, $allowed_status, true)) $co_status = '';
+if (!in_array($co_date,   $allowed_date,   true)) $co_date   = '';
+
+// ── Counts for filter chips (unfiltered) ──
+$co_chip_counts = [];
+$q = fn($sql) => $pdo->query($sql)->fetchColumn();
+$co_chip_counts['all']        = (int) $q("SELECT COUNT(*) FROM Circulation WHERE status IN ('active','overdue')");
+$co_chip_counts['active']     = (int) $q("SELECT COUNT(*) FROM Circulation WHERE status='active' AND due_date>=NOW()");
+$co_chip_counts['due_today']  = (int) $q("SELECT COUNT(*) FROM Circulation WHERE status IN ('active','overdue') AND DATE(due_date)=CURDATE()");
+$co_chip_counts['overdue']    = (int) $q("SELECT COUNT(*) FROM Circulation WHERE status IN ('active','overdue') AND due_date<NOW()");
+$co_chip_counts['this_week']  = (int) $q("SELECT COUNT(*) FROM Circulation WHERE status IN ('active','overdue') AND YEARWEEK(checkout_date,1)=YEARWEEK(CURDATE(),1)");
+$co_chip_counts['this_month'] = (int) $q("SELECT COUNT(*) FROM Circulation WHERE status IN ('active','overdue') AND YEAR(checkout_date)=YEAR(CURDATE()) AND MONTH(checkout_date)=MONTH(CURDATE())");
+
+// ── Build WHERE ──
+$co_where   = ["c.status IN ('active', 'overdue')"];
+$co_params  = [];
+
+if ($co_search !== '') {
+    $co_where[] = '(c.id = ? OR u.full_name LIKE ? OR u.email LIKE ? OR b.title LIKE ?)';
+    $co_params[] = is_numeric($co_search) ? (int) $co_search : 0;
+    $like = '%' . $co_search . '%';
+    $co_params[] = $like; $co_params[] = $like; $co_params[] = $like;
+}
+if ($co_status === 'active') {
     $co_where[] = "c.status = 'active' AND c.due_date >= NOW()";
-} elseif ($filter_co_period === 'due_today') {
+} elseif ($co_status === 'due_today') {
     $co_where[] = 'DATE(c.due_date) = CURDATE()';
-} elseif ($filter_co_period === 'overdue') {
+} elseif ($co_status === 'overdue') {
     $co_where[] = 'c.due_date < NOW()';
-} elseif ($filter_co_period === 'this_week') {
+}
+if ($co_date === 'this_week') {
     $co_where[] = 'YEARWEEK(c.checkout_date, 1) = YEARWEEK(CURDATE(), 1)';
-} elseif ($filter_co_period === 'this_month') {
+} elseif ($co_date === 'this_month') {
     $co_where[] = 'YEAR(c.checkout_date) = YEAR(CURDATE()) AND MONTH(c.checkout_date) = MONTH(CURDATE())';
 }
 
 $co_where_sql = 'WHERE ' . implode(' AND ', $co_where);
 
-$co_stmt = $pdo->prepare(
+// ── Total filtered count (for pagination) ──
+$count_stmt = $pdo->prepare(
+    "SELECT COUNT(*)
+       FROM Circulation c
+       JOIN Users u ON u.id = c.user_id
+       JOIN Books b ON b.id = c.book_id
+       {$co_where_sql}"
+);
+$count_stmt->execute($co_params);
+$co_filtered_total = (int) $count_stmt->fetchColumn();
+
+$co_total_pages = max(1, (int) ceil($co_filtered_total / $co_per_page));
+$co_page        = min($co_page, $co_total_pages);
+$co_offset      = ($co_page - 1) * $co_per_page;
+
+// ── Fetch page data ──
+$data_stmt = $pdo->prepare(
     "SELECT c.id, c.checkout_date, c.due_date, c.status,
             u.full_name AS borrower_name, u.email AS borrower_email,
             b.title AS book_title
@@ -416,31 +459,38 @@ $co_stmt = $pdo->prepare(
        JOIN Books b ON b.id = c.book_id
        {$co_where_sql}
        ORDER BY c.due_date ASC, c.checkout_date DESC
-       LIMIT 500"
+       LIMIT {$co_per_page} OFFSET {$co_offset}"
 );
-$co_stmt->execute($co_params);
-$checked_out_loans = $co_stmt->fetchAll();
+$data_stmt->execute($co_params);
+$checked_out_loans = $data_stmt->fetchAll();
 
-$co_total = count($checked_out_loans);
-$co_active_count = 0;
-$co_overdue_count = 0;
-$co_due_today_count = 0;
-$co_today = date('Y-m-d');
-$co_now_ts = time();
-
+// ── Row-level status labels ──
+$co_today   = date('Y-m-d');
+$co_now_ts  = time();
 foreach ($checked_out_loans as &$co_loan) {
     $co_due_ts = strtotime($co_loan['due_date']);
-    $co_loan['_is_overdue'] = $co_due_ts < $co_now_ts;
+    $co_loan['_is_overdue']   = $co_due_ts < $co_now_ts;
     $co_loan['_is_due_today'] = date('Y-m-d', $co_due_ts) === $co_today;
-    if ($co_loan['_is_overdue']) {
-        $co_overdue_count++;
-    } elseif ($co_loan['_is_due_today']) {
-        $co_due_today_count++;
-    } else {
-        $co_active_count++;
-    }
 }
 unset($co_loan);
+
+// ── Chip definitions ──
+$co_chips = [
+    ['key' => 'all',        'label' => 'All',        'count_key' => 'all',        'status' => '',    'date' => ''],
+    ['key' => 'active',     'label' => 'Active',      'count_key' => 'active',     'status' => 'active',    'date' => ''],
+    ['key' => 'due_today',  'label' => 'Due Today',   'count_key' => 'due_today',  'status' => 'due_today', 'date' => ''],
+    ['key' => 'overdue',    'label' => 'Overdue',     'count_key' => 'overdue',    'status' => 'overdue',   'date' => ''],
+    ['key' => 'this_week',  'label' => 'This Week',   'count_key' => 'this_week',  'status' => '',    'date' => 'this_week'],
+    ['key' => 'this_month', 'label' => 'This Month',  'count_key' => 'this_month', 'status' => '',    'date' => 'this_month'],
+];
+
+$is_active_chip = function($key) use ($co_status, $co_date) {
+    if ($key === 'all') return $co_status === '' && $co_date === '';
+    if (in_array($key, ['active','due_today','overdue'], true)) return $co_status === $key && $co_date === '';
+    return $co_status === '' && $co_date === $key;
+};
+
+$co_base_url = BASE_URL . 'librarian/checkout.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -595,94 +645,80 @@ unset($co_loan);
         </div>
       </div>
 
-      <!-- ── Checked-Out Books History ──────────────────────────────────── -->
-      <div class="records-filter-card no-print" style="margin-top: var(--space-6)">
-        <form method="GET" action="">
-          <div class="records-filter-row">
-            <div class="records-filter-group" style="flex: 2 1 280px;">
-              <label for="co_search">Search (Loan #, Name, Email, Book)</label>
-              <input class="field-input" type="text" id="co_search" name="co_search"
-                     placeholder="e.g. Juan dela Cruz or book title..."
-                     value="<?= htmlspecialchars($filter_co_search, ENT_QUOTES, 'UTF-8') ?>">
-            </div>
-            <?php if ($filter_co_period !== ''): ?>
-              <input type="hidden" name="co_period" value="<?= htmlspecialchars($filter_co_period, ENT_QUOTES, 'UTF-8') ?>">
-            <?php endif; ?>
-            <div style="display:flex;gap:0.5rem;align-items:flex-end;flex-shrink:0;">
-              <button type="submit" class="btn-primary">Search</button>
-              <a href="<?= htmlspecialchars(BASE_URL . 'librarian/checkout.php', ENT_QUOTES, 'UTF-8') ?>" class="btn-ghost">Reset</a>
-            </div>
-          </div>
-        </form>
-      </div>
-
-      <div class="records-stat-row no-print">
-        <?php
-        $chip_query_parts = [];
-        if ($filter_co_search !== '') {
-            $chip_query_parts['co_search'] = $filter_co_search;
-        }
-        $chip_base_query = http_build_query($chip_query_parts);
-        $chips = [
-            ['label' => 'All Checked-Out', 'period' => '',       'count' => $co_total],
-            ['label' => 'Active',          'period' => 'active',  'count' => $co_active_count],
-            ['label' => 'Due Today',       'period' => 'due_today', 'count' => $co_due_today_count],
-            ['label' => 'Overdue',         'period' => 'overdue', 'count' => $co_overdue_count],
-            ['label' => 'This Week',       'period' => 'this_week', 'count' => $co_total],
-            ['label' => 'This Month',      'period' => 'this_month', 'count' => $co_total],
-        ];
-        foreach ($chips as $chip):
-            $is_active = $filter_co_period === $chip['period'] || ($filter_co_period === '' && $chip['period'] === '');
-            $chip_url = '?' . $chip_base_query;
-            if ($chip['period'] !== '') {
-                $chip_url .= ($chip_base_query !== '' ? '&' : '') . 'co_period=' . rawurlencode($chip['period']);
-            }
-            $chip_style = $is_active ? 'border-color:var(--rd-primary);background:rgba(201,168,76,0.08);' : '';
-        ?>
-          <a href="<?= htmlspecialchars($chip_url, ENT_QUOTES, 'UTF-8') ?>"
-             class="records-stat-chip"
-             style="text-decoration:none;cursor:pointer;<?= $chip_style ?>">
-            <span class="records-stat-chip__value"><?= number_format($chip['count']) ?></span>
-            <span class="records-stat-chip__label"><?= htmlspecialchars($chip['label'], ENT_QUOTES, 'UTF-8') ?></span>
-          </a>
-        <?php endforeach; ?>
-      </div>
-
-      <div class="records-actions-bar no-print">
-        <span class="records-count-label">
-          Showing <strong><?= number_format($co_total) ?></strong> checked-out record<?= $co_total !== 1 ? 's' : '' ?>
-          <?php if ($filter_co_search !== '' || $filter_co_period !== ''): ?>
-            <em>(filtered)</em>
-          <?php endif; ?>
-        </span>
-      </div>
-
-      <div class="section-card">
-        <div class="section-card__header">
+      <!-- ── Checked-Out Books History — Unified Panel ──────────────────── -->
+      <div class="section-card co-panel" style="margin-top: var(--space-6)">
+        <div class="section-card__header co-panel__header">
           <span class="section-card__title">Checked-Out Books History</span>
-          <?php if ($co_total > 0): ?>
-            <span class="badge badge-blue"><?= number_format($co_total) ?></span>
-          <?php endif; ?>
+          <span class="co-panel__count">
+            <strong><?= number_format($co_filtered_total) ?></strong>
+            record<?= $co_filtered_total !== 1 ? 's' : '' ?>
+          </span>
         </div>
-        <div class="records-table-wrap">
+
+        <!-- Search & Filter Toolbar -->
+        <div class="co-toolbar">
+          <form method="GET" action="<?= htmlspecialchars($co_base_url, ENT_QUOTES, 'UTF-8') ?>">
+            <div class="co-toolbar__row">
+              <div class="co-toolbar__search-wrap">
+                <input class="co-toolbar__search" type="text" name="co_search"
+                       placeholder="Search loan #, borrower, email, or book..."
+                       value="<?= htmlspecialchars($co_search, ENT_QUOTES, 'UTF-8') ?>">
+              </div>
+              <div class="co-toolbar__select-wrap">
+                <select name="co_status" class="co-toolbar__select">
+                  <option value="">All Status</option>
+                  <option value="active" <?= $co_status === 'active' ? 'selected' : '' ?>>Active</option>
+                  <option value="due_today" <?= $co_status === 'due_today' ? 'selected' : '' ?>>Due Today</option>
+                  <option value="overdue" <?= $co_status === 'overdue' ? 'selected' : '' ?>>Overdue</option>
+                </select>
+              </div>
+              <div class="co-toolbar__select-wrap">
+                <select name="co_date" class="co-toolbar__select">
+                  <option value="">All Dates</option>
+                  <option value="this_week" <?= $co_date === 'this_week' ? 'selected' : '' ?>>This Week</option>
+                  <option value="this_month" <?= $co_date === 'this_month' ? 'selected' : '' ?>>This Month</option>
+                </select>
+              </div>
+              <button type="submit" class="btn-primary co-toolbar__btn">Search</button>
+              <a href="<?= htmlspecialchars($co_base_url, ENT_QUOTES, 'UTF-8') ?>" class="btn-ghost co-toolbar__btn">Reset</a>
+            </div>
+          </form>
+        </div>
+
+        <!-- Filter Chips -->
+        <div class="co-chips">
+          <?php foreach ($co_chips as $chip):
+            $chip_url = co_filter_url($co_base_url, $co_search, $chip['status'], $chip['date']);
+            $chip_count = $co_chip_counts[$chip['count_key']] ?? 0;
+          ?>
+            <a href="<?= htmlspecialchars($chip_url, ENT_QUOTES, 'UTF-8') ?>"
+               class="co-chip <?= $is_active_chip($chip['key']) ? 'co-chip--active' : '' ?>">
+              <?= htmlspecialchars($chip['label'], ENT_QUOTES, 'UTF-8') ?>
+              <span class="co-chip__count"><?= number_format($chip_count) ?></span>
+            </a>
+          <?php endforeach; ?>
+        </div>
+
+        <!-- Table -->
+        <div class="co-table-wrap">
           <?php if (empty($checked_out_loans)): ?>
             <div class="empty-state">
               <span class="empty-state__icon">&#128218;</span>
               <p>No checked-out books found.</p>
             </div>
           <?php else: ?>
-            <table class="records-table">
+            <table class="co-table">
               <thead>
                 <tr>
                   <th>Loan #</th>
-                  <th>Borrower Name</th>
+                  <th>Borrower</th>
                   <th>Email</th>
                   <th>Book Title</th>
                   <th>Check-Out Date</th>
                   <th>Due Date</th>
                   <th>Copies</th>
                   <th>Status</th>
-                  <th class="col-action no-print">Action</th>
+                  <th class="co-actions-th">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -691,35 +727,72 @@ unset($co_loan);
                   $co_checkout = !empty($co_loan['checkout_date']) ? date('M d, Y', strtotime($co_loan['checkout_date'])) : '—';
                   $co_due      = !empty($co_loan['due_date'])      ? date('M d, Y', strtotime($co_loan['due_date']))      : '—';
                   if ($co_loan['_is_overdue']) {
-                      $co_badge_class = 'badge-red';
+                      $co_badge_class = 'co-badge--overdue';
                       $co_status_label = 'Overdue';
-                      $co_row_class = 'row-overdue';
+                      $co_row_class = 'co-row--overdue';
                   } elseif ($co_loan['_is_due_today']) {
-                      $co_badge_class = 'badge-amber';
+                      $co_badge_class = 'co-badge--due-today';
                       $co_status_label = 'Due Today';
                       $co_row_class = '';
                   } else {
-                      $co_badge_class = 'badge-blue';
+                      $co_badge_class = 'co-badge--active';
                       $co_status_label = 'Active';
                       $co_row_class = '';
                   }
                 ?>
                   <tr class="<?= $co_row_class ?>">
-                    <td><?= $co_id ?></td>
-                    <td><?= htmlspecialchars($co_loan['borrower_name'], ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= htmlspecialchars($co_loan['borrower_email'], ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= htmlspecialchars($co_loan['book_title'], ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= htmlspecialchars($co_checkout, ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= htmlspecialchars($co_due, ENT_QUOTES, 'UTF-8') ?></td>
-                    <td>1</td>
-                    <td><span class="badge <?= $co_badge_class ?>"><?= $co_status_label ?></span></td>
-                    <td class="col-action no-print">
-                      <a class="btn-sm" href="<?= htmlspecialchars(BASE_URL . 'librarian/checkin.php?loan_id=' . $co_id, ENT_QUOTES, 'UTF-8') ?>">View Details</a>
+                    <td data-label="Loan #"><?= $co_id ?></td>
+                    <td data-label="Borrower"><?= htmlspecialchars($co_loan['borrower_name'], ENT_QUOTES, 'UTF-8') ?></td>
+                    <td data-label="Email"><?= htmlspecialchars($co_loan['borrower_email'], ENT_QUOTES, 'UTF-8') ?></td>
+                    <td data-label="Book Title"><?= htmlspecialchars($co_loan['book_title'], ENT_QUOTES, 'UTF-8') ?></td>
+                    <td data-label="Check-Out Date"><?= htmlspecialchars($co_checkout, ENT_QUOTES, 'UTF-8') ?></td>
+                    <td data-label="Due Date"><?= htmlspecialchars($co_due, ENT_QUOTES, 'UTF-8') ?></td>
+                    <td data-label="Copies">1</td>
+                    <td data-label="Status"><span class="co-badge <?= $co_badge_class ?>"><?= $co_status_label ?></span></td>
+                    <td data-label="Action" class="co-actions-td">
+                      <a class="co-btn-details" href="<?= htmlspecialchars(BASE_URL . 'librarian/checkin.php?loan_id=' . $co_id, ENT_QUOTES, 'UTF-8') ?>">View Details</a>
                     </td>
                   </tr>
                 <?php endforeach; ?>
               </tbody>
             </table>
+
+            <!-- Pagination -->
+            <div class="co-pagination">
+              <div class="co-pagination__info">
+                Showing <strong><?= $co_filtered_total > 0 ? number_format($co_offset + 1) : 0 ?></strong>–<strong><?= number_format(min($co_offset + $co_per_page, $co_filtered_total)) ?></strong>
+                of <strong><?= number_format($co_filtered_total) ?></strong> record<?= $co_filtered_total !== 1 ? 's' : '' ?>
+              </div>
+              <?php if ($co_total_pages > 1): ?>
+              <nav class="co-pagination__nav" aria-label="Checked-out books pagination">
+                <?php if ($co_page > 1): ?>
+                  <a class="co-pagination__btn" href="<?= htmlspecialchars(co_filter_url($co_base_url, $co_search, $co_status, $co_date, $co_page - 1), ENT_QUOTES, 'UTF-8') ?>" aria-label="Go to previous page">&larr; Previous</a>
+                <?php else: ?>
+                  <span class="co-pagination__btn co-pagination__btn--disabled" aria-disabled="true">&larr; Previous</span>
+                <?php endif; ?>
+
+                <div class="co-pagination__pages">
+                  <?php
+                  $co_p_start = max(1, $co_page - 2);
+                  $co_p_end   = min($co_total_pages, $co_page + 2);
+                  for ($i = $co_p_start; $i <= $co_p_end; $i++):
+                  ?>
+                    <?php if ($i === $co_page): ?>
+                      <span class="co-pagination__current" aria-current="page"><?= (int) $i ?></span>
+                    <?php else: ?>
+                      <a class="co-pagination__link" href="<?= htmlspecialchars(co_filter_url($co_base_url, $co_search, $co_status, $co_date, $i), ENT_QUOTES, 'UTF-8') ?>"><?= (int) $i ?></a>
+                    <?php endif; ?>
+                  <?php endfor; ?>
+                </div>
+
+                <?php if ($co_page < $co_total_pages): ?>
+                  <a class="co-pagination__btn" href="<?= htmlspecialchars(co_filter_url($co_base_url, $co_search, $co_status, $co_date, $co_page + 1), ENT_QUOTES, 'UTF-8') ?>" aria-label="Go to next page">Next &rarr;</a>
+                <?php else: ?>
+                  <span class="co-pagination__btn co-pagination__btn--disabled" aria-disabled="true">Next &rarr;</span>
+                <?php endif; ?>
+              </nav>
+              <?php endif; ?>
+            </div>
           <?php endif; ?>
         </div>
       </div>

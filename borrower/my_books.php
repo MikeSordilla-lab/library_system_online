@@ -175,9 +175,9 @@ $extraStyles = [
           <select id="books-sort" class="rd-books-select" aria-label="Sort selected tab"></select>
           <label class="sr-only" for="books-page-size">Rows per page</label>
           <select id="books-page-size" class="rd-books-select" aria-label="Rows per page">
-            <option value="10">10 rows</option>
+            <option value="5">5 rows</option>
+            <option value="10" selected>10 rows</option>
             <option value="25">25 rows</option>
-            <option value="50">50 rows</option>
           </select>
         </div>
       </div>
@@ -828,6 +828,14 @@ $extraStyles = [
       font-size: 0.9rem;
       font-weight: 700;
     }
+    .rd-pagination-summary {
+      white-space: nowrap;
+    }
+    .rd-pagination-center {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
     .rd-pagination-pages {
       display: flex;
       align-items: center;
@@ -845,18 +853,43 @@ $extraStyles = [
       font: inherit;
       font-weight: 800;
       cursor: pointer;
+      transition: all 0.15s ease;
     }
-    .rd-page-btn:hover,
+    .rd-page-btn:hover:not(:disabled),
     .rd-page-btn.active {
       border-color: rgba(201, 168, 76, 0.52);
       background: var(--rd-primary);
       color: #2c281f;
     }
     .rd-page-btn:disabled {
-      opacity: 0.45;
+      opacity: 0.4;
       cursor: not-allowed;
       background: rgba(76, 70, 62, 0.06);
       color: #8f8374;
+    }
+    .rd-page-dots {
+      color: var(--rd-text-muted);
+      font-weight: 700;
+      padding: 0 0.2rem;
+    }
+    .rd-pagination-rows-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      white-space: nowrap;
+    }
+    .rd-pagination-rows-label {
+      font-size: 0.85rem;
+      color: var(--rd-text-muted);
+      font-weight: 700;
+    }
+    .rd-pagination-rows-select {
+      min-height: 34px;
+      padding: 0 2rem 0 0.65rem;
+      font-size: 0.85rem;
+      width: auto;
+      background-size: 5px 5px;
+      background-position: right 0.7rem center, right 0.5rem center;
     }
     /* Additions for lifecycle component matching dashboard style */
     .rd-lifecycle {
@@ -902,6 +935,16 @@ $extraStyles = [
         width: 100%;
       }
       .rd-books-pagination {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.6rem;
+      }
+      .rd-pagination-center {
+        width: 100%;
+        justify-content: center;
+      }
+      .rd-pagination-rows-wrap {
+        width: 100%;
         justify-content: center;
       }
     }
@@ -1148,8 +1191,12 @@ $extraStyles = [
         pagination.innerHTML = '';
 
         var summary = document.createElement('span');
-        summary.textContent = 'Showing ' + start + '-' + end + ' of ' + totalRows;
+        summary.className = 'rd-pagination-summary';
+        summary.textContent = 'Showing ' + start + '\u2013' + end + ' of ' + totalRows + ' records';
         pagination.appendChild(summary);
+
+        var center = document.createElement('div');
+        center.className = 'rd-pagination-center';
 
         var pages = document.createElement('div');
         pages.className = 'rd-pagination-pages';
@@ -1173,13 +1220,42 @@ $extraStyles = [
             addButton(String(i), i, false, i === state.page);
           } else if (i === state.page - 2 || i === state.page + 2) {
             var dots = document.createElement('span');
-            dots.textContent = '...';
+            dots.className = 'rd-page-dots';
+            dots.textContent = '\u2026';
             pages.appendChild(dots);
           }
         }
         addButton('Next', state.page + 1, state.page === totalPages, false);
 
-        pagination.appendChild(pages);
+        center.appendChild(pages);
+
+        var rowsPerPageWrap = document.createElement('div');
+        rowsPerPageWrap.className = 'rd-pagination-rows-wrap';
+        var rowsLabel = document.createElement('label');
+        rowsLabel.textContent = 'Rows per page:';
+        rowsLabel.className = 'rd-pagination-rows-label';
+        var rowsSelect = document.createElement('select');
+        rowsSelect.className = 'rd-books-select rd-pagination-rows-select';
+        rowsSelect.setAttribute('aria-label', 'Rows per page');
+        [5, 10, 25].forEach(function(val) {
+          var opt = document.createElement('option');
+          opt.value = String(val);
+          opt.textContent = val;
+          if (state.pageSize === val) opt.selected = true;
+          rowsSelect.appendChild(opt);
+        });
+        rowsSelect.addEventListener('change', function() {
+          state.pageSize = parseInt(rowsSelect.value, 10) || 10;
+          state.page = 1;
+          if (pageSizeSelect) pageSizeSelect.value = rowsSelect.value;
+          applyBooksFilter();
+        });
+        rowsPerPageWrap.appendChild(rowsLabel);
+        rowsPerPageWrap.appendChild(rowsSelect);
+        pagination.appendChild(center);
+        pagination.appendChild(rowsPerPageWrap);
+
+        if (pageSizeSelect) pageSizeSelect.value = String(state.pageSize);
       }
 
       function applyBooksFilter() {
