@@ -14,8 +14,11 @@ $filter_type = isset($_GET['type']) ? trim((string) $_GET['type']) : '';
 $date_from = isset($_GET['date_from']) ? trim((string) $_GET['date_from']) : '';
 $date_to = isset($_GET['date_to']) ? trim((string) $_GET['date_to']) : '';
 $page = max(1, (int) ($_GET['page'] ?? 1));
-$per_page = 20;
-$per_page = max(5, min(100, $per_page));
+$per_page = isset($_GET['per_page']) ? max(5, min(100, (int) $_GET['per_page'])) : 10;
+$valid_per_page = [10, 25, 50];
+if (!in_array($per_page, $valid_per_page, true)) {
+    $per_page = 10;
+}
 $offset = ($page - 1) * $per_page;
 
 $datePattern = '/^\d{4}-\d{2}-\d{2}$/';
@@ -128,8 +131,11 @@ $has_filters = $q !== '' || $filter_status !== '' || $filter_type !== '' || $dat
 
 function build_receipt_page_url(int $p): string
 {
-  global $base_url, $q, $filter_status, $filter_type, $date_from, $date_to;
+  global $base_url, $q, $filter_status, $filter_type, $date_from, $date_to, $per_page;
   $query = ['page' => $p];
+  if ($per_page !== 10) {
+    $query['per_page'] = $per_page;
+  }
   if ($q !== '') {
     $query['q'] = $q;
   }
@@ -221,77 +227,90 @@ ob_start();
   color: var(--rd-text-muted, #6b7280);
   font-size: 0.9rem;
 }
-.rd-pagination {
+.receipt-pagination {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1rem;
-  background: var(--rd-card-bg, #fff);
-  border: 1px solid var(--rd-border, #e5e7eb);
-  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--rd-border);
   flex-wrap: wrap;
 }
-.rd-pagination-info {
+.receipt-pagination__controls {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  color: var(--rd-text-muted, #6b7280);
-}
-.rd-pagination-count {
-  color: var(--rd-text-secondary, #9ca3af);
-}
-.rd-pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
+  gap: 0.3rem;
   flex-wrap: wrap;
 }
-.rd-pagination-btn {
+.receipt-pg-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.375rem 0.625rem;
+  padding: 0.45rem 0.85rem;
   font-size: 0.8125rem;
   font-weight: 500;
-  color: var(--rd-primary, #3b82f6);
+  color: var(--rd-text);
   background: transparent;
-  border: 1px solid var(--rd-border, #e5e7eb);
-  border-radius: 0.375rem;
+  border: 1px solid var(--rd-border);
+  border-radius: 0.5rem;
   text-decoration: none;
   transition: all 0.15s ease;
   min-width: 2.25rem;
+  cursor: pointer;
+  user-select: none;
 }
-.rd-pagination-btn:hover:not(.rd-pagination-disabled):not(.rd-pagination-current) {
-  background: var(--rd-primary-light, #eff6ff);
-  border-color: var(--rd-primary, #3b82f6);
-  color: var(--rd-primary-dark, #1d4ed8);
+.receipt-pg-btn:hover:not(.receipt-pg-disabled):not(.receipt-pg-current) {
+  background: var(--rd-primary-light);
+  border-color: var(--rd-primary);
+  color: #1c1a17;
 }
-.rd-pagination-current {
-  background: var(--rd-primary, #3b82f6);
-  border-color: var(--rd-primary, #3b82f6);
-  color: #fff;
+.receipt-pg-current {
+  background: var(--rd-primary);
+  border-color: var(--rd-primary);
+  color: #1c1a17;
   cursor: default;
+  font-weight: 600;
 }
-.rd-pagination-disabled {
-  color: var(--rd-text-muted, #9ca3af);
+.receipt-pg-disabled {
+  color: var(--rd-text-muted);
   cursor: not-allowed;
-  opacity: 0.6;
+  opacity: 0.5;
+  border-color: transparent;
 }
-.rd-pagination-ellipsis {
+.receipt-pg-ellipsis {
   padding: 0 0.25rem;
-  color: var(--rd-text-muted, #9ca3af);
+  color: var(--rd-text-muted);
+}
+.receipt-pagination__per-page {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--rd-text-muted);
+}
+.receipt-per-page-select {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--rd-border);
+  border-radius: 0.4rem;
+  background: var(--rd-surface);
+  color: var(--rd-text);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+.receipt-per-page-select:focus {
+  outline: none;
+  border-color: var(--rd-primary);
 }
 @media (max-width: 640px) {
-  .rd-pagination {
+  .receipt-pagination {
     flex-direction: column;
     align-items: stretch;
   }
-  .rd-pagination-info {
+  .receipt-pagination__controls {
     justify-content: center;
   }
-  .rd-pagination-controls {
+  .receipt-pagination__per-page {
     justify-content: center;
   }
   .receipt-filters__actions,
@@ -449,58 +468,58 @@ $pageStyles = ob_get_clean();
             </table>
           </div>
         <?php endif; ?>
-      </div>
-
-      <?php if ($total_pages > 1): ?>
-        <nav class="rd-pagination" aria-label="Receipts pagination">
-          <div class="rd-pagination-info">
-            <span>Page <?= (int) $page ?> of <?= (int) $total_pages ?></span>
-            <span class="rd-pagination-count">(<?= (int) $total_tickets ?> total)</span>
-          </div>
-          <div class="rd-pagination-controls">
+        <?php if ($total_tickets > 0): ?>
+        <div class="receipt-pagination">
+          <div class="receipt-pagination__controls">
             <?php if ($page > 1): ?>
-              <a class="rd-pagination-btn" href="<?= htmlspecialchars(build_receipt_page_url(1), ENT_QUOTES, 'UTF-8') ?>" aria-label="First page">« First</a>
-              <a class="rd-pagination-btn" href="<?= htmlspecialchars(build_receipt_page_url($page - 1), ENT_QUOTES, 'UTF-8') ?>" aria-label="Previous page">‹ Prev</a>
+              <a class="receipt-pg-btn" href="<?= htmlspecialchars(build_receipt_page_url($page - 1), ENT_QUOTES, 'UTF-8') ?>">Previous</a>
             <?php else: ?>
-              <span class="rd-pagination-btn rd-pagination-disabled">« First</span>
-              <span class="rd-pagination-btn rd-pagination-disabled">‹ Prev</span>
+              <span class="receipt-pg-btn receipt-pg-disabled">Previous</span>
             <?php endif; ?>
 
             <?php
             $start = max(1, $page - 2);
             $end = min($total_pages, $page + 2);
             if ($start > 1): ?>
-              <a class="rd-pagination-btn" href="<?= htmlspecialchars(build_receipt_page_url(1), ENT_QUOTES, 'UTF-8') ?>">1</a>
+              <a class="receipt-pg-btn receipt-pg-num" href="<?= htmlspecialchars(build_receipt_page_url(1), ENT_QUOTES, 'UTF-8') ?>">1</a>
               <?php if ($start > 2): ?>
-                <span class="rd-pagination-ellipsis">…</span>
+                <span class="receipt-pg-ellipsis">…</span>
               <?php endif; ?>
             <?php endif; ?>
 
             <?php for ($i = $start; $i <= $end; $i++): ?>
               <?php if ($i === $page): ?>
-                <span class="rd-pagination-btn rd-pagination-current"><?= (int) $i ?></span>
+                <span class="receipt-pg-btn receipt-pg-current"><?= (int) $i ?></span>
               <?php else: ?>
-                <a class="rd-pagination-btn" href="<?= htmlspecialchars(build_receipt_page_url($i), ENT_QUOTES, 'UTF-8') ?>"><?= (int) $i ?></a>
+                <a class="receipt-pg-btn receipt-pg-num" href="<?= htmlspecialchars(build_receipt_page_url($i), ENT_QUOTES, 'UTF-8') ?>"><?= (int) $i ?></a>
               <?php endif; ?>
             <?php endfor; ?>
 
             <?php if ($end < $total_pages): ?>
               <?php if ($end < $total_pages - 1): ?>
-                <span class="rd-pagination-ellipsis">…</span>
+                <span class="receipt-pg-ellipsis">…</span>
               <?php endif; ?>
-              <a class="rd-pagination-btn" href="<?= htmlspecialchars(build_receipt_page_url($total_pages), ENT_QUOTES, 'UTF-8') ?>"><?= (int) $total_pages ?></a>
+              <a class="receipt-pg-btn receipt-pg-num" href="<?= htmlspecialchars(build_receipt_page_url($total_pages), ENT_QUOTES, 'UTF-8') ?>"><?= (int) $total_pages ?></a>
             <?php endif; ?>
 
             <?php if ($page < $total_pages): ?>
-              <a class="rd-pagination-btn" href="<?= htmlspecialchars(build_receipt_page_url($page + 1), ENT_QUOTES, 'UTF-8') ?>" aria-label="Next page">Next ›</a>
-              <a class="rd-pagination-btn" href="<?= htmlspecialchars(build_receipt_page_url($total_pages), ENT_QUOTES, 'UTF-8') ?>" aria-label="Last page">Last »</a>
+              <a class="receipt-pg-btn" href="<?= htmlspecialchars(build_receipt_page_url($page + 1), ENT_QUOTES, 'UTF-8') ?>">Next</a>
             <?php else: ?>
-              <span class="rd-pagination-btn rd-pagination-disabled">Next ›</span>
-              <span class="rd-pagination-btn rd-pagination-disabled">Last »</span>
+              <span class="receipt-pg-btn receipt-pg-disabled">Next</span>
             <?php endif; ?>
           </div>
-        </nav>
-      <?php endif; ?>
+
+          <div class="receipt-pagination__per-page">
+            <label for="per-page-select">Rows per page:</label>
+            <select id="per-page-select" class="receipt-per-page-select" onchange="var u=new URL(window.location.href);u.searchParams.set('per_page',this.value);u.searchParams.delete('page');window.location.href=u.toString();">
+              <option value="10"<?= $per_page === 10 ? ' selected' : '' ?>>10</option>
+              <option value="25"<?= $per_page === 25 ? ' selected' : '' ?>>25</option>
+              <option value="50"<?= $per_page === 50 ? ' selected' : '' ?>>50</option>
+            </select>
+          </div>
+        </div>
+        <?php endif; ?>
+      </div>
     </main>
   </div>
 </body>

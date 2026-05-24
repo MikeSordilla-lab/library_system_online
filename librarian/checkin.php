@@ -174,6 +174,92 @@ $loans_stmt = $pdo->prepare(
 $loans_stmt->execute([]);
 $loans = $loans_stmt->fetchAll();
 
+// ---------------------------------------------------------------------------
+// Returned Books History query
+// ---------------------------------------------------------------------------
+$returned_filter = trim((string) ($_GET['returned_filter'] ?? ''));
+$returned_search = trim((string) ($_GET['returned_search'] ?? ''));
+
+$returned_allowed_filters = ['', 'today', 'with_fine', 'no_fine', 'this_week', 'this_month'];
+if (!in_array($returned_filter, $returned_allowed_filters, true)) {
+    $returned_filter = '';
+}
+
+$r_where = ["c.status = 'returned'"];
+$r_params = [];
+
+if ($returned_search !== '') {
+    $like = '%' . $returned_search . '%';
+    if (is_numeric($returned_search)) {
+        $r_where[] = '(u.full_name LIKE ? OR b.title LIKE ? OR c.id = ?)';
+        $r_params[] = $like;
+        $r_params[] = $like;
+        $r_params[] = (int) $returned_search;
+    } else {
+        $r_where[] = '(u.full_name LIKE ? OR b.title LIKE ?)';
+        $r_params[] = $like;
+        $r_params[] = $like;
+    }
+}
+
+switch ($returned_filter) {
+    case 'today':
+        $r_where[] = 'DATE(c.return_date) = CURDATE()';
+        break;
+    case 'with_fine':
+        $r_where[] = 'c.fine_amount > 0';
+        break;
+    case 'no_fine':
+        $r_where[] = 'c.fine_amount = 0';
+        break;
+    case 'this_week':
+        $r_where[] = 'YEARWEEK(c.return_date) = YEARWEEK(CURDATE())';
+        break;
+    case 'this_month':
+        $r_where[] = 'YEAR(c.return_date) = YEAR(CURDATE()) AND MONTH(c.return_date) = MONTH(CURDATE())';
+        break;
+}
+
+$r_sql = 'WHERE ' . implode(' AND ', $r_where);
+
+// Count total returned (for pagination)
+$count_stmt = $pdo->prepare(
+    "SELECT COUNT(*)
+       FROM Circulation c
+       JOIN Users u ON c.user_id = u.id
+       JOIN Books b ON c.book_id = b.id
+       {$r_sql}"
+);
+$count_stmt->execute($r_params);
+$returned_total = (int) $count_stmt->fetchColumn();
+
+$returned_per_page = 15;
+$returned_page = max(1, (int) ($_GET['returned_page'] ?? 1));
+$returned_total_pages = max(1, (int) ceil($returned_total / $returned_per_page));
+$returned_page = min($returned_page, $returned_total_pages);
+$returned_offset = ($returned_page - 1) * $returned_per_page;
+
+$returned_stmt = $pdo->prepare(
+    "SELECT c.id, c.checkout_date, c.due_date, c.return_date, c.fine_amount, c.fine_paid,
+            u.full_name, b.title
+       FROM Circulation c
+       JOIN Users u ON c.user_id = u.id
+       JOIN Books b ON c.book_id = b.id
+       {$r_sql}
+       ORDER BY c.return_date DESC
+       LIMIT ? OFFSET ?"
+);
+$returned_stmt->execute([...$r_params, $returned_per_page, $returned_offset]);
+$returned_loans = $returned_stmt->fetchAll();
+
+function returned_filter_url($filter_value, $search, $base_url, $page = '') {
+    $params = [];
+    if ($search !== '') $params['returned_search'] = $search;
+    if ($filter_value !== '') $params['returned_filter'] = $filter_value;
+    if ($page !== '') $params['returned_page'] = $page;
+    return $base_url . ($params ? '?' . http_build_query($params) : '');
+}
+
 // Flash messages
 $flash_error   = $_SESSION['flash_error']   ?? '';
 $flash_success = $_SESSION['flash_success'] ?? '';
@@ -196,6 +282,14 @@ $extraStyles = [
 
 <head>
   <?php require_once __DIR__ . '/../includes/head.php'; ?>
+  <style>
+    .returned-pagination { display:flex; align-items:center; justify-content:center; gap:0.75rem; padding:1rem 1.5rem; flex-wrap:wrap; }
+    .returned-pagination__pages { display:flex; align-items:center; gap:4px; border:1px solid var(--rd-border); border-radius:8px; padding:4px; background:rgba(42,39,35,0.5); }
+    .returned-pagination__link { display:inline-flex; align-items:center; justify-content:center; min-width:36px; min-height:36px; border-radius:8px; background:rgba(255,255,255,0.05); border:1px solid var(--rd-border); color:var(--rd-text); text-decoration:none; font-size:0.85rem; transition:all 0.2s; }
+    .returned-pagination__link:hover { background:rgba(255,255,255,0.1); border-color:var(--rd-primary); color:var(--rd-primary); }
+    .returned-pagination__current { display:inline-flex; align-items:center; justify-content:center; min-width:36px; min-height:36px; border-radius:8px; background:var(--rd-primary); color:#1c1a17; font-weight:700; font-size:0.85rem; }
+    .returned-pagination__disabled { color:var(--rd-text-muted); padding:0.5rem 0.75rem; font-size:0.85rem; }
+  </style>
 </head>
 
 <body class="librarian-themed">
@@ -280,6 +374,135 @@ $extraStyles = [
               </tbody>
             </table>
           </div>
+        <?php endif; ?>
+      </div>
+
+      <!-- Returned Books History -->
+      <div class="section-card" style="margin-top: var(--space-6);">
+        <div class="section-card__header">
+          <span class="section-card__title">Returned Books History</span>
+        </div>
+
+        <div class="records-filter-card" style="border:none;background:transparent;padding:0 1.5rem 0.5rem;">
+          <form method="GET" action="<?= htmlspecialchars(BASE_URL . 'librarian/checkin.php', ENT_QUOTES, 'UTF-8') ?>">
+            <div class="records-filter-row">
+              <div class="records-filter-group" style="flex:1;">
+                <label for="returned-search">Search (Name / Book / Loan #)</label>
+                <input class="field-input" type="text" id="returned-search" name="returned_search"
+                       placeholder="Search returned books..."
+                       value="<?= htmlspecialchars($returned_search, ENT_QUOTES, 'UTF-8') ?>">
+              </div>
+              <div style="display:flex;gap:var(--space-2);align-items:flex-end;flex-shrink:0;">
+                <button type="submit" class="btn-primary">Search</button>
+                <a href="<?= htmlspecialchars(BASE_URL . 'librarian/checkin.php', ENT_QUOTES, 'UTF-8') ?>" class="btn-ghost">Reset</a>
+              </div>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;">
+              <?php $filter_chips = [
+                '' => 'All Returned',
+                'today' => 'Returned Today',
+                'with_fine' => 'With Fine',
+                'no_fine' => 'No Fine',
+                'this_week' => 'This Week',
+                'this_month' => 'This Month',
+              ]; ?>
+              <?php foreach ($filter_chips as $fc_val => $fc_label): ?>
+                <a href="<?= htmlspecialchars(returned_filter_url($fc_val, $returned_search, BASE_URL . 'librarian/checkin.php'), ENT_QUOTES, 'UTF-8') ?>"
+                   style="display:inline-flex;align-items:center;border-radius:9999px;padding:6px 16px;font-size:0.8rem;font-weight:500;text-decoration:none;transition:all 0.2s;border:1px solid transparent;<?= $returned_filter === $fc_val ? 'background:rgba(201,168,76,0.15);color:var(--rd-primary);border-color:var(--rd-primary);' : 'background:rgba(255,255,255,0.06);color:var(--rd-text-muted);' ?>">
+                  <?= htmlspecialchars($fc_label, ENT_QUOTES, 'UTF-8') ?>
+                </a>
+              <?php endforeach; ?>
+            </div>
+          </form>
+        </div>
+
+        <?php if (empty($returned_loans)): ?>
+          <div class="empty-state">
+            <span class="empty-state__icon">&#128230;</span>
+            <p>No returned books found.</p>
+          </div>
+        <?php else: ?>
+          <div class="tbl-wrapper">
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th>Loan #</th>
+                  <th>Borrower</th>
+                  <th>Book Title</th>
+                  <th>Date Borrowed</th>
+                  <th>Due Date</th>
+                  <th>Date Returned</th>
+                  <th>Fine (&#8369;)</th>
+                  <th>Return Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php foreach ($returned_loans as $rl): ?>
+                  <?php
+                    $rl_fine = (float) ($rl['fine_amount'] ?? 0);
+                    $rl_fine_paid = (int) ($rl['fine_paid'] ?? 0);
+                    $checkout_fmt = !empty($rl['checkout_date']) ? date('M d, Y', strtotime((string) $rl['checkout_date'])) : '—';
+                    $due_fmt      = !empty($rl['due_date'])      ? date('M d, Y', strtotime((string) $rl['due_date']))      : '—';
+                    $return_fmt   = !empty($rl['return_date'])   ? date('M d, Y', strtotime((string) $rl['return_date']))   : '—';
+                  ?>
+                  <tr>
+                    <td data-label="Loan #"><?= (int) $rl['id'] ?></td>
+                    <td data-label="Borrower"><?= htmlspecialchars((string) ($rl['full_name'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></td>
+                    <td data-label="Book Title"><?= htmlspecialchars((string) ($rl['title'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></td>
+                    <td data-label="Date Borrowed"><?= htmlspecialchars($checkout_fmt, ENT_QUOTES, 'UTF-8') ?></td>
+                    <td data-label="Due Date"><?= htmlspecialchars($due_fmt, ENT_QUOTES, 'UTF-8') ?></td>
+                    <td data-label="Date Returned"><?= htmlspecialchars($return_fmt, ENT_QUOTES, 'UTF-8') ?></td>
+                    <td data-label="Fine (&#8369;)">
+                      <?php if ($rl_fine > 0): ?>
+                        <span style="color:var(--rd-warning);font-weight:600;">&#8369;<?= htmlspecialchars(number_format($rl_fine, 2), ENT_QUOTES, 'UTF-8') ?></span>
+                      <?php else: ?>
+                        <span style="color:var(--rd-text-muted);">&#8369;0.00</span>
+                      <?php endif; ?>
+                    </td>
+                    <td data-label="Return Status">
+                      <?php if ($rl_fine > 0 && !$rl_fine_paid): ?>
+                        <span class="badge badge-amber">Unpaid Fine</span>
+                      <?php elseif ($rl_fine > 0 && $rl_fine_paid): ?>
+                        <span class="badge badge-green">Fine Paid</span>
+                      <?php else: ?>
+                        <span class="badge badge-green">Returned</span>
+                      <?php endif; ?>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+
+          <?php if ($returned_total_pages > 1): ?>
+          <nav class="returned-pagination" aria-label="Returned books pagination">
+            <?php if ($returned_page > 1): ?>
+              <a class="btn-ghost" href="<?= htmlspecialchars(returned_filter_url($returned_filter, $returned_search, BASE_URL . 'librarian/checkin.php', $returned_page - 1), ENT_QUOTES, 'UTF-8') ?>" aria-label="Go to previous page">&larr; Previous</a>
+            <?php else: ?>
+              <span class="returned-pagination__disabled" aria-disabled="true">&larr; Previous</span>
+            <?php endif; ?>
+
+            <div class="returned-pagination__pages">
+              <?php
+              $r_start = max(1, $returned_page - 2);
+              $r_end = min($returned_total_pages, $returned_page + 2);
+              for ($i = $r_start; $i <= $r_end; $i++):
+              ?>
+                <?php if ($i === $returned_page): ?>
+                  <span class="returned-pagination__current" aria-current="page"><?= (int) $i ?></span>
+                <?php else: ?>
+                  <a class="returned-pagination__link" href="<?= htmlspecialchars(returned_filter_url($returned_filter, $returned_search, BASE_URL . 'librarian/checkin.php', $i), ENT_QUOTES, 'UTF-8') ?>"><?= (int) $i ?></a>
+                <?php endif; ?>
+              <?php endfor; ?>
+            </div>
+
+            <?php if ($returned_page < $returned_total_pages): ?>
+              <a class="btn-ghost" href="<?= htmlspecialchars(returned_filter_url($returned_filter, $returned_search, BASE_URL . 'librarian/checkin.php', $returned_page + 1), ENT_QUOTES, 'UTF-8') ?>" aria-label="Go to next page">Next &rarr;</a>
+            <?php else: ?>
+              <span class="returned-pagination__disabled" aria-disabled="true">Next &rarr;</span>
+            <?php endif; ?>
+          </nav>
+          <?php endif; ?>
         <?php endif; ?>
       </div>
     </main>
