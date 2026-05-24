@@ -841,6 +841,38 @@
   transform: translateY(-1px);
 }
 
+.librarian-themed .reservation-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0 0 0.75rem;
+}
+
+.librarian-themed .reservation-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0.4rem 0.85rem;
+  border: 1px solid rgba(201, 168, 76, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--rd-text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.librarian-themed .reservation-filter-chip:hover,
+.librarian-themed .reservation-filter-chip.active {
+  border-color: rgba(201, 168, 76, 0.5);
+  background: rgba(201, 168, 76, 0.12);
+  color: var(--rd-primary);
+  transform: translateY(-1px);
+}
+
 .librarian-themed .reservation-tab span {
   min-width: 28px;
   padding: 0.18rem 0.5rem;

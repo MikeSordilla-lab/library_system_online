@@ -144,7 +144,7 @@ $approved_rows_stmt->execute([RESERVATION_STATUS_APPROVED]);
 $approved_rows = $approved_rows_stmt->fetchAll();
 
 $processed_rows_stmt = $pdo->prepare(
-  'SELECT r.id, r.status, r.reserved_at, r.approved_at, r.rejected_at, r.rejection_reason,
+  'SELECT r.id, r.status, r.reserved_at, r.approved_at, r.rejected_at, r.updated_at, r.rejection_reason,
           u.full_name AS borrower_name, u.email AS borrower_email,
           b.title AS book_title, b.author AS book_author,
           approver.full_name AS approved_by_name,
@@ -154,10 +154,10 @@ $processed_rows_stmt = $pdo->prepare(
      JOIN Books b ON r.book_id = b.id
 LEFT JOIN Users approver ON approver.id = r.approved_by
 LEFT JOIN Users rejecter ON rejecter.id = r.rejected_by
-    WHERE r.status IN (?, ?)
-    ORDER BY COALESCE(r.rejected_at, r.approved_at, r.reserved_at) DESC, r.id DESC'
+    WHERE r.status IN (?, ?, ?)
+    ORDER BY COALESCE(r.updated_at, r.rejected_at, r.approved_at, r.reserved_at) DESC, r.id DESC'
 );
-$processed_rows_stmt->execute([RESERVATION_STATUS_APPROVED, RESERVATION_STATUS_REJECTED]);
+$processed_rows_stmt->execute([RESERVATION_STATUS_APPROVED, RESERVATION_STATUS_REJECTED, RESERVATION_STATUS_FULFILLED]);
 $processed_rows = $processed_rows_stmt->fetchAll();
 
 $pendingCount = count($rows);
@@ -264,6 +264,12 @@ $extraStyles = [
       </div>
 
       <section id="reservation-panel-pending" class="reservation-panel active" data-reservation-panel="pending" role="tabpanel">
+      <div class="reservation-filter-row" data-filter-group="pending">
+        <button type="button" class="reservation-filter-chip active" data-filter="all">All Pending</button>
+        <button type="button" class="reservation-filter-chip" data-filter="today">Today</button>
+        <button type="button" class="reservation-filter-chip" data-filter="oldest">Oldest First</button>
+        <button type="button" class="reservation-filter-chip" data-filter="newest">Newest First</button>
+      </div>
       <div class="section-card">
         <div class="section-card__header">
           <span class="section-card__title">Pending Reservations</span>
@@ -291,8 +297,10 @@ $extraStyles = [
                 </tr>
               </thead>
               <tbody>
-                <?php foreach ($rows as $row): ?>
-                  <tr data-reservation-row>
+                <?php foreach ($rows as $row):
+                  $__pendingTs = strtotime($row['reserved_at'] ?? '') ?: 0;
+                ?>
+                  <tr data-reservation-row data-ts-sort="<?= $__pendingTs ?>" data-ts-reserved="<?= $__pendingTs ?>">
                     <td data-label="Queue #"><span class="reservation-queue-chip">#<?= (int) ($row['queue_position'] ?? 0) ?></span></td>
                     <td data-label="Reserved At"><?= htmlspecialchars(librarian_reservation_date($row['reserved_at'] ?? null), ENT_QUOTES, 'UTF-8') ?></td>
                     <td data-label="Borrower">
@@ -326,6 +334,13 @@ $extraStyles = [
       </section>
 
       <section id="reservation-panel-pickup" class="reservation-panel" data-reservation-panel="pickup" role="tabpanel" hidden>
+      <div class="reservation-filter-row" data-filter-group="pickup">
+        <button type="button" class="reservation-filter-chip active" data-filter="all">All Awaiting Pickup</button>
+        <button type="button" class="reservation-filter-chip" data-filter="ready-today">Ready Today</button>
+        <button type="button" class="reservation-filter-chip" data-filter="deadline-soon">Pickup Deadline Soon</button>
+        <button type="button" class="reservation-filter-chip" data-filter="oldest">Oldest First</button>
+        <button type="button" class="reservation-filter-chip" data-filter="newest">Newest First</button>
+      </div>
       <!-- ── EPIC 1: Approved Reservations (Awaiting Pickup) ───────────────── -->
       <div class="section-card reservation-section-card">
         <div class="section-card__header">
@@ -360,8 +375,10 @@ $extraStyles = [
                   $expires_ts   = strtotime($ar['expires_at']);
                   $hrs_left     = (int)ceil(($expires_ts - time()) / 3600);
                   $expires_soon = $hrs_left > 0 && $hrs_left <= 24;
+                  $__approvedTs  = strtotime($ar['approved_at'] ?? '') ?: 0;
+                  $__expiresTs   = $expires_ts ?: 0;
                 ?>
-                  <tr<?= $expires_soon ? ' class="reservation-row-warning"' : '' ?> data-reservation-row>
+                  <tr<?= $expires_soon ? ' class="reservation-row-warning"' : '' ?> data-reservation-row data-ts-sort="<?= $__approvedTs ?>" data-ts-approved="<?= $__approvedTs ?>" data-ts-expires="<?= $__expiresTs ?>">
                     <td data-label="Borrower">
                       <span class="reservation-main"><?= htmlspecialchars((string)$ar['borrower_name'], ENT_QUOTES, 'UTF-8') ?></span>
                       <span class="reservation-sub"><?= htmlspecialchars((string)$ar['borrower_email'], ENT_QUOTES, 'UTF-8') ?></span>
@@ -393,6 +410,15 @@ $extraStyles = [
       </section>
 
       <section id="reservation-panel-processed" class="reservation-panel" data-reservation-panel="processed" role="tabpanel" hidden>
+      <div class="reservation-filter-row" data-filter-group="history">
+        <button type="button" class="reservation-filter-chip active" data-filter="all">All History</button>
+        <button type="button" class="reservation-filter-chip" data-filter="approved">Approved</button>
+        <button type="button" class="reservation-filter-chip" data-filter="declined">Declined</button>
+        <button type="button" class="reservation-filter-chip" data-filter="completed">Completed</button>
+        <button type="button" class="reservation-filter-chip" data-filter="today">Today</button>
+        <button type="button" class="reservation-filter-chip" data-filter="week">This Week</button>
+        <button type="button" class="reservation-filter-chip" data-filter="month">This Month</button>
+      </div>
       <div class="section-card reservation-section-card">
         <div class="section-card__header">
           <span class="section-card__title">Approved and Declined History</span>
@@ -423,14 +449,16 @@ $extraStyles = [
               <tbody>
                 <?php foreach ($processed_rows as $processed):
                   $processedStatus = (string) ($processed['status'] ?? '');
-                  $isApproved = $processedStatus === RESERVATION_STATUS_APPROVED;
-                  $processedAt = $isApproved ? ($processed['approved_at'] ?? '') : ($processed['rejected_at'] ?? '');
-                  $processedBy = $isApproved ? ($processed['approved_by_name'] ?? '') : ($processed['rejected_by_name'] ?? '');
+                  $isApproved  = $processedStatus === RESERVATION_STATUS_APPROVED;
+                  $isFulfilled = $processedStatus === RESERVATION_STATUS_FULFILLED;
+                  $processedAt = $isApproved ? ($processed['approved_at'] ?? '') : ($isFulfilled ? ($processed['updated_at'] ?? '') : ($processed['rejected_at'] ?? ''));
+                  $processedBy = $isApproved ? ($processed['approved_by_name'] ?? '') : ($isFulfilled ? '—' : ($processed['rejected_by_name'] ?? ''));
+                  $__processedTs = strtotime($processedAt) ?: 0;
                 ?>
-                  <tr data-reservation-row>
+                  <tr data-reservation-row data-status="<?= htmlspecialchars($processedStatus, ENT_QUOTES, 'UTF-8') ?>" data-ts-processed="<?= $__processedTs ?>" data-ts-sort="<?= $__processedTs ?>">
                     <td data-label="Status">
-                      <span class="badge <?= $isApproved ? 'badge-green' : 'badge-red' ?>">
-                        <?= $isApproved ? 'Approved' : 'Declined' ?>
+                      <span class="badge <?= $isApproved ? 'badge-green' : ($isFulfilled ? 'badge-green' : 'badge-red') ?>">
+                        <?= $isApproved ? 'Approved' : ($isFulfilled ? 'Completed' : 'Declined') ?>
                       </span>
                     </td>
                     <td data-label="Reserved At"><?= htmlspecialchars(librarian_reservation_date($processed['reserved_at'] ?? null), ENT_QUOTES, 'UTF-8') ?></td>
@@ -478,21 +506,102 @@ $extraStyles = [
         })[0] || panels[0];
       }
 
+      function isToday(ts) {
+        if (!ts) return false;
+        var now = new Date();
+        var d = new Date(ts * 1000);
+        return d.getFullYear() === now.getFullYear() &&
+               d.getMonth() === now.getMonth() &&
+               d.getDate() === now.getDate();
+      }
+
+      function isThisWeek(ts) {
+        if (!ts) return false;
+        var now = new Date();
+        var d = new Date(ts * 1000);
+        var day = now.getDay();
+        var diff = now.getDate() - day + (day === 0 ? -6 : 1);
+        var weekStart = new Date(now.getFullYear(), now.getMonth(), diff);
+        weekStart.setHours(0, 0, 0, 0);
+        return d >= weekStart;
+      }
+
+      function isThisMonth(ts) {
+        if (!ts) return false;
+        var now = new Date();
+        var d = new Date(ts * 1000);
+        return d.getFullYear() === now.getFullYear() &&
+               d.getMonth() === now.getMonth();
+      }
+
+      function matchesRowFilter(row, filter, panelName) {
+        if (filter === 'all') return true;
+
+        if (panelName === 'pending') {
+          var ts = parseInt(row.getAttribute('data-ts-reserved') || '0');
+          if (filter === 'today') return isToday(ts);
+        }
+
+        if (panelName === 'pickup') {
+          var tsApproved = parseInt(row.getAttribute('data-ts-approved') || '0');
+          var tsExpires = parseInt(row.getAttribute('data-ts-expires') || '0');
+          if (filter === 'ready-today') return isToday(tsApproved);
+          if (filter === 'deadline-soon') {
+            if (!tsExpires) return false;
+            var secsLeft = tsExpires - Math.floor(Date.now() / 1000);
+            return secsLeft > 0 && secsLeft <= 86400;
+          }
+        }
+
+        if (panelName === 'processed') {
+          var status = row.getAttribute('data-status');
+          var ts = parseInt(row.getAttribute('data-ts-processed') || '0');
+          if (filter === 'approved') return status === 'approved';
+          if (filter === 'declined') return status === 'rejected';
+          if (filter === 'completed') return status === 'fulfilled';
+          if (filter === 'today') return isToday(ts);
+          if (filter === 'week') return isThisWeek(ts);
+          if (filter === 'month') return isThisMonth(ts);
+        }
+
+        return true;
+      }
+
       function applyFilter() {
         var panel = activePanel();
         var query = search ? search.value.trim().toLowerCase() : '';
+        var activeChip = panel.querySelector('[data-filter-group] [data-filter].active');
+        var filterVal = activeChip ? activeChip.getAttribute('data-filter') : 'all';
+        var panelName = panel.getAttribute('data-reservation-panel');
         var rows = Array.prototype.slice.call(panel.querySelectorAll('[data-reservation-row]'));
         var empty = panel.querySelector('[data-reservation-empty]');
         var shown = 0;
 
+        // Handle sort-only filters
+        if (filterVal === 'oldest' || filterVal === 'newest') {
+          var tbody = panel.querySelector('tbody');
+          if (tbody) {
+            rows.sort(function(a, b) {
+              var aTs = parseInt(a.getAttribute('data-ts-sort') || '0');
+              var bTs = parseInt(b.getAttribute('data-ts-sort') || '0');
+              return filterVal === 'oldest' ? aTs - bTs : bTs - aTs;
+            });
+            rows.forEach(function(row) { tbody.appendChild(row); });
+          }
+        }
+
+        // Apply search + status/date filter
         rows.forEach(function(row) {
-          var matches = query === '' || row.textContent.toLowerCase().indexOf(query) !== -1;
-          row.hidden = !matches;
-          if (matches) shown += 1;
+          var matchesSearch = query === '' || row.textContent.toLowerCase().indexOf(query) !== -1;
+          var matchesFilter = matchesRowFilter(row, filterVal, panelName);
+          row.hidden = !(matchesSearch && matchesFilter);
+          if (!row.hidden) shown++;
         });
 
         if (empty) {
-          empty.hidden = query === '' || shown > 0 || rows.length === 0;
+          var hasQuery = query !== '';
+          var hasFilter = filterVal !== 'all';
+          empty.hidden = rows.length === 0 || shown > 0 || (!hasQuery && !hasFilter);
         }
       }
 
@@ -512,9 +621,24 @@ $extraStyles = [
         applyFilter();
       }
 
+      // Tab clicks
       tabs.forEach(function(tab) {
         tab.addEventListener('click', function() {
           activate(tab.getAttribute('data-reservation-tab'));
+        });
+      });
+
+      // Filter chip clicks
+      document.querySelectorAll('[data-filter-group]').forEach(function(group) {
+        var chips = group.querySelectorAll('[data-filter]');
+        chips.forEach(function(chip) {
+          chip.addEventListener('click', function() {
+            var panel = group.closest('[data-reservation-panel]');
+            if (!panel || panel.hidden) return;
+            chips.forEach(function(c) { c.classList.remove('active'); });
+            chip.classList.add('active');
+            applyFilter();
+          });
         });
       });
 
