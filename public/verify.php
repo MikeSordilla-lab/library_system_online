@@ -13,7 +13,6 @@ require_once __DIR__ . '/../includes/constants.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/mailer.php';
-require_once __DIR__ . '/../includes/verification_email.php';
 require_once __DIR__ . '/../src/utils/rate_limit.php';
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -118,13 +117,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           $update = $pdo->prepare('UPDATE Users SET verification_token = ? WHERE id = ? LIMIT 1');
           $update->execute([$token, (int) $user['id']]);
 
+          $verify_link = BASE_URL . 'verify.php?email=' . urlencode($email);
+          $mail_body = '<!DOCTYPE html><html><body>'
+            . '<p>Hello ' . htmlspecialchars((string) $user['full_name'], ENT_QUOTES, 'UTF-8') . ',</p>'
+            . '<p>Your new verification code is:</p>'
+            . '<p style="font-size:32px;font-weight:bold;letter-spacing:8px;text-align:center;margin:24px 0;">'
+            . htmlspecialchars($token, ENT_QUOTES, 'UTF-8')
+            . '</p>'
+            . '<p style="text-align:center;"><a href="' . htmlspecialchars($verify_link, ENT_QUOTES, 'UTF-8') . '" style="display:inline-block;padding:10px 20px;background-color:#4CAF50;color:white;text-decoration:none;border-radius:4px;">Verify Email</a></p>'
+            . '<p style="text-align:center;">Or visit <a href="' . htmlspecialchars($verify_link, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($verify_link, ENT_QUOTES, 'UTF-8') . '</a> and enter this code.</p>'
+            . '<p>If you did not request this, you can ignore this message.</p>'
+            . '</body></html>';
+
+          $mail_alt = "Hello {$user['full_name']},\n\nYour new verification code is: {$token}\n\n"
+            . 'Visit ' . $verify_link . " and enter this code.\n\n"
+            . "If you did not request this, you can ignore this message.";
+
           $email_error = '';
-          $email_sent = send_verification_code_email(
+          $email_sent = send_smtp_mail(
             (string) $user['email'],
             (string) $user['full_name'],
-            $token,
-            $email_error,
-            'Your new LibraLink verification code'
+            'Your new LibraLink verification code',
+            $mail_body,
+            $mail_alt,
+            $email_error
           );
 
           if ($email_sent) {

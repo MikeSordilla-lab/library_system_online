@@ -11,7 +11,6 @@ require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/includes/auth-helpers.php';
 require_once __DIR__ . '/includes/mailer.php';
-require_once __DIR__ . '/includes/verification_email.php';
 require_once __DIR__ . '/includes/staff_approval.php';
 require_once __DIR__ . '/src/utils/helpers.php';
 require_once __DIR__ . '/src/utils/rate_limit.php';
@@ -34,7 +33,6 @@ $old         = [];   // repopulate form fields on validation failure
 $show_success = false;
 $show_check_email = false;
 $check_email_address = '';
-$registration_handled = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   csrf_verify();
@@ -87,67 +85,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       ensure_staff_approval_support($pdo);
 
       // --- 3. Duplicate email check (FR-003) ---
-      $stmt = $pdo->prepare(
-        'SELECT id, full_name, email, role, is_verified, is_suspended, staff_approval_status
-           FROM Users
-          WHERE email = ?
-          LIMIT 1'
-      );
+      $stmt = $pdo->prepare('SELECT id FROM Users WHERE email = ? LIMIT 1');
       $stmt->execute([$email]);
-      $existing_user = $stmt->fetch();
-      if ($existing_user) {
-        $can_resend_verification = (string) $existing_user['role'] === 'borrower'
-          && (int) $existing_user['is_verified'] === 0
-          && (int) $existing_user['is_suspended'] === 0;
-
-        if ($can_resend_verification) {
-          $token = (string) random_int(100000, 999999);
-          $password_hash = password_hash($password, PASSWORD_BCRYPT);
-
-          $update = $pdo->prepare(
-            'UPDATE Users
-                SET full_name = ?,
-                    password_hash = ?,
-                    verification_token = ?,
-                    staff_approval_status = ?
-              WHERE id = ?
-                AND role = ?
-                AND is_verified = 0
-              LIMIT 1'
-          );
-          $update->execute([
-            $full_name,
-            $password_hash,
-            $token,
-            STAFF_APPROVAL_NONE,
-            (int) $existing_user['id'],
-            'borrower',
-          ]);
-
-          $email_error = '';
-          $email_sent = send_verification_code_email(
-            $email,
-            $full_name,
-            $token,
-            $email_error,
-            'Your LibraLink verification code'
-          );
-
-          if ($email_sent) {
-            log_event($pdo, 'EMAIL_VERIFICATION_RESENT', null, 'Users', (int) $existing_user['id'], 'SUCCESS', null, $email);
-            $show_success = true;
-            $show_check_email = true;
-            $check_email_address = $email;
-            $registration_handled = true;
-          } else {
-            error_log('[register.php] Verification resend failed for existing user ' . (int) $existing_user['id'] . ': ' . $email_error);
-            log_event($pdo, 'EMAIL_SEND_FAILED', null, 'Users', (int) $existing_user['id'], 'FAILURE', null, $email);
-            $errors[] = 'We found an existing unverified account, but could not send a new verification email. Please contact support.';
-          }
-        } else {
-          // Security: Use generic message to prevent email enumeration attacks
-          $errors[] = 'Unable to complete registration. Please try another email address or contact support.';
-        }
+      if ($stmt->fetch()) {
+        // Security: Use generic message to prevent email enumeration attacks
+        $errors[] = 'Unable to complete registration. Please try another email address or contact support.';
       }
     } catch (PDOException $e) {
       error_log('[register.php] Duplicate check failed: ' . $e->getMessage());
@@ -155,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
   }
 
-  if (empty($errors) && !$registration_handled) {
+  if (empty($errors)) {
 
     try {
       $pdo = get_db();
@@ -201,10 +143,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email_sent = false;
         $email_error = '';
 
-      $email_sent = send_verification_code_email(
+      // Build verification link with email pre-filled
+      $verify_link = BASE_URL . 'verify.php?email=' . urlencode($email);
+
+      $mail_body = '<!DOCTYPE html><html><body>'
+        . '<p>Hello ' . htmlspecialchars($full_name, ENT_QUOTES, 'UTF-8') . ',</p>'
+        . '<p>Thank you for registering. Enter the verification code below on the verification page to activate your account:</p>'
+        . '<p style="font-size:32px;font-weight:bold;letter-spacing:8px;text-align:center;margin:24px 0;">'
+        . htmlspecialchars($token, ENT_QUOTES, 'UTF-8')
+        . '</p>'
+        . '<p style="text-align:center;"><a href="' . htmlspecialchars($verify_link, ENT_QUOTES, 'UTF-8') . '" style="display:inline-block;padding:10px 20px;background-color:#4CAF50;color:white;text-decoration:none;border-radius:4px;">Verify Email</a></p>'
+        . '<p style="text-align:center;">Or visit <a href="' . htmlspecialchars($verify_link, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($verify_link, ENT_QUOTES, 'UTF-8') . '</a> and enter this code.</p>'
+        . '<p>If you did not register, you can safely ignore this email.</p>'
+        . '</body></html>';
+
+      $mail_alt = "Hello {$full_name},\n\nYour verification code is: {$token}\n\n"
+        . 'Visit ' . $verify_link . " and enter this code.\n\n"
+        . "If you did not register, you can safely ignore this email.";
+
+      $email_sent = send_smtp_mail(
         $email,
         $full_name,
-        $token,
+        'Verify your LibraLink account',
+        $mail_body,
+        $mail_alt,
         $email_error
       );
 

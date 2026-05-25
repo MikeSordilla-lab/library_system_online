@@ -33,55 +33,6 @@ if (!function_exists('smtp_normalize_password')) {
   }
 }
 
-if (!function_exists('mail_header_value')) {
-  function mail_header_value(string $value): string
-  {
-    return trim(str_replace(["\r", "\n"], '', $value));
-  }
-}
-
-if (!function_exists('send_php_mail_fallback')) {
-  function send_php_mail_fallback(
-    string $toEmail,
-    string $toName,
-    string $subject,
-    string $htmlBody,
-    string &$error
-  ): bool {
-    if (!function_exists('mail')) {
-      $error = 'PHP mail() is not available.';
-      return false;
-    }
-
-    $fromEmail = trim(SMTP_FROM_EMAIL) !== '' ? SMTP_FROM_EMAIL : SMTP_USER;
-    if (!filter_var($fromEmail, FILTER_VALIDATE_EMAIL)) {
-      $error = 'PHP mail() fallback requires SMTP_FROM_EMAIL or SMTP_USER.';
-      return false;
-    }
-
-    $recipient = $toEmail;
-    if ($toName !== '') {
-      $recipient = mail_header_value($toName) . ' <' . $toEmail . '>';
-    }
-
-    $fromName = mail_header_value(SMTP_FROM_NAME !== '' ? SMTP_FROM_NAME : 'LibraLink');
-    $headers = [
-      'MIME-Version: 1.0',
-      'Content-Type: text/html; charset=UTF-8',
-      'From: ' . $fromName . ' <' . $fromEmail . '>',
-      'Reply-To: ' . $fromEmail,
-    ];
-
-    $sent = @mail($recipient, mail_header_value($subject), $htmlBody, implode("\r\n", $headers));
-    if (!$sent) {
-      $error = 'PHP mail() returned false.';
-      return false;
-    }
-
-    return true;
-  }
-}
-
 if (!function_exists('send_smtp_mail')) {
   function send_smtp_mail(
     string $toEmail,
@@ -99,12 +50,7 @@ if (!function_exists('send_smtp_mail')) {
     }
 
     if (trim(SMTP_HOST) === '' || trim(SMTP_USER) === '' || trim(SMTP_FROM_EMAIL) === '' || (int) SMTP_PORT <= 0) {
-      $smtp_error = 'SMTP configuration is incomplete.';
-      $fallback_error = '';
-      if (send_php_mail_fallback($toEmail, $toName, $subject, $htmlBody, $fallback_error)) {
-        return true;
-      }
-      $error = $smtp_error . ' Fallback failed: ' . $fallback_error;
+      $error = 'SMTP configuration is incomplete.';
       return false;
     }
 
@@ -143,17 +89,11 @@ if (!function_exists('send_smtp_mail')) {
       $mail->send();
       return true;
     } catch (\PHPMailer\PHPMailer\Exception $e) {
-      $smtp_error = $e->getMessage();
+      $error = $e->getMessage();
+      return false;
     } catch (\Throwable $e) {
-      $smtp_error = $e->getMessage();
+      $error = $e->getMessage();
+      return false;
     }
-
-    $fallback_error = '';
-    if (send_php_mail_fallback($toEmail, $toName, $subject, $htmlBody, $fallback_error)) {
-      return true;
-    }
-
-    $error = 'SMTP failed: ' . $smtp_error . ' Fallback failed: ' . $fallback_error;
-    return false;
   }
 }
