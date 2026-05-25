@@ -67,4 +67,30 @@ assert_true(staff_login_block_message([
   'staff_approval_status' => 'none',
 ]) === 'Your librarian account needs admin verification before you can sign in.', 'Unverified librarian message should mention admin verification.');
 
+assert_true(staff_approval_status_column_is_compatible([
+  'DATA_TYPE' => 'varchar',
+  'CHARACTER_MAXIMUM_LENGTH' => 20,
+  'IS_NULLABLE' => 'NO',
+  'COLUMN_DEFAULT' => 'none',
+]) === true, 'Production-compatible staff approval status schema should pass.');
+
+assert_true(staff_approval_status_column_is_compatible([
+  'DATA_TYPE' => 'enum',
+  'CHARACTER_MAXIMUM_LENGTH' => null,
+  'IS_NULLABLE' => 'NO',
+  'COLUMN_DEFAULT' => 'none',
+]) === false, 'Enum staff approval status schema should be repaired because it may reject new statuses.');
+
+assert_true(staff_column_is_nullable_varchar([
+  'DATA_TYPE' => 'varchar',
+  'CHARACTER_MAXIMUM_LENGTH' => 255,
+  'IS_NULLABLE' => 'YES',
+], 255) === true, 'Nullable rejection reason schema should pass.');
+
+assert_true(staff_column_is_nullable_varchar([
+  'DATA_TYPE' => 'varchar',
+  'CHARACTER_MAXIMUM_LENGTH' => 255,
+  'IS_NULLABLE' => 'NO',
+], 255) === false, 'Non-null rejection reason schema should be repaired.');
+
 echo "staff approval tests passed\n";

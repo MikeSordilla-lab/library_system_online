@@ -98,6 +98,53 @@ function staff_index_exists(PDO $pdo, string $index): bool
   return (int) $stmt->fetchColumn() > 0;
 }
 
+function staff_column_definition(PDO $pdo, string $column): ?array
+{
+  $stmt = $pdo->prepare(
+    'SELECT DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE, COLUMN_DEFAULT
+       FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = ?
+        AND COLUMN_NAME = ?
+      LIMIT 1'
+  );
+  $stmt->execute(['Users', $column]);
+  $definition = $stmt->fetch(PDO::FETCH_ASSOC);
+  return is_array($definition) ? $definition : null;
+}
+
+function staff_column_is_nullable_varchar(?array $definition, int $minimumLength): bool
+{
+  if (!$definition) {
+    return false;
+  }
+
+  $dataType = strtolower((string) ($definition['DATA_TYPE'] ?? ''));
+  $length = (int) ($definition['CHARACTER_MAXIMUM_LENGTH'] ?? 0);
+  $nullable = strtoupper((string) ($definition['IS_NULLABLE'] ?? ''));
+
+  return $dataType === 'varchar'
+    && $length >= $minimumLength
+    && $nullable === 'YES';
+}
+
+function staff_approval_status_column_is_compatible(?array $definition): bool
+{
+  if (!$definition) {
+    return false;
+  }
+
+  $dataType = strtolower((string) ($definition['DATA_TYPE'] ?? ''));
+  $length = (int) ($definition['CHARACTER_MAXIMUM_LENGTH'] ?? 0);
+  $nullable = strtoupper((string) ($definition['IS_NULLABLE'] ?? ''));
+  $default = (string) ($definition['COLUMN_DEFAULT'] ?? '');
+
+  return $dataType === 'varchar'
+    && $length >= 20
+    && $nullable === 'NO'
+    && $default === STAFF_APPROVAL_NONE;
+}
+
 function ensure_staff_approval_support(PDO $pdo): void
 {
   $columns = [
@@ -113,6 +160,14 @@ function ensure_staff_approval_support(PDO $pdo): void
     if (!staff_column_exists($pdo, $column)) {
       $pdo->exec($sql);
     }
+  }
+
+  if (!staff_approval_status_column_is_compatible(staff_column_definition($pdo, 'staff_approval_status'))) {
+    $pdo->exec("ALTER TABLE Users MODIFY COLUMN staff_approval_status VARCHAR(20) NOT NULL DEFAULT 'none'");
+  }
+
+  if (!staff_column_is_nullable_varchar(staff_column_definition($pdo, 'staff_rejection_reason'), 255)) {
+    $pdo->exec('ALTER TABLE Users MODIFY COLUMN staff_rejection_reason VARCHAR(255) NULL');
   }
 
   if (!staff_index_exists($pdo, 'idx_users_staff_approval')) {
