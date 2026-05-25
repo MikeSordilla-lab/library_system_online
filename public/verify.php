@@ -128,6 +128,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
           $token = (string) random_int(100000, 999999);
 
+          $update = $pdo->prepare('UPDATE Users SET verification_token = ? WHERE id = ? LIMIT 1');
+          $update->execute([$token, (int) $user['id']]);
+
           $verify_link = BASE_URL . 'verify.php?email=' . urlencode($email);
           $mail_body = '<!DOCTYPE html><html><body>'
             . '<p>Hello ' . htmlspecialchars((string) $user['full_name'], ENT_QUOTES, 'UTF-8') . ',</p>'
@@ -155,9 +158,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           );
 
           if ($email_sent) {
-            $update = $pdo->prepare('UPDATE Users SET verification_token = ? WHERE id = ? LIMIT 1');
-            $update->execute([$token, (int) $user['id']]);
-
             log_event(
               $pdo,
               'EMAIL_VERIFICATION_RESENT',
