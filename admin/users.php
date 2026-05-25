@@ -598,16 +598,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $upd->execute([STAFF_APPROVAL_REJECTED, $approval_actor_id, $reason, $user_id]);
       }
 
-      log_admin_action($pdo, [
-        'actor_id' => $approval_actor_id,
-        'actor_role' => 'admin',
-        'action_type' => $is_approval ? 'librarian_request_approve' : 'librarian_request_reject',
-        'target_entity' => 'Users',
-        'target_id' => $user_id,
-        'outcome' => 'success',
-      ]);
-
       $pdo->commit();
+
+      try {
+        log_admin_action($pdo, [
+          'actor_id' => $approval_actor_id,
+          'actor_role' => 'admin',
+          'action_type' => $is_approval ? 'librarian_request_approve' : 'librarian_request_reject',
+          'target_entity' => 'Users',
+          'target_id' => $user_id,
+          'outcome' => 'success',
+        ]);
+      } catch (PDOException $log_error) {
+        error_log('[admin/users.php] librarian request log DB error: ' . $log_error->getMessage());
+      }
+
       $_SESSION['flash_success'] = $is_approval
         ? 'Librarian request approved.'
         : 'Librarian request rejected.';
