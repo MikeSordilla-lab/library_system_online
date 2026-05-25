@@ -543,6 +543,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if ($post_action === 'approve_librarian_request' || $post_action === 'reject_librarian_request') {
     $user_id = (int) ($_POST['user_id'] ?? 0);
     $is_approval = $post_action === 'approve_librarian_request';
+    $approval_actor_id = $actor_id > 0 ? $actor_id : null;
 
     try {
       $pdo->beginTransaction();
@@ -579,7 +580,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             WHERE id = ?
             LIMIT 1'
         );
-        $upd->execute([STAFF_APPROVAL_APPROVED, $actor_id, $user_id]);
+        $upd->execute([STAFF_APPROVAL_APPROVED, $approval_actor_id, $user_id]);
       } else {
         $reason = trim((string) ($_POST['rejection_reason'] ?? ''));
         $upd = $pdo->prepare(
@@ -594,11 +595,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             WHERE id = ?
             LIMIT 1'
         );
-        $upd->execute([STAFF_APPROVAL_REJECTED, $actor_id, $reason, $user_id]);
+        $upd->execute([STAFF_APPROVAL_REJECTED, $approval_actor_id, $reason, $user_id]);
       }
 
       log_admin_action($pdo, [
-        'actor_id' => $actor_id,
+        'actor_id' => $approval_actor_id,
         'actor_role' => 'admin',
         'action_type' => $is_approval ? 'librarian_request_approve' : 'librarian_request_reject',
         'target_entity' => 'Users',
