@@ -47,4 +47,7 @@ assert_true(strpos($captured['headers'], 'From: =?UTF-8?B?') !== false, 'Fallbac
 assert_true(strpos($captured['subject'], "\r") === false && strpos($captured['subject'], "\n") === false, 'Fallback subject should not contain raw newlines.');
 assert_true(strpos($captured['recipient'], "\n") === false, 'Fallback recipient should not contain raw newlines.');
 
+$ports = smtp_candidate_ports(587, '2525, 587, 465, invalid, 0, 70000');
+assert_true($ports === [587, 2525, 465], 'SMTP candidates should keep valid unique ports in order.');
+
 echo "mailer fallback tests passed\n";

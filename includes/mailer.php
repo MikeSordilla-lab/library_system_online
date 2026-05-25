@@ -33,6 +33,27 @@ if (!function_exists('smtp_normalize_password')) {
   }
 }
 
+if (!function_exists('smtp_config_value')) {
+  function smtp_config_value(string $name, $default = '')
+  {
+    return defined($name) ? constant($name) : $default;
+  }
+}
+
+if (!function_exists('smtp_candidate_ports')) {
+  function smtp_candidate_ports(int $primaryPort, string $altPorts): array
+  {
+    $ports = [];
+    foreach (array_merge([$primaryPort], preg_split('/\s*,\s*/', trim($altPorts)) ?: []) as $port) {
+      $port = (int) $port;
+      if ($port > 0 && $port <= 65535 && !in_array($port, $ports, true)) {
+        $ports[] = $port;
+      }
+    }
+    return $ports;
+  }
+}
+
 if (!function_exists('mailer_clean_header_value')) {
   function mailer_clean_header_value(string $value): string
   {
@@ -121,33 +142,16 @@ if (!function_exists('send_php_mail_fallback')) {
   }
 }
 
-if (!function_exists('send_smtp_mail')) {
-  function send_smtp_mail(
+if (!function_exists('send_smtp_mail_once')) {
+  function send_smtp_mail_once(
     string $toEmail,
     string $toName,
     string $subject,
     string $htmlBody,
     string $altBody,
+    int $port,
     string &$error = ''
   ): bool {
-    $error = '';
-
-    if (!filter_var($toEmail, FILTER_VALIDATE_EMAIL)) {
-      $error = 'Invalid recipient email address.';
-      return false;
-    }
-
-    if (trim(SMTP_HOST) === '' || trim(SMTP_USER) === '' || trim(SMTP_FROM_EMAIL) === '' || (int) SMTP_PORT <= 0) {
-      $smtp_error = 'SMTP configuration is incomplete.';
-      $fallback_error = '';
-      if (send_php_mail_fallback($toEmail, $toName, $subject, $htmlBody, $altBody, $fallback_error)) {
-        return true;
-      }
-
-      $error = $smtp_error . ' Fallback failed: ' . $fallback_error;
-      return false;
-    }
-
     require_once __DIR__ . '/phpmailer/src/Exception.php';
     require_once __DIR__ . '/phpmailer/src/PHPMailer.php';
     require_once __DIR__ . '/phpmailer/src/SMTP.php';
@@ -168,8 +172,8 @@ if (!function_exists('send_smtp_mail')) {
         $mail->SMTPAutoTLS = false;
       }
 
-      $mail->Port = (int) SMTP_PORT;
-      $mail->Timeout = 25;
+      $mail->Port = $port;
+      $mail->Timeout = max(5, (int) smtp_config_value('SMTP_TIMEOUT', 25));
       $mail->CharSet = 'UTF-8';
 
       $mail->setFrom(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
@@ -181,11 +185,52 @@ if (!function_exists('send_smtp_mail')) {
       $mail->AltBody = $altBody;
 
       $mail->send();
+      $error = '';
       return true;
     } catch (\PHPMailer\PHPMailer\Exception $e) {
-      $smtp_error = $e->getMessage();
+      $error = $e->getMessage();
+      return false;
     } catch (\Throwable $e) {
-      $smtp_error = $e->getMessage();
+      $error = $e->getMessage();
+      return false;
+    }
+  }
+}
+
+if (!function_exists('send_smtp_mail')) {
+  function send_smtp_mail(
+    string $toEmail,
+    string $toName,
+    string $subject,
+    string $htmlBody,
+    string $altBody,
+    string &$error = ''
+  ): bool {
+    $error = '';
+
+    if (!filter_var($toEmail, FILTER_VALIDATE_EMAIL)) {
+      $error = 'Invalid recipient email address.';
+      return false;
+    }
+
+    if (trim(SMTP_HOST) === '' || trim(SMTP_USER) === '' || trim(SMTP_PASS) === '' || trim(SMTP_FROM_EMAIL) === '' || (int) SMTP_PORT <= 0) {
+      $smtp_error = 'SMTP configuration is incomplete.';
+      $fallback_error = '';
+      if (send_php_mail_fallback($toEmail, $toName, $subject, $htmlBody, $altBody, $fallback_error)) {
+        return true;
+      }
+
+      $error = $smtp_error . ' Fallback failed: ' . $fallback_error;
+      return false;
+    }
+
+    $smtp_errors = [];
+    foreach (smtp_candidate_ports((int) SMTP_PORT, (string) smtp_config_value('SMTP_ALT_PORTS', '')) as $port) {
+      $smtp_error = '';
+      if (send_smtp_mail_once($toEmail, $toName, $subject, $htmlBody, $altBody, $port, $smtp_error)) {
+        return true;
+      }
+      $smtp_errors[] = 'port ' . $port . ': ' . $smtp_error;
     }
 
     $fallback_error = '';
@@ -193,7 +238,7 @@ if (!function_exists('send_smtp_mail')) {
       return true;
     }
 
-    $error = 'SMTP failed: ' . $smtp_error . ' Fallback failed: ' . $fallback_error;
+    $error = 'SMTP failed: ' . implode(' | ', $smtp_errors) . ' Fallback failed: ' . $fallback_error;
     return false;
   }
 }

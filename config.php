@@ -209,11 +209,13 @@ define('DEVELOPER_PROJECT_3_URL', cfg_env('DEVELOPER_PROJECT_3_URL', ''));
 // 'tls' = STARTTLS (port 587), 'ssl' = SSL (port 465), '' = none
 define('SMTP_HOST', cfg_env('SMTP_HOST', 'smtp-relay.brevo.com'));
 define('SMTP_PORT', (int) cfg_env('SMTP_PORT', '587'));
+define('SMTP_ALT_PORTS', cfg_env('SMTP_ALT_PORTS', ''));
 define('SMTP_SECURE', cfg_env('SMTP_SECURE', 'tls'));
 define('SMTP_USER', cfg_env('SMTP_USER', ''));
 define('SMTP_PASS', cfg_env('SMTP_PASS', ''));
 define('SMTP_FROM_EMAIL', cfg_env('SMTP_FROM_EMAIL', ''));
 define('SMTP_FROM_NAME', cfg_env('SMTP_FROM_NAME', 'LibraLink'));
+define('SMTP_TIMEOUT', (int) cfg_env('SMTP_TIMEOUT', '25'));
 
 // Debug Mode (should be false in production)
 define('DEBUG_MODE', cfg_env_bool('DEBUG_MODE', false));
