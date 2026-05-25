@@ -590,7 +590,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                   staff_approval_status = ?,
                   staff_rejected_by = ?,
                   staff_rejected_at = NOW(),
-                  staff_rejection_reason = NULLIF(?, "")
+                  staff_rejection_reason = NULLIF(?, \'\')
             WHERE id = ?
             LIMIT 1'
         );
