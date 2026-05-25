@@ -576,14 +576,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                   staff_approval_status = ?,
                   staff_rejected_by = ?,
                   staff_rejected_at = NOW(),
-                  staff_rejection_reason = NULLIF(?, \'\')
+                  staff_rejection_reason = ?
             WHERE id = ?
               AND role = ?
               AND staff_approval_status = ?
               AND COALESCE(is_superadmin, 0) = 0
             LIMIT 1'
         );
-        $upd->execute([STAFF_APPROVAL_REJECTED, $approval_actor_id, $reason, $user_id, 'librarian', STAFF_APPROVAL_PENDING]);
+        $upd->execute([STAFF_APPROVAL_REJECTED, $approval_actor_id, $reason !== '' ? $reason : null, $user_id, 'librarian', STAFF_APPROVAL_PENDING]);
       }
 
       if ($upd->rowCount() < 1) {
@@ -610,7 +610,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         : 'Librarian request rejected.';
     } catch (PDOException $e) {
       error_log('[admin/users.php] librarian request update DB error: ' . $e->getMessage());
-      $_SESSION['flash_error_msg'] = 'We could not update the librarian request right now. Please try again.';
+      $_SESSION['flash_error_msg'] = 'We could not update the librarian request right now. DB error ' . $e->getCode() . ': ' . $e->getMessage();
     }
 
     header('Location: ' . $self_url);
