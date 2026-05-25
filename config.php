@@ -202,8 +202,9 @@ define('DEVELOPER_PROJECT_3_DESC', cfg_env('DEVELOPER_PROJECT_3_DESC', 'Profile 
 define('DEVELOPER_PROJECT_3_URL', cfg_env('DEVELOPER_PROJECT_3_URL', ''));
 
 // SMTP / Email Configuration (PHPMailer)
+// Brevo: host smtp-relay.brevo.com, STARTTLS on port 587. SMTP_PASS must be the Brevo SMTP key.
 // 'tls' = STARTTLS (port 587), 'ssl' = SSL (port 465), '' = none
-define('SMTP_HOST', cfg_env('SMTP_HOST', 'smtp.gmail.com'));
+define('SMTP_HOST', cfg_env('SMTP_HOST', 'smtp-relay.brevo.com'));
 define('SMTP_PORT', (int) cfg_env('SMTP_PORT', '587'));
 define('SMTP_SECURE', cfg_env('SMTP_SECURE', 'tls'));
 define('SMTP_USER', cfg_env('SMTP_USER', ''));

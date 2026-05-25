@@ -35,7 +35,7 @@ Upload this generated zip instead of a manual full-folder zip.
    - `DB_PASS`
    - `BASE_URL` (live URL with trailing slash)
    - `SUPERADMIN_EMAIL`
-   - `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME`
+   - `SMTP_HOST=smtp-relay.brevo.com`, `SMTP_PORT=587`, `SMTP_SECURE=tls`, `SMTP_USER` (Brevo SMTP login email), `SMTP_PASS` (Brevo SMTP key), `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME`
    - `DEBUG_MODE=false`
    - `DEVELOPER_*` metadata values you want shown in the admin About Me page
 3. Ensure `.env.mode` is set to `production` on the deployed server.
