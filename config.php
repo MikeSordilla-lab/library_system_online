@@ -7,6 +7,10 @@ if (!isset($GLOBALS['_APP_ENV']) || !is_array($GLOBALS['_APP_ENV'])) {
 
 $env_file = '';
 $envMode = '';
+$httpHost = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
+$httpHost = explode(':', $httpHost, 2)[0];
+$hasHttpHost = $httpHost !== '';
+$isLocalHost = in_array($httpHost, ['localhost', '127.0.0.1', '::1'], true);
 $envModeFile = __DIR__ . '/.env.mode';
 if (file_exists($envModeFile)) {
     $mode = trim((string) file_get_contents($envModeFile));
@@ -16,10 +20,9 @@ if (file_exists($envModeFile)) {
     }
 }
 
-if ($envMode === '') {
-    $httpHost = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
-    $httpHost = explode(':', $httpHost, 2)[0];
-    $isLocalHost = in_array($httpHost, ['localhost', '127.0.0.1', '::1'], true);
+if ($hasHttpHost && !$isLocalHost) {
+    $envMode = 'production';
+} elseif ($envMode === '') {
     $envMode = $isLocalHost ? 'local' : 'production';
 }
 
