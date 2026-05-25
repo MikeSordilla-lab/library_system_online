@@ -12,32 +12,34 @@ document.addEventListener('DOMContentLoaded', function () {
   const normalizedType = alertType === 'success' ? 'success' : 'error';
   const title = alertTitle || (normalizedType === 'success' ? 'Success' : 'Error');
 
+  const redirectIfNeeded = function () {
+    if (normalizedType === 'success' && alertRedirect) {
+      window.location.href = alertRedirect;
+    }
+  };
+
   const showWithFallback = function () {
-    if (typeof window.Swal === 'undefined') {
+    if (typeof window.Swal !== 'undefined') {
+      window.Swal.fire({
+        icon: normalizedType,
+        title: title,
+        text: alertMessage
+      }).then(redirectIfNeeded);
       return;
     }
 
-    window.Swal.fire({
-      icon: normalizedType,
-      title: title,
-      text: alertMessage
-    }).then(function () {
-      if (normalizedType === 'success' && alertRedirect) {
-        window.location.href = alertRedirect;
-      }
-    });
+    window.alert(title + '\n\n' + alertMessage);
+    redirectIfNeeded();
   };
 
-  if (typeof window.sweetAlertUtils === 'undefined') {
+  if (typeof window.sweetAlertUtils === 'undefined' || typeof window.Swal === 'undefined') {
     showWithFallback();
     return;
   }
 
   if (normalizedType === 'success') {
     window.sweetAlertUtils.showSuccess(title, alertMessage, 3000).then(function () {
-      if (alertRedirect) {
-        window.location.href = alertRedirect;
-      }
+      redirectIfNeeded();
     });
     return;
   }

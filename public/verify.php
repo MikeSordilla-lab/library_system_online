@@ -258,8 +258,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $pageTitle = 'Verify Email | LibraLink';
 $extraScripts = [
+  ['src' => BASE_URL . 'assets/js/verify-alert.js', 'defer' => true],
   ['src' => BASE_URL . 'assets/js/verify.js', 'defer' => true],
 ];
+
+$bodyAlertAttributes = '';
+if ($notice !== '') {
+  $bodyAlertAttributes = ' data-alert-type="success" data-alert-title="Code Sent" data-alert-message="' . htmlspecialchars($notice, ENT_QUOTES, 'UTF-8') . '"';
+} elseif ($error !== '') {
+  $bodyAlertAttributes = ' data-alert-type="error" data-alert-title="Verification Failed" data-alert-message="' . htmlspecialchars($error, ENT_QUOTES, 'UTF-8') . '"';
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -268,7 +276,7 @@ $extraScripts = [
   <?php require_once __DIR__ . '/../includes/head.php'; ?>
 </head>
 
-<body>
+<body<?= $bodyAlertAttributes ?>>
   <div class="auth-wrap page-fade-in">
 
     <div class="auth-hero" aria-hidden="true">
