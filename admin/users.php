@@ -1442,7 +1442,7 @@ $role_filter = trim((string) ($_GET['role'] ?? ''));
 $status_filter = trim((string) ($_GET['status'] ?? ''));
 
 $allowed_role_filters = ['admin', 'librarian', 'borrower'];
-$allowed_status_filters = ['active', 'inactive', 'pending_librarian'];
+$allowed_status_filters = ['active', 'inactive', 'pending_librarian', 'rejected_librarian'];
 
 if ($role_filter !== '' && !in_array($role_filter, $allowed_role_filters, true)) {
   $role_filter = '';
@@ -1475,6 +1475,10 @@ if ($status_filter === 'active') {
   $where_parts[] = 'role = :pending_role AND staff_approval_status = :pending_staff_status';
   $query_params[':pending_role'] = 'librarian';
   $query_params[':pending_staff_status'] = STAFF_APPROVAL_PENDING;
+} elseif ($status_filter === 'rejected_librarian') {
+  $where_parts[] = 'role = :rejected_role AND staff_approval_status = :rejected_staff_status';
+  $query_params[':rejected_role'] = 'librarian';
+  $query_params[':rejected_staff_status'] = STAFF_APPROVAL_REJECTED;
 }
 
 $where_sql = '';
@@ -1488,7 +1492,8 @@ $summary_stmt = $pdo->prepare(
       SUM(CASE WHEN is_suspended = 0 THEN 1 ELSE 0 END) AS active_users,
       SUM(CASE WHEN is_suspended = 1 THEN 1 ELSE 0 END) AS inactive_users,
       SUM(CASE WHEN role = "admin" THEN 1 ELSE 0 END) AS admin_users,
-      SUM(CASE WHEN role = "librarian" AND staff_approval_status = "pending" THEN 1 ELSE 0 END) AS pending_librarian_users
+      SUM(CASE WHEN role = "librarian" AND staff_approval_status = "pending" THEN 1 ELSE 0 END) AS pending_librarian_users,
+      SUM(CASE WHEN role = "librarian" AND staff_approval_status = "rejected" THEN 1 ELSE 0 END) AS rejected_librarian_users
      FROM Users' . $where_sql
 );
 foreach ($query_params as $key => $value) {
@@ -1502,6 +1507,7 @@ $active_users = (int) ($summary['active_users'] ?? 0);
 $inactive_users = (int) ($summary['inactive_users'] ?? 0);
 $admin_users = (int) ($summary['admin_users'] ?? 0);
 $pending_librarian_users = (int) ($summary['pending_librarian_users'] ?? 0);
+$rejected_librarian_users = (int) ($summary['rejected_librarian_users'] ?? 0);
 
 $allowed_per_page = [10, 25, 50, 100];
 $per_page = (int) ($_GET['per_page'] ?? 25);
@@ -1541,6 +1547,17 @@ $pending_librarian_stmt = $pdo->prepare(
 );
 $pending_librarian_stmt->execute(['librarian', STAFF_APPROVAL_PENDING]);
 $pending_librarian_requests = $pending_librarian_stmt->fetchAll();
+
+$rejected_librarian_stmt = $pdo->prepare(
+  'SELECT id, full_name, email, created_at, staff_rejected_at, staff_rejection_reason
+     FROM Users
+    WHERE role = ?
+      AND staff_approval_status = ?
+    ORDER BY staff_rejected_at DESC, created_at DESC, id DESC
+    LIMIT 5'
+);
+$rejected_librarian_stmt->execute(['librarian', STAFF_APPROVAL_REJECTED]);
+$rejected_librarian_requests = $rejected_librarian_stmt->fetchAll();
 
 $page_range_start = $total_users > 0 ? ($offset + 1) : 0;
 $page_range_end = $offset + count($users);
@@ -1758,6 +1775,17 @@ $has_feedback = $flash_success !== ''
                   <strong><?= (int) $pending_librarian_users ?></strong>
                   <span class="users-stat-label">Librarian Requests</span>
                 </li>
+                <li class="stat-card-tooltip" data-title="Librarian registrations rejected by admin">
+                  <span class="rd-stat-icon rd-i-orange" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="9" />
+                      <path d="M15 9l-6 6" />
+                      <path d="M9 9l6 6" />
+                    </svg>
+                  </span>
+                  <strong><?= (int) $rejected_librarian_users ?></strong>
+                  <span class="users-stat-label">Rejected Requests</span>
+                </li>
               </ul>
              </div>
            </div>
@@ -1810,6 +1838,42 @@ $has_feedback = $flash_success !== ''
           </section>
         <?php endif; ?>
 
+        <?php if (!empty($rejected_librarian_requests)): ?>
+          <section class="section-card users-pending-panel" aria-labelledby="rejected-librarian-title">
+            <div class="users-pending-panel__header">
+              <div>
+                <span class="users-pending-panel__eyebrow">Rejected requests</span>
+                <h2 id="rejected-librarian-title">Rejected Librarian Requests</h2>
+              </div>
+              <a class="btn-ghost users-pending-panel__filter" href="<?= htmlspecialchars($self_url . '?status=rejected_librarian', ENT_QUOTES, 'UTF-8') ?>">View all</a>
+            </div>
+
+            <div class="users-pending-list">
+              <?php foreach ($rejected_librarian_requests as $rejected): ?>
+                <?php
+                $rejected_name = htmlspecialchars((string) $rejected['full_name'], ENT_QUOTES, 'UTF-8');
+                $rejected_email = htmlspecialchars((string) $rejected['email'], ENT_QUOTES, 'UTF-8');
+                $rejected_at_raw = (string) ($rejected['staff_rejected_at'] ?? '');
+                $rejected_at_stamp = $rejected_at_raw !== '' ? strtotime($rejected_at_raw) : false;
+                $rejected_at_text = $rejected_at_stamp ? date('M j, Y', $rejected_at_stamp) : 'Unknown date';
+                $rejected_reason = trim((string) ($rejected['staff_rejection_reason'] ?? ''));
+                ?>
+                <article class="users-pending-item">
+                  <div class="users-pending-item__avatar" aria-hidden="true"><?= htmlspecialchars(mb_substr((string) $rejected['full_name'], 0, 1), ENT_QUOTES, 'UTF-8') ?></div>
+                  <div class="users-pending-item__identity">
+                    <strong><?= $rejected_name ?></strong>
+                    <span><?= $rejected_email ?></span>
+                    <small>Rejected <?= htmlspecialchars($rejected_at_text, ENT_QUOTES, 'UTF-8') ?></small>
+                    <?php if ($rejected_reason !== ''): ?>
+                      <small>Reason: <?= htmlspecialchars($rejected_reason, ENT_QUOTES, 'UTF-8') ?></small>
+                    <?php endif; ?>
+                  </div>
+                </article>
+              <?php endforeach; ?>
+            </div>
+          </section>
+        <?php endif; ?>
+
         <div class="section-card users-directory-card" id="users-directory">
           <div class="section-card__header users-directory-header">
             <div class="users-directory-header__content">
@@ -1844,10 +1908,12 @@ $has_feedback = $flash_success !== ''
                   <option value="active" <?= $status_filter === 'active' ? 'selected' : '' ?>>Active</option>
                   <option value="inactive" <?= $status_filter === 'inactive' ? 'selected' : '' ?>>Deactivated</option>
                   <option value="pending_librarian" <?= $status_filter === 'pending_librarian' ? 'selected' : '' ?>>Pending librarian</option>
+                  <option value="rejected_librarian" <?= $status_filter === 'rejected_librarian' ? 'selected' : '' ?>>Rejected librarian</option>
                 </select>
               </div>
               <div class="users-filter-actions">
                 <a href="<?= htmlspecialchars($self_url . '?status=pending_librarian', ENT_QUOTES, 'UTF-8') ?>" class="btn-ghost users-filter-chip<?= $status_filter === 'pending_librarian' ? ' is-active' : '' ?>">Pending librarian</a>
+                <a href="<?= htmlspecialchars($self_url . '?status=rejected_librarian', ENT_QUOTES, 'UTF-8') ?>" class="btn-ghost users-filter-chip<?= $status_filter === 'rejected_librarian' ? ' is-active' : '' ?>">Rejected librarian</a>
                 <button type="submit" class="btn-primary" aria-label="Search users">Search</button>
                 <?php if ($q !== '' || $role_filter !== '' || $status_filter !== ''): ?>
                   <a href="<?= htmlspecialchars($self_url, ENT_QUOTES, 'UTF-8') ?>" class="btn-ghost" aria-label="Clear search">Clear</a>

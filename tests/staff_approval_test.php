@@ -34,10 +34,26 @@ assert_true(staff_is_pending_librarian_request([
   'staff_approval_status' => 'approved',
 ]) === false, 'Approved librarian rows should not be pending.');
 
+assert_true(staff_is_rejected_librarian_request([
+  'role' => 'librarian',
+  'staff_approval_status' => 'rejected',
+]) === true, 'Rejected librarian rows should be detected.');
+
+assert_true(staff_is_rejected_librarian_request([
+  'role' => 'borrower',
+  'staff_approval_status' => 'rejected',
+]) === false, 'Rejected borrower rows should not be treated as librarian requests.');
+
 assert_true(staff_login_block_message([
   'role' => 'librarian',
   'staff_approval_status' => 'pending',
 ]) === 'Your librarian registration is waiting for admin approval.', 'Pending librarian login message should be specific.');
+
+assert_true(staff_login_block_message([
+  'role' => 'librarian',
+  'is_verified' => 0,
+  'staff_approval_status' => 'rejected',
+]) === 'Your librarian registration was not approved. Please contact the library.', 'Rejected librarian login message should be specific.');
 
 assert_true(staff_login_block_context([
   'role' => 'librarian',

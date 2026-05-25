@@ -40,20 +40,24 @@ function staff_is_pending_librarian_request(array $user): bool
     && (string) ($user['staff_approval_status'] ?? STAFF_APPROVAL_NONE) === STAFF_APPROVAL_PENDING;
 }
 
+function staff_is_rejected_librarian_request(array $user): bool
+{
+  return (string) ($user['role'] ?? '') === 'librarian'
+    && (string) ($user['staff_approval_status'] ?? STAFF_APPROVAL_NONE) === STAFF_APPROVAL_REJECTED;
+}
+
 function staff_login_block_message(array $user): string
 {
-  $status = (string) ($user['staff_approval_status'] ?? STAFF_APPROVAL_NONE);
-
   if (staff_is_pending_librarian_request($user)) {
     return 'Your librarian registration is waiting for admin approval.';
   }
 
-  if ((string) ($user['role'] ?? '') === 'librarian' && (int) ($user['is_verified'] ?? 0) !== 1) {
-    return 'Your librarian account needs admin verification before you can sign in.';
+  if (staff_is_rejected_librarian_request($user)) {
+    return 'Your librarian registration was not approved. Please contact the library.';
   }
 
-  if ((string) ($user['role'] ?? '') === 'librarian' && $status === STAFF_APPROVAL_REJECTED) {
-    return 'Your librarian registration was not approved. Please contact the library.';
+  if ((string) ($user['role'] ?? '') === 'librarian' && (int) ($user['is_verified'] ?? 0) !== 1) {
+    return 'Your librarian account needs admin verification before you can sign in.';
   }
 
   return 'Please verify your email before logging in.';
