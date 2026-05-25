@@ -19,12 +19,16 @@ ALTER TABLE `Users` MODIFY COLUMN `staff_approval_status` VARCHAR(20) NOT NULL D
   );
   PREPARE stmt FROM @add_staff_approved_by; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
+  ALTER TABLE `Users` MODIFY COLUMN `staff_approved_by` INT UNSIGNED NULL;
+
   SET @add_staff_approved_at := IF(
     EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME='Users' AND COLUMN_NAME='staff_approved_at'),
     'SELECT "skip Users.staff_approved_at"',
     'ALTER TABLE `Users` ADD COLUMN `staff_approved_at` DATETIME NULL AFTER `staff_approved_by`'
   );
   PREPARE stmt FROM @add_staff_approved_at; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+  ALTER TABLE `Users` MODIFY COLUMN `staff_approved_at` DATETIME NULL;
 
   SET @add_staff_rejected_by := IF(
     EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME='Users' AND COLUMN_NAME='staff_rejected_by'),
@@ -33,12 +37,16 @@ ALTER TABLE `Users` MODIFY COLUMN `staff_approval_status` VARCHAR(20) NOT NULL D
   );
   PREPARE stmt FROM @add_staff_rejected_by; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
+  ALTER TABLE `Users` MODIFY COLUMN `staff_rejected_by` INT UNSIGNED NULL;
+
   SET @add_staff_rejected_at := IF(
     EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME='Users' AND COLUMN_NAME='staff_rejected_at'),
     'SELECT "skip Users.staff_rejected_at"',
     'ALTER TABLE `Users` ADD COLUMN `staff_rejected_at` DATETIME NULL AFTER `staff_rejected_by`'
   );
   PREPARE stmt FROM @add_staff_rejected_at; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+  ALTER TABLE `Users` MODIFY COLUMN `staff_rejected_at` DATETIME NULL;
 
   SET @add_staff_rejection_reason := IF(
     EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME='Users' AND COLUMN_NAME='staff_rejection_reason'),

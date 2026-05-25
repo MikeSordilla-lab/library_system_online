@@ -93,4 +93,26 @@ assert_true(staff_column_is_nullable_varchar([
   'IS_NULLABLE' => 'NO',
 ], 255) === false, 'Non-null rejection reason schema should be repaired.');
 
+assert_true(staff_column_is_nullable_datetime([
+  'DATA_TYPE' => 'datetime',
+  'IS_NULLABLE' => 'YES',
+]) === true, 'Nullable staff timestamp schema should pass.');
+
+assert_true(staff_column_is_nullable_datetime([
+  'DATA_TYPE' => 'date',
+  'IS_NULLABLE' => 'YES',
+]) === false, 'Date-only staff timestamp schema should be repaired.');
+
+assert_true(staff_column_is_nullable_unsigned_int([
+  'DATA_TYPE' => 'int',
+  'COLUMN_TYPE' => 'int(10) unsigned',
+  'IS_NULLABLE' => 'YES',
+]) === true, 'Nullable unsigned staff actor schema should pass.');
+
+assert_true(staff_column_is_nullable_unsigned_int([
+  'DATA_TYPE' => 'int',
+  'COLUMN_TYPE' => 'int(11)',
+  'IS_NULLABLE' => 'YES',
+]) === false, 'Signed staff actor schema should be repaired.');
+
 echo "staff approval tests passed\n";

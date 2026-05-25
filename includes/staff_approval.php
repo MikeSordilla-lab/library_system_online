@@ -101,7 +101,7 @@ function staff_index_exists(PDO $pdo, string $index): bool
 function staff_column_definition(PDO $pdo, string $column): ?array
 {
   $stmt = $pdo->prepare(
-    'SELECT DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE, COLUMN_DEFAULT
+    'SELECT DATA_TYPE, COLUMN_TYPE, CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE, COLUMN_DEFAULT
        FROM INFORMATION_SCHEMA.COLUMNS
       WHERE TABLE_SCHEMA = DATABASE()
         AND TABLE_NAME = ?
@@ -125,6 +125,33 @@ function staff_column_is_nullable_varchar(?array $definition, int $minimumLength
 
   return $dataType === 'varchar'
     && $length >= $minimumLength
+    && $nullable === 'YES';
+}
+
+function staff_column_is_nullable_datetime(?array $definition): bool
+{
+  if (!$definition) {
+    return false;
+  }
+
+  $dataType = strtolower((string) ($definition['DATA_TYPE'] ?? ''));
+  $nullable = strtoupper((string) ($definition['IS_NULLABLE'] ?? ''));
+
+  return $dataType === 'datetime' && $nullable === 'YES';
+}
+
+function staff_column_is_nullable_unsigned_int(?array $definition): bool
+{
+  if (!$definition) {
+    return false;
+  }
+
+  $dataType = strtolower((string) ($definition['DATA_TYPE'] ?? ''));
+  $columnType = strtolower((string) ($definition['COLUMN_TYPE'] ?? ''));
+  $nullable = strtoupper((string) ($definition['IS_NULLABLE'] ?? ''));
+
+  return $dataType === 'int'
+    && strpos($columnType, 'unsigned') !== false
     && $nullable === 'YES';
 }
 
@@ -164,6 +191,22 @@ function ensure_staff_approval_support(PDO $pdo): void
 
   if (!staff_approval_status_column_is_compatible(staff_column_definition($pdo, 'staff_approval_status'))) {
     $pdo->exec("ALTER TABLE Users MODIFY COLUMN staff_approval_status VARCHAR(20) NOT NULL DEFAULT 'none'");
+  }
+
+  if (!staff_column_is_nullable_unsigned_int(staff_column_definition($pdo, 'staff_approved_by'))) {
+    $pdo->exec('ALTER TABLE Users MODIFY COLUMN staff_approved_by INT UNSIGNED NULL');
+  }
+
+  if (!staff_column_is_nullable_datetime(staff_column_definition($pdo, 'staff_approved_at'))) {
+    $pdo->exec('ALTER TABLE Users MODIFY COLUMN staff_approved_at DATETIME NULL');
+  }
+
+  if (!staff_column_is_nullable_unsigned_int(staff_column_definition($pdo, 'staff_rejected_by'))) {
+    $pdo->exec('ALTER TABLE Users MODIFY COLUMN staff_rejected_by INT UNSIGNED NULL');
+  }
+
+  if (!staff_column_is_nullable_datetime(staff_column_definition($pdo, 'staff_rejected_at'))) {
+    $pdo->exec('ALTER TABLE Users MODIFY COLUMN staff_rejected_at DATETIME NULL');
   }
 
   if (!staff_column_is_nullable_varchar(staff_column_definition($pdo, 'staff_rejection_reason'), 255)) {
