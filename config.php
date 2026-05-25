@@ -7,6 +7,10 @@ if (!isset($GLOBALS['_APP_ENV']) || !is_array($GLOBALS['_APP_ENV'])) {
 
 $env_file = '';
 $envMode = '';
+$httpHost = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
+$httpHost = explode(':', $httpHost, 2)[0];
+$isLocalHost = in_array($httpHost, ['localhost', '127.0.0.1', '::1'], true);
+$isCli = PHP_SAPI === 'cli';
 $envModeFile = __DIR__ . '/.env.mode';
 if (file_exists($envModeFile)) {
     $mode = trim((string) file_get_contents($envModeFile));
@@ -16,10 +20,12 @@ if (file_exists($envModeFile)) {
     }
 }
 
+// Do not let a deployed .env.mode=local force production web traffic onto local settings.
+if ($envMode === 'local' && !$isLocalHost && !$isCli) {
+    $envMode = 'production';
+}
+
 if ($envMode === '') {
-    $httpHost = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
-    $httpHost = explode(':', $httpHost, 2)[0];
-    $isLocalHost = in_array($httpHost, ['localhost', '127.0.0.1', '::1'], true);
     $envMode = $isLocalHost ? 'local' : 'production';
 }
 
