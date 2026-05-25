@@ -546,24 +546,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $approval_actor_id = $actor_id > 0 ? $actor_id : null;
 
     try {
-      $pdo->beginTransaction();
-
-      $stmt = $pdo->prepare(
-        'SELECT id, role, staff_approval_status, is_superadmin
-           FROM Users
-          WHERE id = ?
-          FOR UPDATE'
-      );
-      $stmt->execute([$user_id]);
-      $target = $stmt->fetch();
-
-      if (!$target || !staff_is_pending_librarian_request($target) || is_superadmin_user($target)) {
-        $pdo->rollBack();
-        $_SESSION['flash_error_msg'] = 'That pending librarian request was not found.';
-        header('Location: ' . $self_url);
-        exit;
-      }
-
       if ($is_approval) {
         $upd = $pdo->prepare(
           'UPDATE Users
@@ -578,9 +560,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                   staff_rejected_at = NULL,
                   staff_rejection_reason = NULL
             WHERE id = ?
+              AND role = ?
+              AND staff_approval_status = ?
+              AND COALESCE(is_superadmin, 0) = 0
             LIMIT 1'
         );
-        $upd->execute([STAFF_APPROVAL_APPROVED, $approval_actor_id, $user_id]);
+        $upd->execute([STAFF_APPROVAL_APPROVED, $approval_actor_id, $user_id, 'librarian', STAFF_APPROVAL_PENDING]);
       } else {
         $reason = trim((string) ($_POST['rejection_reason'] ?? ''));
         $upd = $pdo->prepare(
@@ -593,12 +578,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                   staff_rejected_at = NOW(),
                   staff_rejection_reason = NULLIF(?, \'\')
             WHERE id = ?
+              AND role = ?
+              AND staff_approval_status = ?
+              AND COALESCE(is_superadmin, 0) = 0
             LIMIT 1'
         );
-        $upd->execute([STAFF_APPROVAL_REJECTED, $approval_actor_id, $reason, $user_id]);
+        $upd->execute([STAFF_APPROVAL_REJECTED, $approval_actor_id, $reason, $user_id, 'librarian', STAFF_APPROVAL_PENDING]);
       }
 
-      $pdo->commit();
+      if ($upd->rowCount() < 1) {
+        $_SESSION['flash_error_msg'] = 'That pending librarian request was not found.';
+        header('Location: ' . $self_url);
+        exit;
+      }
 
       try {
         log_admin_action($pdo, [
@@ -617,9 +609,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ? 'Librarian request approved.'
         : 'Librarian request rejected.';
     } catch (PDOException $e) {
-      if ($pdo->inTransaction()) {
-        $pdo->rollBack();
-      }
       error_log('[admin/users.php] librarian request update DB error: ' . $e->getMessage());
       $_SESSION['flash_error_msg'] = 'We could not update the librarian request right now. Please try again.';
     }
