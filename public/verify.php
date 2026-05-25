@@ -13,7 +13,6 @@ require_once __DIR__ . '/../includes/constants.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/mailer.php';
-require_once __DIR__ . '/../includes/staff_approval.php';
 require_once __DIR__ . '/../src/utils/rate_limit.php';
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -77,7 +76,7 @@ $email = trim((string) ($_POST['email'] ?? $_GET['email'] ?? ''));
 function find_user_for_verification(PDO $pdo, string $email): ?array
 {
   $stmt = $pdo->prepare(
-    'SELECT id, full_name, email, role, is_verified, verification_token, staff_approval_status
+    'SELECT id, full_name, email, is_verified, verification_token
        FROM Users
       WHERE email = ?
       LIMIT 1'
@@ -87,21 +86,8 @@ function find_user_for_verification(PDO $pdo, string $email): ?array
   return $row === false ? null : $row;
 }
 
-function verification_login_redirect(array $user): string
-{
-  $role = (string) ($user['role'] ?? '');
-  $status = (string) ($user['staff_approval_status'] ?? STAFF_APPROVAL_NONE);
-
-  if ($role === 'librarian' && $status === STAFF_APPROVAL_PENDING) {
-    return BASE_URL . 'login.php?message=librarian_email_verified';
-  }
-
-  return BASE_URL . 'login.php?message=verified';
-}
-
 try {
   $pdo = get_db();
-  ensure_staff_approval_support($pdo);
 } catch (PDOException $e) {
   error_log('[verify.php] DB connection error: ' . $e->getMessage());
   http_response_code(500);
@@ -123,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($user === null) {
           $error = 'We could not find an account for that email address.';
         } elseif ((int) $user['is_verified'] === 1) {
-          header('Location: ' . verification_login_redirect($user));
+          header('Location: ' . BASE_URL . 'login.php?message=verified');
           exit;
         } else {
           $token = (string) random_int(100000, 999999);
@@ -211,7 +197,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($user === null) {
           $error = 'We could not find an account for this verification link.';
         } elseif ((int) $user['is_verified'] === 1) {
-          header('Location: ' . verification_login_redirect($user));
+          header('Location: ' . BASE_URL . 'login.php?message=verified');
           exit;
         } elseif (!hash_equals((string) ($user['verification_token'] ?? ''), $otp)) {
           otp_record_failure($email);
@@ -232,7 +218,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             WHERE id = ? AND is_verified = 0'
           );
           $update->execute([(int) $user['id']]);
-          $user['is_verified'] = 1;
 
           log_event(
             $pdo,
@@ -245,7 +230,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $email
           );
 
-          header('Location: ' . verification_login_redirect($user));
+          header('Location: ' . BASE_URL . 'login.php?message=verified');
           exit;
         }
       } catch (PDOException $e) {
@@ -261,7 +246,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       if ($user === null) {
         $error = 'We could not find an account for this verification link.';
       } elseif ((int) $user['is_verified'] === 1) {
-        header('Location: ' . verification_login_redirect($user));
+        header('Location: ' . BASE_URL . 'login.php?message=verified');
         exit;
       }
     } catch (PDOException $e) {

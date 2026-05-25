@@ -548,7 +548,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $pdo->beginTransaction();
 
       $stmt = $pdo->prepare(
-        'SELECT id, role, is_verified, staff_approval_status, is_superadmin
+        'SELECT id, role, staff_approval_status, is_superadmin
            FROM Users
           WHERE id = ?
           FOR UPDATE'
@@ -564,16 +564,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
 
       if ($is_approval) {
-        if ((int) ($target['is_verified'] ?? 0) !== 1) {
-          $pdo->rollBack();
-          $_SESSION['flash_error_msg'] = 'This librarian must verify their email before admin approval.';
-          header('Location: ' . $self_url);
-          exit;
-        }
-
         $upd = $pdo->prepare(
           'UPDATE Users
-              SET is_suspended = 0,
+              SET is_verified = 1,
+                  is_suspended = 0,
                   verified_at = COALESCE(verified_at, NOW()),
                   verification_token = NULL,
                   staff_approval_status = ?,
