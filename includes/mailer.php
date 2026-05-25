@@ -90,10 +90,57 @@ if (!function_exists('send_smtp_mail')) {
       return true;
     } catch (\PHPMailer\PHPMailer\Exception $e) {
       $error = $e->getMessage();
-      return false;
     } catch (\Throwable $e) {
       $error = $e->getMessage();
+    }
+
+    if (!function_exists('mail')) {
+      $error = 'SMTP failed: ' . $error . '; PHP mail() is unavailable.';
       return false;
     }
+
+    $fromEmail = trim((string) SMTP_FROM_EMAIL);
+    $fromName = trim((string) SMTP_FROM_NAME);
+    $encodedFromName = $fromName !== ''
+      ? '=?UTF-8?B?' . base64_encode($fromName) . '?='
+      : $fromEmail;
+
+    $headers = [
+      'MIME-Version: 1.0',
+      'Content-Type: text/html; charset=UTF-8',
+      'From: ' . $encodedFromName . ' <' . $fromEmail . '>',
+      'Reply-To: ' . $fromEmail,
+      'X-Mailer: PHP/' . PHP_VERSION,
+    ];
+
+    $fallbackError = '';
+    set_error_handler(static function (int $severity, string $message) use (&$fallbackError): bool {
+      $fallbackError = $message;
+      return true;
+    });
+
+    try {
+      $mailArgs = [
+        $toEmail,
+        $subject,
+        $htmlBody,
+        implode("\r\n", $headers),
+      ];
+
+      if (PHP_OS_FAMILY !== 'Windows' && $fromEmail !== '') {
+        $mailArgs[] = '-f' . $fromEmail;
+      }
+
+      $sent = mail(...$mailArgs);
+    } finally {
+      restore_error_handler();
+    }
+
+    if ($sent) {
+      return true;
+    }
+
+    $error = 'SMTP failed: ' . $error . '; PHP mail() failed' . ($fallbackError !== '' ? ': ' . $fallbackError : '.');
+    return false;
   }
 }
