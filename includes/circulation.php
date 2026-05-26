@@ -397,19 +397,6 @@ function expire_stale_reservations(PDO $pdo): int
     $changed = (int) $fallbackStmt->rowCount();
   }
 
-  if ($changed > 0) {
-    $restoreStmt = $pdo->prepare(
-      'UPDATE Books
-          SET available_copies = LEAST(available_copies + 1, total_copies)
-        WHERE id = ?'
-    );
-    foreach ($staleRows as $row) {
-      if ((string) ($row['status'] ?? '') === RESERVATION_STATUS_APPROVED) {
-        $restoreStmt->execute([(int) $row['book_id']]);
-      }
-    }
-  }
-
   if ($startedTransaction) {
     $pdo->commit();
   }
@@ -436,46 +423,6 @@ function transition_reservation_status(
 ): bool {
   $setParts = ['status = ?'];
   $params = [$toStatus];
-  $holdsCopy = $toStatus === RESERVATION_STATUS_APPROVED && $fromStatus !== RESERVATION_STATUS_APPROVED;
-  $releasesHeldCopy = $fromStatus === RESERVATION_STATUS_APPROVED
-    && !in_array($toStatus, [RESERVATION_STATUS_APPROVED, RESERVATION_STATUS_FULFILLED], true);
-  $inventoryBookId = 0;
-
-  if ($holdsCopy || $releasesHeldCopy) {
-    $bookStmt = $pdo->prepare(
-      'SELECT book_id
-         FROM Reservations
-        WHERE id = ? AND status = ?
-        FOR UPDATE'
-    );
-    $bookStmt->execute([$reservationId, $fromStatus]);
-    $bookId = $bookStmt->fetchColumn();
-    if ($bookId === false) {
-      return false;
-    }
-    $inventoryBookId = (int) $bookId;
-  }
-
-  if ($holdsCopy) {
-    $holdStmt = $pdo->prepare(
-      'UPDATE Books
-          SET available_copies = available_copies - 1
-        WHERE id = ?
-          AND available_copies > 0'
-    );
-    $holdStmt->execute([$inventoryBookId]);
-    if ($holdStmt->rowCount() < 1) {
-      log_circulation($pdo, [
-        'actor_id'      => (int) ($meta['actor_id'] ?? 0),
-        'actor_role'    => (string) ($meta['actor_role'] ?? ''),
-        'action_type'   => (string) ($meta['action_type'] ?? ('reservation_' . $toStatus)),
-        'target_entity' => 'Reservations',
-        'target_id'     => $reservationId,
-        'outcome'       => LOG_OUTCOME_FAILURE,
-      ]);
-      return false;
-    }
-  }
 
   if (reservation_column_exists($pdo, 'updated_at')) {
     $setParts[] = 'updated_at = NOW()';
@@ -518,24 +465,6 @@ function transition_reservation_status(
   $stmt->execute($params);
   $changed = $stmt->rowCount() > 0;
 
-  if (!$changed && $holdsCopy) {
-    $restoreStmt = $pdo->prepare(
-      'UPDATE Books
-          SET available_copies = LEAST(available_copies + 1, total_copies)
-        WHERE id = ?'
-    );
-    $restoreStmt->execute([$inventoryBookId]);
-  }
-
-  if ($changed && $releasesHeldCopy) {
-    $releaseStmt = $pdo->prepare(
-      'UPDATE Books
-          SET available_copies = LEAST(available_copies + 1, total_copies)
-        WHERE id = ?'
-    );
-    $releaseStmt->execute([$inventoryBookId]);
-  }
-
   log_circulation($pdo, [
     'actor_id'      => (int) ($meta['actor_id'] ?? 0),
     'actor_role'    => (string) ($meta['actor_role'] ?? ''),
@@ -575,7 +504,16 @@ function reject_pending_reservations_when_no_copies_left(
     return [];
   }
 
-  if ((int) $book['available_copies'] > 0) {
+  $approvedStmt = $pdo->prepare(
+    'SELECT COUNT(*)
+       FROM Reservations
+      WHERE book_id = ?
+        AND status = ?'
+  );
+  $approvedStmt->execute([$bookId, RESERVATION_STATUS_APPROVED]);
+  $approvedHolds = (int) $approvedStmt->fetchColumn();
+
+  if (((int) $book['available_copies'] - $approvedHolds) > 0) {
     return [];
   }
 

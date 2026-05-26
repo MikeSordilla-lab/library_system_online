@@ -153,7 +153,7 @@ test_case($pdo, 'checkout fulfills only approved borrower reservation', function
   assert_true((int) $reservation['id'] === $pendingId, 'Selected reservation should be the approved reservation.');
 });
 
-test_case($pdo, 'approval removes competing pending reservations when no copies remain', function (PDO $pdo): void {
+test_case($pdo, 'approval removes competing pending reservations without decrementing copies', function (PDO $pdo): void {
   $librarianId = seed_user($pdo, 'queue-librarian', ROLE_LIBRARIAN);
   $firstUser = seed_user($pdo, 'queue-first');
   $secondUser = seed_user($pdo, 'queue-second');
@@ -176,7 +176,7 @@ test_case($pdo, 'approval removes competing pending reservations when no copies 
 
   $copiesStmt = $pdo->prepare('SELECT available_copies FROM Books WHERE id = ?');
   $copiesStmt->execute([$bookId]);
-  assert_true((int) $copiesStmt->fetchColumn() === 0, 'Approving a one-copy reservation should make the book unavailable.');
+  assert_true((int) $copiesStmt->fetchColumn() === 1, 'Approving a reservation should not decrement available copies.');
 
   $removed = reject_pending_reservations_when_no_copies_left($pdo, $bookId, $librarianId, ROLE_LIBRARIAN);
   assert_true(count($removed) === 1, 'Exactly one competing reservation should be removed.');
@@ -203,7 +203,35 @@ test_case($pdo, 'approval removes competing pending reservations when no copies 
   assert_true($changed === true, 'Cancelling an approved reservation should succeed.');
 
   $copiesStmt->execute([$bookId]);
-  assert_true((int) $copiesStmt->fetchColumn() === 1, 'Cancelling an approved reservation should restore the held copy.');
+  assert_true((int) $copiesStmt->fetchColumn() === 1, 'Cancelling an approved reservation should not change available copies.');
+});
+
+test_case($pdo, 'pickup decrements approved reservation copy when fulfilled', function (PDO $pdo): void {
+  $librarianId = seed_user($pdo, 'pickup-librarian', ROLE_LIBRARIAN);
+  $borrowerId = seed_user($pdo, 'pickup-borrower');
+  $bookId = seed_book($pdo, 'pickup-one-copy', 1, 1);
+  $reservationId = seed_reservation($pdo, $borrowerId, $bookId, RESERVATION_STATUS_APPROVED);
+
+  $updStmt = $pdo->prepare('UPDATE Books SET available_copies = available_copies - 1 WHERE id = ? AND available_copies > 0');
+  $updStmt->execute([$bookId]);
+  assert_true($updStmt->rowCount() === 1, 'Pickup should decrement the available copy.');
+
+  $changed = transition_reservation_status(
+    $pdo,
+    $reservationId,
+    RESERVATION_STATUS_APPROVED,
+    RESERVATION_STATUS_FULFILLED,
+    [
+      'actor_id' => $librarianId,
+      'actor_role' => ROLE_LIBRARIAN,
+      'action_type' => 'reservation_fulfill',
+    ]
+  );
+  assert_true($changed === true, 'Pickup should fulfill the approved reservation.');
+
+  $copiesStmt = $pdo->prepare('SELECT available_copies FROM Books WHERE id = ?');
+  $copiesStmt->execute([$bookId]);
+  assert_true((int) $copiesStmt->fetchColumn() === 0, 'Available copies should decrement only after pickup.');
 });
 
 test_case($pdo, 'borrower reservation rejects books with no available copies', function (PDO $pdo): void {
@@ -215,6 +243,20 @@ test_case($pdo, 'borrower reservation rejects books with no available copies', f
   $result = BorrowerReservationModule::place($pdo, $userId, $bookId, ROLE_BORROWER);
 
   assert_true($result['success'] === false, 'Reservation should fail when no copies are available.');
+  assert_true($result['reason_code'] === 'no_available_copies', 'Expected no_available_copies reason.');
+});
+
+test_case($pdo, 'borrower reservation counts approved pickups against available copies', function (PDO $pdo): void {
+  require_once __DIR__ . '/../includes/BorrowerReservationModule.php';
+
+  $approvedUser = seed_user($pdo, 'approved-pickup');
+  $requestingUser = seed_user($pdo, 'approved-pickup-later');
+  $bookId = seed_book($pdo, 'approved-pickup-copy', 1, 1);
+  seed_reservation($pdo, $approvedUser, $bookId, RESERVATION_STATUS_APPROVED);
+
+  $result = BorrowerReservationModule::place($pdo, $requestingUser, $bookId, ROLE_BORROWER);
+
+  assert_true($result['success'] === false, 'Reservation should fail when the only copy is already approved for pickup.');
   assert_true($result['reason_code'] === 'no_available_copies', 'Expected no_available_copies reason.');
 });
 

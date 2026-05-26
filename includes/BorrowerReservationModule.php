@@ -39,7 +39,16 @@ class BorrowerReservationModule
       return ['success' => false, 'reason_code' => 'book_not_borrowable'];
     }
 
-    if ((int) $book['available_copies'] < 1) {
+    $approvedStmt = $pdo->prepare(
+      'SELECT COUNT(*)
+         FROM Reservations
+        WHERE book_id = ?
+          AND status = ?'
+    );
+    $approvedStmt->execute([$bookId, RESERVATION_STATUS_APPROVED]);
+    $approvedHolds = (int) $approvedStmt->fetchColumn();
+
+    if (((int) $book['available_copies'] - $approvedHolds) < 1) {
       return ['success' => false, 'reason_code' => 'no_available_copies'];
     }
 

@@ -95,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $book_stmt->execute([$book_id]);
     $book = $book_stmt->fetch();
 
-    if (!$book || ($action !== 'pickup' && (int) $book['available_copies'] < 1)) {
+    if (!$book || (int) $book['available_copies'] < 1) {
       log_circulation($pdo, [
         'actor_id'      => $actor_id,
         'actor_role'    => $actor_role,
@@ -211,34 +211,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'status' => RESERVATION_STATUS_APPROVED,
       ];
     } else {
-      // Fulfill reservation queue deterministically: approved first, fallback pending.
-      $res_pick_stmt = $pdo->prepare(
-        'SELECT id, status
-           FROM Reservations
-          WHERE user_id = ?
-            AND book_id = ?
-            AND status IN (?, ?)
-          ORDER BY
-            CASE status WHEN ? THEN 0 ELSE 1 END ASC,
-            reserved_at ASC,
-            id ASC
-          LIMIT 1
-          FOR UPDATE'
-      );
-      $res_pick_stmt->execute([
-        $user_id,
-        $book_id,
-        RESERVATION_STATUS_APPROVED,
-        RESERVATION_STATUS_PENDING,
-        RESERVATION_STATUS_APPROVED,
-      ]);
-      $reservationToFulfill = $res_pick_stmt->fetch();
+      $reservationToFulfill = checkout_reservation_to_fulfill($pdo, $user_id, $book_id);
     }
 
-    $usesHeldCopy = $reservationToFulfill
-      && (string) $reservationToFulfill['status'] === RESERVATION_STATUS_APPROVED;
-
-    if (!$usesHeldCopy && (int) $book['available_copies'] < 1) {
+    if ((int) $book['available_copies'] < 1) {
       log_circulation($pdo, [
         'actor_id'      => $actor_id,
         'actor_role'    => $actor_role,
@@ -253,7 +229,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       exit;
     }
 
-    // T011 — Create the loan, decrement available_copies when no approved hold already did, then log success
+    $reservationPolicy = checkout_reservation_policy($pdo, $user_id, $book_id);
+    if (!$reservationPolicy['allowed']) {
+      log_circulation($pdo, [
+        'actor_id'      => $actor_id,
+        'actor_role'    => $actor_role,
+        'action_type'   => 'checkout',
+        'target_entity' => 'Reservations',
+        'target_id'     => (int) ($reservationPolicy['reservation_id'] ?? 0),
+        'outcome'       => 'failure',
+      ]);
+      $pdo->commit();
+      $_SESSION['flash_error'] = 'This book is approved for another borrower pickup.';
+      header('Location: ' . BASE_URL . 'librarian/checkout.php');
+      exit;
+    }
+
+    // T011 — Create the loan, decrement available_copies, then log success
     $loan_days = get_loan_period($pdo);
 
     $ins_stmt = $pdo->prepare(
@@ -274,12 +266,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $loan_meta_stmt->execute([$new_loan_id]);
     $loan_meta = $loan_meta_stmt->fetch();
 
-    if (!$usesHeldCopy) {
-      $upd_stmt = $pdo->prepare(
-        'UPDATE Books SET available_copies = available_copies - 1 WHERE id = ?'
-      );
-      $upd_stmt->execute([$book_id]);
-    }
+    $upd_stmt = $pdo->prepare(
+      'UPDATE Books SET available_copies = available_copies - 1 WHERE id = ?'
+    );
+    $upd_stmt->execute([$book_id]);
 
     if ($reservationToFulfill) {
       transition_reservation_status(
