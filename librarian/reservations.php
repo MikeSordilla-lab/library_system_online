@@ -11,6 +11,7 @@ $allowed_roles = ['librarian'];
 require_once __DIR__ . '/../includes/auth_guard.php';
 require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/circulation.php';
+require_once __DIR__ . '/../includes/mailer.php';
 
 $pdo = get_db();
 
@@ -34,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     expire_stale_reservations($pdo);
 
     $lockStmt = $pdo->prepare(
-      'SELECT id, status
+      'SELECT id, book_id, status
          FROM Reservations
         WHERE id = ?
         FOR UPDATE'
@@ -70,10 +71,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]
       );
 
+      $autoRejected = [];
+      if ($changed) {
+        $autoRejected = reject_pending_reservations_when_no_copies_left(
+          $pdo,
+          (int) $reservation['book_id'],
+          $actorId,
+          $actorRole
+        );
+      }
+
       $pdo->commit();
 
+      foreach ($autoRejected as $rejectedReservation) {
+        $mailError = '';
+        if (!send_reservation_unavailable_mail(
+          (string) $rejectedReservation['borrower_email'],
+          (string) $rejectedReservation['borrower_name'],
+          (string) $rejectedReservation['book_title'],
+          $mailError
+        )) {
+          error_log('[reservations.php] auto-rejection email failed for reservation '
+            . (int) $rejectedReservation['id'] . ': ' . $mailError);
+        }
+      }
+
       if ($changed) {
-        $_SESSION['flash_success'] = 'Reservation approved.';
+        $_SESSION['flash_success'] = 'Reservation approved.'
+          . (!empty($autoRejected)
+            ? ' ' . count($autoRejected) . ' competing reservation(s) were removed and notified.'
+            : '');
       } else {
         $_SESSION['flash_info'] = 'Reservation status changed by another request.';
       }

@@ -242,3 +242,28 @@ if (!function_exists('send_smtp_mail')) {
     return false;
   }
 }
+
+if (!function_exists('send_reservation_unavailable_mail')) {
+  function send_reservation_unavailable_mail(
+    string $toEmail,
+    string $toName,
+    string $bookTitle,
+    string &$error = ''
+  ): bool {
+    $safeName = htmlspecialchars($toName !== '' ? $toName : 'Borrower', ENT_QUOTES, 'UTF-8');
+    $safeTitle = htmlspecialchars($bookTitle !== '' ? $bookTitle : 'your requested book', ENT_QUOTES, 'UTF-8');
+
+    $subject = 'Reservation unavailable: ' . ($bookTitle !== '' ? $bookTitle : 'requested book');
+    $htmlBody = '<p>Hello ' . $safeName . ',</p>'
+      . '<p>Your reservation for <strong>' . $safeTitle . '</strong> was removed because another reservation was approved first and there are no available copies left.</p>'
+      . '<p>You may reserve the book again when a copy becomes available.</p>'
+      . '<p>Thank you,<br>LibraLink</p>';
+    $altBody = "Hello " . ($toName !== '' ? $toName : 'Borrower') . ",\n\n"
+      . "Your reservation for " . ($bookTitle !== '' ? $bookTitle : 'your requested book')
+      . " was removed because another reservation was approved first and there are no available copies left.\n\n"
+      . "You may reserve the book again when a copy becomes available.\n\n"
+      . "Thank you,\nLibraLink";
+
+    return send_smtp_mail($toEmail, $toName, $subject, $htmlBody, $altBody, $error);
+  }
+}

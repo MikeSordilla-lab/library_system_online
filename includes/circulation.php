@@ -444,6 +444,88 @@ function transition_reservation_status(
 }
 
 /**
+ * Reject pending same-book reservations when approved holds consume all available copies.
+ *
+ * @return array<int, array{id: int, user_id: int, borrower_name: string, borrower_email: string, book_title: string}>
+ */
+function reject_pending_reservations_when_no_copies_left(
+  PDO $pdo,
+  int $bookId,
+  int $actorId,
+  string $actorRole
+): array {
+  if (!$pdo->inTransaction()) {
+    throw new RuntimeException('reject_pending_reservations_when_no_copies_left must be called inside an active transaction.');
+  }
+
+  $bookStmt = $pdo->prepare(
+    'SELECT id, title, available_copies
+       FROM Books
+      WHERE id = ?
+      FOR UPDATE'
+  );
+  $bookStmt->execute([$bookId]);
+  $book = $bookStmt->fetch();
+  if (!$book) {
+    return [];
+  }
+
+  $approvedStmt = $pdo->prepare(
+    'SELECT id
+       FROM Reservations
+      WHERE book_id = ?
+        AND status = ?
+      FOR UPDATE'
+  );
+  $approvedStmt->execute([$bookId, RESERVATION_STATUS_APPROVED]);
+  $approvedCount = count($approvedStmt->fetchAll());
+
+  if (((int) $book['available_copies'] - $approvedCount) > 0) {
+    return [];
+  }
+
+  $pendingStmt = $pdo->prepare(
+    'SELECT r.id, r.user_id,
+            u.full_name AS borrower_name, u.email AS borrower_email,
+            b.title AS book_title
+       FROM Reservations r
+       JOIN Users u ON u.id = r.user_id
+       JOIN Books b ON b.id = r.book_id
+      WHERE r.book_id = ?
+        AND r.status = ?
+      ORDER BY r.reserved_at ASC, r.id ASC
+      FOR UPDATE'
+  );
+  $pendingStmt->execute([$bookId, RESERVATION_STATUS_PENDING]);
+  $pendingRows = $pendingStmt->fetchAll();
+
+  foreach ($pendingRows as $row) {
+    transition_reservation_status(
+      $pdo,
+      (int) $row['id'],
+      RESERVATION_STATUS_PENDING,
+      RESERVATION_STATUS_REJECTED,
+      [
+        'actor_id' => $actorId,
+        'actor_role' => $actorRole,
+        'action_type' => 'reservation_auto_reject_no_copies',
+        'rejection_reason' => 'No available copy left after an earlier reservation was approved.',
+      ]
+    );
+  }
+
+  return array_map(static function (array $row): array {
+    return [
+      'id' => (int) $row['id'],
+      'user_id' => (int) $row['user_id'],
+      'borrower_name' => (string) ($row['borrower_name'] ?? ''),
+      'borrower_email' => (string) ($row['borrower_email'] ?? ''),
+      'book_title' => (string) ($row['book_title'] ?? ''),
+    ];
+  }, $pendingRows);
+}
+
+/**
  * Return whether a checkout can proceed under reservation rules.
  *
  * @return array{allowed: bool, reason_code: string|null, reservation_id?: int}

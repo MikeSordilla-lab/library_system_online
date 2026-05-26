@@ -153,6 +153,39 @@ test_case($pdo, 'checkout fulfills only approved borrower reservation', function
   assert_true((int) $reservation['id'] === $pendingId, 'Selected reservation should be the approved reservation.');
 });
 
+test_case($pdo, 'approval removes competing pending reservations when no copies remain', function (PDO $pdo): void {
+  $librarianId = seed_user($pdo, 'queue-librarian', ROLE_LIBRARIAN);
+  $firstUser = seed_user($pdo, 'queue-first');
+  $secondUser = seed_user($pdo, 'queue-second');
+  $bookId = seed_book($pdo, 'queue-one-copy', 1, 1);
+  $firstReservation = seed_reservation($pdo, $firstUser, $bookId, RESERVATION_STATUS_PENDING);
+  $secondReservation = seed_reservation($pdo, $secondUser, $bookId, RESERVATION_STATUS_PENDING);
+
+  $changed = transition_reservation_status(
+    $pdo,
+    $firstReservation,
+    RESERVATION_STATUS_PENDING,
+    RESERVATION_STATUS_APPROVED,
+    [
+      'actor_id' => $librarianId,
+      'actor_role' => ROLE_LIBRARIAN,
+      'action_type' => 'reservation_approve',
+    ]
+  );
+  assert_true($changed === true, 'First reservation should be approved.');
+
+  $removed = reject_pending_reservations_when_no_copies_left($pdo, $bookId, $librarianId, ROLE_LIBRARIAN);
+  assert_true(count($removed) === 1, 'Exactly one competing reservation should be removed.');
+  assert_true((int) $removed[0]['id'] === $secondReservation, 'Second reservation should be removed.');
+
+  $stmt = $pdo->prepare('SELECT status, rejection_reason FROM Reservations WHERE id = ?');
+  $stmt->execute([$secondReservation]);
+  $row = $stmt->fetch();
+
+  assert_true($row['status'] === RESERVATION_STATUS_REJECTED, 'Competing reservation should be rejected.');
+  assert_true(strpos((string) $row['rejection_reason'], 'No available copy left') !== false, 'Rejection reason should explain copy availability.');
+});
+
 test_case($pdo, 'borrower reservation rejects missing book', function (PDO $pdo): void {
   require_once __DIR__ . '/../includes/BorrowerReservationModule.php';
   $userId = seed_user($pdo, 'missing-book');
