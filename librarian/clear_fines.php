@@ -146,9 +146,6 @@ switch ($filter) {
   case 'overdue':
     $where_conditions[] = "c.status = 'overdue'";
     break;
-  case 'lost_damaged':
-    $where_conditions[] = '1 = 0';
-    break;
   case 'this_week':
     $where_conditions[] = 'YEARWEEK(c.checkout_date, 1) = YEARWEEK(CURDATE(), 1)';
     break;
@@ -313,7 +310,6 @@ $extraStyles  = [
           <option value="unpaid"      <?= $filter === 'unpaid'      ? 'selected' : '' ?>>Unpaid</option>
           <option value="paid"        <?= $filter === 'paid'        ? 'selected' : '' ?>>Paid</option>
           <option value="overdue"     <?= $filter === 'overdue'     ? 'selected' : '' ?>>Overdue Fine</option>
-          <option value="lost_damaged"<?= $filter === 'lost_damaged' ? 'selected' : '' ?>>Lost / Damaged Book Fine</option>
           <option value="this_week"   <?= $filter === 'this_week'   ? 'selected' : '' ?>>This Week</option>
           <option value="this_month"  <?= $filter === 'this_month'  ? 'selected' : '' ?>>This Month</option>
         </select>
