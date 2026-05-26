@@ -184,6 +184,9 @@ $extraStyles = [
   'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap',
   $base_url . 'assets/css/borrower-redesign.css'
 ];
+$extraScripts = [
+  $base_url . 'assets/js/date-calendar-fields.js'
+];
 
 ob_start();
 ?>
@@ -239,6 +242,42 @@ ob_start();
   color: var(--rd-text, #111827);
   font-family: inherit;
   font-size: 0.95rem;
+}
+.date-calendar-field {
+  position: relative;
+}
+.date-calendar-field input[data-calendar-text] {
+  padding-right: 3rem;
+}
+.date-calendar-field input[data-calendar-hidden] {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 0.5rem;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.date-calendar-trigger {
+  position: absolute;
+  right: 0.45rem;
+  bottom: 0.42rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 0;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: var(--rd-text-muted, #6b7280);
+  cursor: pointer;
+}
+.date-calendar-trigger:hover,
+.date-calendar-trigger:focus-visible {
+  background: rgba(196, 164, 69, 0.16);
+  color: var(--rd-text, #111827);
+  outline: none;
 }
 .receipt-filters__actions {
   display: flex;
@@ -415,11 +454,23 @@ $pageStyles = ob_get_clean();
         <div class="receipt-filters__row">
           <div class="receipt-filters__field">
             <label for="receipt-date-from">From</label>
-            <input id="receipt-date-from" type="text" name="date_from" inputmode="numeric" maxlength="8" pattern="\d{2}-\d{2}-\d{2}" placeholder="mm-dd-yy" value="<?= htmlspecialchars($date_from, ENT_QUOTES, 'UTF-8') ?>">
+            <div class="date-calendar-field" data-calendar-field>
+              <input id="receipt-date-from" type="text" name="date_from" inputmode="numeric" maxlength="8" pattern="\d{2}-\d{2}-\d{2}" placeholder="mm-dd-yy" value="<?= htmlspecialchars($date_from, ENT_QUOTES, 'UTF-8') ?>" data-calendar-text>
+              <input type="date" tabindex="-1" aria-hidden="true" data-calendar-hidden>
+              <button type="button" class="date-calendar-trigger" data-calendar-trigger aria-label="Open From calendar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>
+              </button>
+            </div>
           </div>
           <div class="receipt-filters__field">
             <label for="receipt-date-to">To</label>
-            <input id="receipt-date-to" type="text" name="date_to" inputmode="numeric" maxlength="8" pattern="\d{2}-\d{2}-\d{2}" placeholder="mm-dd-yy" value="<?= htmlspecialchars($date_to, ENT_QUOTES, 'UTF-8') ?>">
+            <div class="date-calendar-field" data-calendar-field>
+              <input id="receipt-date-to" type="text" name="date_to" inputmode="numeric" maxlength="8" pattern="\d{2}-\d{2}-\d{2}" placeholder="mm-dd-yy" value="<?= htmlspecialchars($date_to, ENT_QUOTES, 'UTF-8') ?>" data-calendar-text>
+              <input type="date" tabindex="-1" aria-hidden="true" data-calendar-hidden>
+              <button type="button" class="date-calendar-trigger" data-calendar-trigger aria-label="Open To calendar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>
+              </button>
+            </div>
           </div>
           <div class="receipt-filters__actions">
             <button type="submit" class="rd-btn rd-btn-primary">Apply</button>

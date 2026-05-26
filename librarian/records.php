@@ -169,6 +169,9 @@ $extraStyles = [
   BASE_URL . 'assets/css/borrower-redesign.css',
   BASE_URL . 'assets/css/librarian-redesign.css'
 ];
+$extraScripts = [
+  BASE_URL . 'assets/js/date-calendar-fields.js'
+];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -198,6 +201,47 @@ $extraStyles = [
       .records-table th, .records-table td { font-size: 11px !important; padding: 4px 6px !important; }
       .col-action { display: none !important; }
       .print-meta { font-size: 10px; color: #666; text-align: right; margin-top: 12px; }
+    }
+
+    .date-calendar-field {
+      position: relative;
+    }
+
+    .date-calendar-field input[data-calendar-text] {
+      padding-right: 3rem;
+    }
+
+    .date-calendar-field input[data-calendar-hidden] {
+      position: absolute;
+      right: 0.75rem;
+      bottom: 0.5rem;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .date-calendar-trigger {
+      position: absolute;
+      right: 0.45rem;
+      bottom: 0.42rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.25rem;
+      height: 2.25rem;
+      border: 0;
+      border-radius: 0.4rem;
+      background: transparent;
+      color: var(--muted, #6b7280);
+      cursor: pointer;
+    }
+
+    .date-calendar-trigger:hover,
+    .date-calendar-trigger:focus-visible {
+      background: rgba(196, 164, 69, 0.16);
+      color: var(--ink, #111827);
+      outline: none;
     }
   </style>
 </head>
@@ -267,32 +311,46 @@ $extraStyles = [
 
             <div class="records-filter-group">
               <label for="filter-date-from">Checkout From</label>
-              <input
-                class="field-input"
-                type="text"
-                id="filter-date-from"
-                name="date_from"
-                inputmode="numeric"
-                maxlength="8"
-                pattern="\d{2}-\d{2}-\d{2}"
-                placeholder="mm-dd-yy"
-                value="<?= htmlspecialchars($filter_date_from, ENT_QUOTES, 'UTF-8') ?>"
-              >
+              <div class="date-calendar-field" data-calendar-field>
+                <input
+                  class="field-input"
+                  type="text"
+                  id="filter-date-from"
+                  name="date_from"
+                  inputmode="numeric"
+                  maxlength="8"
+                  pattern="\d{2}-\d{2}-\d{2}"
+                  placeholder="mm-dd-yy"
+                  value="<?= htmlspecialchars($filter_date_from, ENT_QUOTES, 'UTF-8') ?>"
+                  data-calendar-text
+                >
+                <input type="date" tabindex="-1" aria-hidden="true" data-calendar-hidden>
+                <button type="button" class="date-calendar-trigger" data-calendar-trigger aria-label="Open Checkout From calendar">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>
+                </button>
+              </div>
             </div>
 
             <div class="records-filter-group">
               <label for="filter-date-to">Checkout To</label>
-              <input
-                class="field-input"
-                type="text"
-                id="filter-date-to"
-                name="date_to"
-                inputmode="numeric"
-                maxlength="8"
-                pattern="\d{2}-\d{2}-\d{2}"
-                placeholder="mm-dd-yy"
-                value="<?= htmlspecialchars($filter_date_to, ENT_QUOTES, 'UTF-8') ?>"
-              >
+              <div class="date-calendar-field" data-calendar-field>
+                <input
+                  class="field-input"
+                  type="text"
+                  id="filter-date-to"
+                  name="date_to"
+                  inputmode="numeric"
+                  maxlength="8"
+                  pattern="\d{2}-\d{2}-\d{2}"
+                  placeholder="mm-dd-yy"
+                  value="<?= htmlspecialchars($filter_date_to, ENT_QUOTES, 'UTF-8') ?>"
+                  data-calendar-text
+                >
+                <input type="date" tabindex="-1" aria-hidden="true" data-calendar-hidden>
+                <button type="button" class="date-calendar-trigger" data-calendar-trigger aria-label="Open Checkout To calendar">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>
+                </button>
+              </div>
             </div>
 
             <div style="display:flex;gap:var(--space-2);align-items:flex-end;flex-shrink:0;">
