@@ -338,8 +338,34 @@ function mark_returned_positive_fines_paid(PDO $pdo, int $userId): array
  */
 function expire_stale_reservations(PDO $pdo): int
 {
+  $startedTransaction = false;
+  if (!$pdo->inTransaction()) {
+    $pdo->beginTransaction();
+    $startedTransaction = true;
+  }
+
   $fromStates = reservation_open_statuses();
   $placeholders = implode(', ', array_fill(0, count($fromStates), '?'));
+
+  $staleSelect = $pdo->prepare(
+    "SELECT id, book_id, status
+       FROM Reservations
+      WHERE status IN ($placeholders)
+        AND expires_at < NOW()
+      FOR UPDATE"
+  );
+  $staleSelect->execute($fromStates);
+  $staleRows = $staleSelect->fetchAll();
+
+  if (empty($staleRows)) {
+    if ($startedTransaction) {
+      $pdo->commit();
+    }
+    return 0;
+  }
+
+  $staleIds = array_map(static fn(array $row): int => (int) $row['id'], $staleRows);
+  $idPlaceholders = implode(', ', array_fill(0, count($staleIds), '?'));
 
   $setParts = ['status = ?'];
   if (reservation_column_exists($pdo, 'updated_at')) {
@@ -349,25 +375,46 @@ function expire_stale_reservations(PDO $pdo): int
 
   $sql = "UPDATE Reservations
              SET $setClause
-            WHERE status IN ($placeholders)
-              AND expires_at < NOW()";
+           WHERE id IN ($idPlaceholders)
+             AND status IN ($placeholders)
+             AND expires_at < NOW()";
 
-  $params = array_merge([RESERVATION_STATUS_EXPIRED], $fromStates);
+  $params = array_merge([RESERVATION_STATUS_EXPIRED], $staleIds, $fromStates);
 
   try {
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
-    return (int) $stmt->rowCount();
+    $changed = (int) $stmt->rowCount();
   } catch (Throwable $e) {
     // Compatibility fallback for legacy status enum schemas that do not include 'expired'.
     $fallback = "UPDATE Reservations
                     SET $setClause
-                  WHERE status IN ($placeholders)
+                  WHERE id IN ($idPlaceholders)
+                    AND status IN ($placeholders)
                     AND expires_at < NOW()";
     $fallbackStmt = $pdo->prepare($fallback);
-    $fallbackStmt->execute(array_merge([RESERVATION_STATUS_CANCELLED], $fromStates));
-    return (int) $fallbackStmt->rowCount();
+    $fallbackStmt->execute(array_merge([RESERVATION_STATUS_CANCELLED], $staleIds, $fromStates));
+    $changed = (int) $fallbackStmt->rowCount();
   }
+
+  if ($changed > 0) {
+    $restoreStmt = $pdo->prepare(
+      'UPDATE Books
+          SET available_copies = LEAST(available_copies + 1, total_copies)
+        WHERE id = ?'
+    );
+    foreach ($staleRows as $row) {
+      if ((string) ($row['status'] ?? '') === RESERVATION_STATUS_APPROVED) {
+        $restoreStmt->execute([(int) $row['book_id']]);
+      }
+    }
+  }
+
+  if ($startedTransaction) {
+    $pdo->commit();
+  }
+
+  return $changed;
 }
 
 /**
@@ -389,6 +436,46 @@ function transition_reservation_status(
 ): bool {
   $setParts = ['status = ?'];
   $params = [$toStatus];
+  $holdsCopy = $toStatus === RESERVATION_STATUS_APPROVED && $fromStatus !== RESERVATION_STATUS_APPROVED;
+  $releasesHeldCopy = $fromStatus === RESERVATION_STATUS_APPROVED
+    && !in_array($toStatus, [RESERVATION_STATUS_APPROVED, RESERVATION_STATUS_FULFILLED], true);
+  $inventoryBookId = 0;
+
+  if ($holdsCopy || $releasesHeldCopy) {
+    $bookStmt = $pdo->prepare(
+      'SELECT book_id
+         FROM Reservations
+        WHERE id = ? AND status = ?
+        FOR UPDATE'
+    );
+    $bookStmt->execute([$reservationId, $fromStatus]);
+    $bookId = $bookStmt->fetchColumn();
+    if ($bookId === false) {
+      return false;
+    }
+    $inventoryBookId = (int) $bookId;
+  }
+
+  if ($holdsCopy) {
+    $holdStmt = $pdo->prepare(
+      'UPDATE Books
+          SET available_copies = available_copies - 1
+        WHERE id = ?
+          AND available_copies > 0'
+    );
+    $holdStmt->execute([$inventoryBookId]);
+    if ($holdStmt->rowCount() < 1) {
+      log_circulation($pdo, [
+        'actor_id'      => (int) ($meta['actor_id'] ?? 0),
+        'actor_role'    => (string) ($meta['actor_role'] ?? ''),
+        'action_type'   => (string) ($meta['action_type'] ?? ('reservation_' . $toStatus)),
+        'target_entity' => 'Reservations',
+        'target_id'     => $reservationId,
+        'outcome'       => LOG_OUTCOME_FAILURE,
+      ]);
+      return false;
+    }
+  }
 
   if (reservation_column_exists($pdo, 'updated_at')) {
     $setParts[] = 'updated_at = NOW()';
@@ -431,6 +518,24 @@ function transition_reservation_status(
   $stmt->execute($params);
   $changed = $stmt->rowCount() > 0;
 
+  if (!$changed && $holdsCopy) {
+    $restoreStmt = $pdo->prepare(
+      'UPDATE Books
+          SET available_copies = LEAST(available_copies + 1, total_copies)
+        WHERE id = ?'
+    );
+    $restoreStmt->execute([$inventoryBookId]);
+  }
+
+  if ($changed && $releasesHeldCopy) {
+    $releaseStmt = $pdo->prepare(
+      'UPDATE Books
+          SET available_copies = LEAST(available_copies + 1, total_copies)
+        WHERE id = ?'
+    );
+    $releaseStmt->execute([$inventoryBookId]);
+  }
+
   log_circulation($pdo, [
     'actor_id'      => (int) ($meta['actor_id'] ?? 0),
     'actor_role'    => (string) ($meta['actor_role'] ?? ''),
@@ -470,17 +575,7 @@ function reject_pending_reservations_when_no_copies_left(
     return [];
   }
 
-  $approvedStmt = $pdo->prepare(
-    'SELECT id
-       FROM Reservations
-      WHERE book_id = ?
-        AND status = ?
-      FOR UPDATE'
-  );
-  $approvedStmt->execute([$bookId, RESERVATION_STATUS_APPROVED]);
-  $approvedCount = count($approvedStmt->fetchAll());
-
-  if (((int) $book['available_copies'] - $approvedCount) > 0) {
+  if ((int) $book['available_copies'] > 0) {
     return [];
   }
 

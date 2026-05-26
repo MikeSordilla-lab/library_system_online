@@ -95,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $book_stmt->execute([$book_id]);
     $book = $book_stmt->fetch();
 
-    if (!$book || (int) $book['available_copies'] < 1) {
+    if (!$book || ($action !== 'pickup' && (int) $book['available_copies'] < 1)) {
       log_circulation($pdo, [
         'actor_id'      => $actor_id,
         'actor_role'    => $actor_role,
@@ -205,32 +205,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       exit;
     }
 
-    // T011 — Create the loan, decrement available_copies, write success log
-    $loan_days = get_loan_period($pdo);
-
-    $ins_stmt = $pdo->prepare(
-      'INSERT INTO Circulation (user_id, book_id, due_date, status)
-             VALUES (?, ?, NOW() + INTERVAL ? DAY, \'active\')'
-    );
-    $ins_stmt->execute([$user_id, $book_id, $loan_days]);
-    $new_loan_id = (int) $pdo->lastInsertId();
-
-    $loan_meta_stmt = $pdo->prepare(
-      'SELECT c.due_date, b.title, u.full_name
-         FROM Circulation c
-         JOIN Books b ON c.book_id = b.id
-         JOIN Users u ON c.user_id = u.id
-        WHERE c.id = ?
-        LIMIT 1'
-    );
-    $loan_meta_stmt->execute([$new_loan_id]);
-    $loan_meta = $loan_meta_stmt->fetch();
-
-    $upd_stmt = $pdo->prepare(
-      'UPDATE Books SET available_copies = available_copies - 1 WHERE id = ?'
-    );
-    $upd_stmt->execute([$book_id]);
-
     if ($action === 'pickup') {
       $reservationToFulfill = [
         'id' => $pickup_reservation_id,
@@ -259,6 +233,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         RESERVATION_STATUS_APPROVED,
       ]);
       $reservationToFulfill = $res_pick_stmt->fetch();
+    }
+
+    $usesHeldCopy = $reservationToFulfill
+      && (string) $reservationToFulfill['status'] === RESERVATION_STATUS_APPROVED;
+
+    if (!$usesHeldCopy && (int) $book['available_copies'] < 1) {
+      log_circulation($pdo, [
+        'actor_id'      => $actor_id,
+        'actor_role'    => $actor_role,
+        'action_type'   => 'checkout',
+        'target_entity' => 'Books',
+        'target_id'     => $book_id,
+        'outcome'       => 'failure',
+      ]);
+      $pdo->commit();
+      $_SESSION['flash_error'] = 'No available copies for the selected book.';
+      header('Location: ' . BASE_URL . 'librarian/checkout.php');
+      exit;
+    }
+
+    // T011 — Create the loan, decrement available_copies when no approved hold already did, then log success
+    $loan_days = get_loan_period($pdo);
+
+    $ins_stmt = $pdo->prepare(
+      'INSERT INTO Circulation (user_id, book_id, due_date, status)
+             VALUES (?, ?, NOW() + INTERVAL ? DAY, \'active\')'
+    );
+    $ins_stmt->execute([$user_id, $book_id, $loan_days]);
+    $new_loan_id = (int) $pdo->lastInsertId();
+
+    $loan_meta_stmt = $pdo->prepare(
+      'SELECT c.due_date, b.title, u.full_name
+         FROM Circulation c
+         JOIN Books b ON c.book_id = b.id
+         JOIN Users u ON c.user_id = u.id
+        WHERE c.id = ?
+        LIMIT 1'
+    );
+    $loan_meta_stmt->execute([$new_loan_id]);
+    $loan_meta = $loan_meta_stmt->fetch();
+
+    if (!$usesHeldCopy) {
+      $upd_stmt = $pdo->prepare(
+        'UPDATE Books SET available_copies = available_copies - 1 WHERE id = ?'
+      );
+      $upd_stmt->execute([$book_id]);
     }
 
     if ($reservationToFulfill) {
@@ -563,6 +583,7 @@ $co_base_url = BASE_URL . 'librarian/checkout.php';
                     $expires_ts = strtotime((string) $pickup['expires_at']);
                     $expires_soon = $expires_ts !== false && $expires_ts > time() && (int) ceil(($expires_ts - time()) / 3600) <= 24;
                     $copies_available = (int) $pickup['available_copies'];
+                    $copies_label = $copies_available > 0 ? ($copies_available . ' available') : 'Reserved copy';
                   ?>
                     <tr<?= $expires_soon ? ' style="background:rgba(201,168,76,.1);"' : '' ?>>
                       <td data-label="Borrower"><?= htmlspecialchars((string) $pickup['borrower_name'], ENT_QUOTES, 'UTF-8') ?></td>
@@ -582,13 +603,13 @@ $co_base_url = BASE_URL . 'librarian/checkout.php';
                           <span class="badge badge-amber" style="margin-left:4px;">Expiring soon</span>
                         <?php endif; ?>
                       </td>
-                      <td data-label="Copies"><?= $copies_available ?> available</td>
+                      <td data-label="Copies"><?= htmlspecialchars($copies_label, ENT_QUOTES, 'UTF-8') ?></td>
                       <td data-label="Action">
                         <form method="POST" action="<?= htmlspecialchars(BASE_URL . 'librarian/checkout.php', ENT_QUOTES, 'UTF-8') ?>" class="table-action-form">
                           <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                           <input type="hidden" name="action" value="pickup">
                           <input type="hidden" name="reservation_id" value="<?= (int) $pickup['id'] ?>">
-                          <button type="submit" class="btn-confirm" <?= $copies_available < 1 ? 'disabled' : '' ?>>Pickup</button>
+                          <button type="submit" class="btn-confirm">Pickup</button>
                         </form>
                       </td>
                     </tr>

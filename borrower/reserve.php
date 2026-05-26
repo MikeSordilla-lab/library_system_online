@@ -182,6 +182,8 @@ function _reserve_place_error(string $reason_code, PDO $pdo, int $userId): strin
       return 'Book not found. It may have been removed from the catalog.';
     case 'book_not_borrowable':
       return 'This book is not currently borrowable.';
+    case 'no_available_copies':
+      return 'No available copies are left for reservation.';
     default:
       return 'Cannot place reservation. Please try again.';
   }

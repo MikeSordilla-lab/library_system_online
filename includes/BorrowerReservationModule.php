@@ -39,6 +39,10 @@ class BorrowerReservationModule
       return ['success' => false, 'reason_code' => 'book_not_borrowable'];
     }
 
+    if ((int) $book['available_copies'] < 1) {
+      return ['success' => false, 'reason_code' => 'no_available_copies'];
+    }
+
     $unpaidFines = get_unpaid_fines_total($pdo, $userId);
     if ($unpaidFines > 0.0) {
       return ['success' => false, 'reason_code' => 'delinquent'];

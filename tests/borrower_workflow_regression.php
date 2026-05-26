@@ -174,6 +174,10 @@ test_case($pdo, 'approval removes competing pending reservations when no copies 
   );
   assert_true($changed === true, 'First reservation should be approved.');
 
+  $copiesStmt = $pdo->prepare('SELECT available_copies FROM Books WHERE id = ?');
+  $copiesStmt->execute([$bookId]);
+  assert_true((int) $copiesStmt->fetchColumn() === 0, 'Approving a one-copy reservation should make the book unavailable.');
+
   $removed = reject_pending_reservations_when_no_copies_left($pdo, $bookId, $librarianId, ROLE_LIBRARIAN);
   assert_true(count($removed) === 1, 'Exactly one competing reservation should be removed.');
   assert_true((int) $removed[0]['id'] === $secondReservation, 'Second reservation should be removed.');
@@ -184,6 +188,34 @@ test_case($pdo, 'approval removes competing pending reservations when no copies 
 
   assert_true($row['status'] === RESERVATION_STATUS_REJECTED, 'Competing reservation should be rejected.');
   assert_true(strpos((string) $row['rejection_reason'], 'No available copy left') !== false, 'Rejection reason should explain copy availability.');
+
+  $changed = transition_reservation_status(
+    $pdo,
+    $firstReservation,
+    RESERVATION_STATUS_APPROVED,
+    RESERVATION_STATUS_CANCELLED,
+    [
+      'actor_id' => $firstUser,
+      'actor_role' => ROLE_BORROWER,
+      'action_type' => 'reservation_cancel',
+    ]
+  );
+  assert_true($changed === true, 'Cancelling an approved reservation should succeed.');
+
+  $copiesStmt->execute([$bookId]);
+  assert_true((int) $copiesStmt->fetchColumn() === 1, 'Cancelling an approved reservation should restore the held copy.');
+});
+
+test_case($pdo, 'borrower reservation rejects books with no available copies', function (PDO $pdo): void {
+  require_once __DIR__ . '/../includes/BorrowerReservationModule.php';
+
+  $userId = seed_user($pdo, 'no-copies');
+  $bookId = seed_book($pdo, 'no-copies', 1, 0);
+
+  $result = BorrowerReservationModule::place($pdo, $userId, $bookId, ROLE_BORROWER);
+
+  assert_true($result['success'] === false, 'Reservation should fail when no copies are available.');
+  assert_true($result['reason_code'] === 'no_available_copies', 'Expected no_available_copies reason.');
 });
 
 test_case($pdo, 'borrower reservation rejects missing book', function (PDO $pdo): void {
