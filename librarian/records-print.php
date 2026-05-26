@@ -7,8 +7,8 @@
  *      Supports the same filters as records.php:
  *        ?status=      active|overdue|returned (optional)
  *        ?search=      borrower name / book / email (optional)
- *        ?date_from=   YYYY-MM-DD (optional)
- *        ?date_to=     YYYY-MM-DD (optional)
+ *        ?date_from=   MM-DD-YY or YYYY-MM-DD (optional)
+ *        ?date_to=     MM-DD-YY or YYYY-MM-DD (optional)
  *
  * Protected: Librarian role only.
  */
@@ -28,6 +28,38 @@ $filter_date_from = trim((string) ($_GET['date_from'] ?? ''));
 $filter_date_to   = trim((string) ($_GET['date_to']   ?? ''));
 $filter_report_type = circulation_normalize_report_type(trim((string) ($_GET['report_type'] ?? 'circulation_records')));
 $report_action = trim((string) ($_GET['action'] ?? 'preview'));
+
+function records_print_filter_date_to_sql(string $value): string
+{
+  $value = trim($value);
+  if ($value === '') {
+    return '';
+  }
+
+  foreach (['!m-d-y', '!Y-m-d'] as $format) {
+    $date = DateTimeImmutable::createFromFormat($format, $value);
+    $errors = DateTimeImmutable::getLastErrors();
+    if ($date instanceof DateTimeImmutable && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0))) {
+      return $date->format('Y-m-d');
+    }
+  }
+
+  return '';
+}
+
+function records_print_filter_date_display(string $sql_date): string
+{
+  $date = records_print_filter_date_to_sql($sql_date);
+  if ($date === '') {
+    return '';
+  }
+  return DateTimeImmutable::createFromFormat('!Y-m-d', $date)->format('m-d-y');
+}
+
+$filter_date_from_sql = records_print_filter_date_to_sql($filter_date_from);
+$filter_date_to_sql = records_print_filter_date_to_sql($filter_date_to);
+$filter_date_from = records_print_filter_date_display($filter_date_from_sql);
+$filter_date_to = records_print_filter_date_display($filter_date_to_sql);
 
 $allowed_statuses = ['', 'active', 'overdue', 'returned', 'returned_late'];
 if (!in_array($filter_status, $allowed_statuses, true)) {
@@ -53,12 +85,12 @@ if ($filter_search !== '') {
 
 if ($filter_date_from !== '') {
   $where_parts[] = 'DATE(c.checkout_date) >= ?';
-  $params[] = $filter_date_from;
+  $params[] = $filter_date_from_sql;
 }
 
 if ($filter_date_to !== '') {
   $where_parts[] = 'DATE(c.checkout_date) <= ?';
-  $params[] = $filter_date_to;
+  $params[] = $filter_date_to_sql;
 }
 
 $where_sql = count($where_parts) > 0 ? 'WHERE ' . implode(' AND ', $where_parts) : '';
@@ -116,8 +148,8 @@ $report_type_label = circulation_report_type_label($filter_report_type);
 $filter_desc_parts = [];
 if ($filter_status !== '') $filter_desc_parts[] = 'Status: ' . circulation_status_label($filter_status);
 if ($filter_search !== '') $filter_desc_parts[] = 'Search: "' . htmlspecialchars($filter_search, ENT_QUOTES, 'UTF-8') . '"';
-if ($filter_date_from !== '') $filter_desc_parts[] = 'From: ' . date('m-d-y', strtotime($filter_date_from));
-if ($filter_date_to   !== '') $filter_desc_parts[] = 'To: '   . date('m-d-y', strtotime($filter_date_to));
+if ($filter_date_from !== '') $filter_desc_parts[] = 'From: ' . $filter_date_from;
+if ($filter_date_to   !== '') $filter_desc_parts[] = 'To: '   . $filter_date_to;
 $filter_desc_parts[] = 'Report Type: ' . htmlspecialchars($report_type_label, ENT_QUOTES, 'UTF-8');
 $filter_desc = count($filter_desc_parts) > 0 ? implode(' &nbsp;|&nbsp; ', $filter_desc_parts) : 'All records';
 

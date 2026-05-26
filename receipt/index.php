@@ -21,13 +21,37 @@ if (!in_array($per_page, $valid_per_page, true)) {
 }
 $offset = ($page - 1) * $per_page;
 
-$datePattern = '/^\d{4}-\d{2}-\d{2}$/';
-if ($date_from !== '' && !preg_match($datePattern, $date_from)) {
-  $date_from = '';
+function receipt_filter_date_to_sql(string $value): string
+{
+  $value = trim($value);
+  if ($value === '') {
+    return '';
+  }
+
+  foreach (['!m-d-y', '!Y-m-d'] as $format) {
+    $date = DateTimeImmutable::createFromFormat($format, $value);
+    $errors = DateTimeImmutable::getLastErrors();
+    if ($date instanceof DateTimeImmutable && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0))) {
+      return $date->format('Y-m-d');
+    }
+  }
+
+  return '';
 }
-if ($date_to !== '' && !preg_match($datePattern, $date_to)) {
-  $date_to = '';
+
+function receipt_filter_date_display(string $sql_date): string
+{
+  $date = receipt_filter_date_to_sql($sql_date);
+  if ($date === '') {
+    return '';
+  }
+  return DateTimeImmutable::createFromFormat('!Y-m-d', $date)->format('m-d-y');
 }
+
+$date_from_sql = receipt_filter_date_to_sql($date_from);
+$date_to_sql_base = receipt_filter_date_to_sql($date_to);
+$date_from = receipt_filter_date_display($date_from_sql);
+$date_to = receipt_filter_date_display($date_to_sql_base);
 
 $allowed_statuses = [];
 $allowed_types = [];
@@ -81,7 +105,7 @@ if ($filter_type !== '' && in_array($filter_type, $allowed_types, true)) {
 
 $date_to_sql = '';
 if ($date_to !== '') {
-  $date_to_ts = strtotime($date_to . ' +1 day');
+  $date_to_ts = strtotime($date_to_sql_base . ' +1 day');
   if ($date_to_ts !== false) {
     $date_to_sql = date('Y-m-d', $date_to_ts);
   } else {
@@ -91,7 +115,7 @@ if ($date_to !== '') {
 
 if ($date_from !== '') {
   $conditions[] = 'issued_at >= :date_from';
-  $params[':date_from'] = $date_from . ' 00:00:00';
+  $params[':date_from'] = $date_from_sql . ' 00:00:00';
 }
 if ($date_to !== '' && $date_to_sql !== '') {
   $conditions[] = 'issued_at < :date_to';
@@ -391,11 +415,11 @@ $pageStyles = ob_get_clean();
         <div class="receipt-filters__row">
           <div class="receipt-filters__field">
             <label for="receipt-date-from">From</label>
-            <input id="receipt-date-from" type="date" name="date_from" value="<?= htmlspecialchars($date_from, ENT_QUOTES, 'UTF-8') ?>">
+            <input id="receipt-date-from" type="text" name="date_from" inputmode="numeric" maxlength="8" pattern="\d{2}-\d{2}-\d{2}" placeholder="mm-dd-yy" value="<?= htmlspecialchars($date_from, ENT_QUOTES, 'UTF-8') ?>">
           </div>
           <div class="receipt-filters__field">
             <label for="receipt-date-to">To</label>
-            <input id="receipt-date-to" type="date" name="date_to" value="<?= htmlspecialchars($date_to, ENT_QUOTES, 'UTF-8') ?>">
+            <input id="receipt-date-to" type="text" name="date_to" inputmode="numeric" maxlength="8" pattern="\d{2}-\d{2}-\d{2}" placeholder="mm-dd-yy" value="<?= htmlspecialchars($date_to, ENT_QUOTES, 'UTF-8') ?>">
           </div>
           <div class="receipt-filters__actions">
             <button type="submit" class="rd-btn rd-btn-primary">Apply</button>

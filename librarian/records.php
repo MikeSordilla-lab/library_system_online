@@ -27,6 +27,38 @@ $filter_report_type = circulation_normalize_report_type(trim((string) ($_GET['re
 $rows_per_page = (int) ($_GET['per_page'] ?? 10);
 $current_report_page = max(1, (int) ($_GET['page'] ?? 1));
 
+function records_filter_date_to_sql(string $value): string
+{
+    $value = trim($value);
+    if ($value === '') {
+        return '';
+    }
+
+    foreach (['!m-d-y', '!Y-m-d'] as $format) {
+        $date = DateTimeImmutable::createFromFormat($format, $value);
+        $errors = DateTimeImmutable::getLastErrors();
+        if ($date instanceof DateTimeImmutable && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0))) {
+            return $date->format('Y-m-d');
+        }
+    }
+
+    return '';
+}
+
+function records_filter_date_display(string $sql_date): string
+{
+    $date = records_filter_date_to_sql($sql_date);
+    if ($date === '') {
+        return '';
+    }
+    return DateTimeImmutable::createFromFormat('!Y-m-d', $date)->format('m-d-y');
+}
+
+$filter_date_from_sql = records_filter_date_to_sql($filter_date_from);
+$filter_date_to_sql = records_filter_date_to_sql($filter_date_to);
+$filter_date_from = records_filter_date_display($filter_date_from_sql);
+$filter_date_to = records_filter_date_display($filter_date_to_sql);
+
 $allowed_statuses = ['', 'active', 'overdue', 'returned', 'returned_late'];
 if (!in_array($filter_status, $allowed_statuses, true)) {
     $filter_status = '';
@@ -51,12 +83,12 @@ if ($filter_search !== '') {
 
 if ($filter_date_from !== '') {
     $where_parts[] = 'DATE(c.checkout_date) >= ?';
-    $params[] = $filter_date_from;
+    $params[] = $filter_date_from_sql;
 }
 
 if ($filter_date_to !== '') {
     $where_parts[] = 'DATE(c.checkout_date) <= ?';
-    $params[] = $filter_date_to;
+    $params[] = $filter_date_to_sql;
 }
 
 $where_sql = count($where_parts) > 0 ? 'WHERE ' . implode(' AND ', $where_parts) : '';
@@ -116,7 +148,7 @@ $active_filter_chips = [
   'Status: ' . ($filter_status !== '' ? circulation_status_label($filter_status) : 'All Statuses'),
   'Checkout: ' . (
     $filter_date_from !== '' || $filter_date_to !== ''
-      ? (($filter_date_from !== '' ? date('m-d-y', strtotime($filter_date_from)) : 'Any') . ' to ' . ($filter_date_to !== '' ? date('m-d-y', strtotime($filter_date_to)) : 'Any'))
+      ? (($filter_date_from !== '' ? $filter_date_from : 'Any') . ' to ' . ($filter_date_to !== '' ? $filter_date_to : 'Any'))
       : 'All Dates'
   ),
 ];
@@ -237,9 +269,13 @@ $extraStyles = [
               <label for="filter-date-from">Checkout From</label>
               <input
                 class="field-input"
-                type="date"
+                type="text"
                 id="filter-date-from"
                 name="date_from"
+                inputmode="numeric"
+                maxlength="8"
+                pattern="\d{2}-\d{2}-\d{2}"
+                placeholder="mm-dd-yy"
                 value="<?= htmlspecialchars($filter_date_from, ENT_QUOTES, 'UTF-8') ?>"
               >
             </div>
@@ -248,9 +284,13 @@ $extraStyles = [
               <label for="filter-date-to">Checkout To</label>
               <input
                 class="field-input"
-                type="date"
+                type="text"
                 id="filter-date-to"
                 name="date_to"
+                inputmode="numeric"
+                maxlength="8"
+                pattern="\d{2}-\d{2}-\d{2}"
+                placeholder="mm-dd-yy"
                 value="<?= htmlspecialchars($filter_date_to, ENT_QUOTES, 'UTF-8') ?>"
               >
             </div>
