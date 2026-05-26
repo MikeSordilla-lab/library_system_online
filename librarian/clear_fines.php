@@ -13,6 +13,7 @@ $allowed_roles = ['librarian'];
 require_once __DIR__ . '/../includes/auth_guard.php';
 require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/circulation.php';
+require_once __DIR__ . '/../includes/pagination.php';
 require_once __DIR__ . '/../includes/receipts.php';
 
 $pdo = get_db();
@@ -159,6 +160,45 @@ switch ($filter) {
 
 $where_sql = implode(' AND ', $where_conditions);
 
+$fines_per_page = 25;
+$fines_page = max(1, (int) ($_GET['page'] ?? 1));
+
+$count_sql = "
+  SELECT COUNT(*)
+    FROM Circulation c
+    JOIN Users u ON c.user_id = u.id
+    JOIN Books b ON c.book_id = b.id
+   WHERE {$where_sql}
+";
+$count_stmt = $pdo->prepare($count_sql);
+$count_stmt->execute($params);
+$total_fines_count = (int) $count_stmt->fetchColumn();
+$fines_total_pages = max(1, (int) ceil($total_fines_count / $fines_per_page));
+$fines_page = pagination_clamp_page($fines_page, $fines_total_pages);
+$fines_offset = ($fines_page - 1) * $fines_per_page;
+[$fines_range_start, $fines_range_end] = pagination_result_range($total_fines_count, $fines_offset, $fines_per_page);
+$fines_page_window = pagination_page_window($fines_page, $fines_total_pages);
+
+$unpaid_total_sql = "
+  SELECT COALESCE(SUM(c.fine_amount), 0)
+    FROM Circulation c
+    JOIN Users u ON c.user_id = u.id
+    JOIN Books b ON c.book_id = b.id
+   WHERE {$where_sql}
+     AND c.fine_paid = 0
+";
+$unpaid_total_stmt = $pdo->prepare($unpaid_total_sql);
+$unpaid_total_stmt->execute($params);
+$unpaid_total = (float) $unpaid_total_stmt->fetchColumn();
+
+$fine_page_params = [
+  'search' => $search_query,
+  'filter' => $filter !== 'all' ? $filter : '',
+];
+$fine_page_url = static function (int $target_page) use ($fine_page_params): string {
+  return pagination_build_url(BASE_URL . 'librarian/clear_fines.php', $fine_page_params, 'page', $target_page);
+};
+
 $fines_sql = "
   SELECT c.id AS loan_id,
          u.id AS user_id,
@@ -177,10 +217,16 @@ $fines_sql = "
     JOIN Books b ON c.book_id = b.id
    WHERE {$where_sql}
    ORDER BY c.fine_paid ASC, c.checkout_date DESC
+   LIMIT ? OFFSET ?
 ";
 
 $fines_stmt = $pdo->prepare($fines_sql);
-$fines_stmt->execute($params);
+foreach ($params as $index => $value) {
+  $fines_stmt->bindValue($index + 1, $value, PDO::PARAM_STR);
+}
+$fines_stmt->bindValue(count($params) + 1, $fines_per_page, PDO::PARAM_INT);
+$fines_stmt->bindValue(count($params) + 2, $fines_offset, PDO::PARAM_INT);
+$fines_stmt->execute();
 $fines = $fines_stmt->fetchAll();
 
 $fine_reason = function (string $status): string {
@@ -260,15 +306,7 @@ $extraStyles  = [
           <h1>Clear Fines</h1>
           <p>View borrowers with outstanding fines and process fine payments.</p>
         </div>
-        <?php
-        $unpaid_total = 0;
-        foreach ($fines as $f) {
-          if (!$f['fine_paid']) {
-            $unpaid_total += (float) $f['fine_amount'];
-          }
-        }
-        if ($unpaid_total > 0):
-        ?>
+        <?php if ($unpaid_total > 0): ?>
           <div class="fines-total-card">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
             Total Unpaid: <?= receipt_format_money($unpaid_total) ?>
@@ -317,11 +355,16 @@ $extraStyles  = [
         <button type="button" class="cat-toolbar__reset" id="clear-filters-btn">Clear</button>
       </div>
 
+      <div class="cat-count" aria-live="polite">
+        Showing <?= number_format($fines_range_start) ?>-<?= number_format($fines_range_end) ?>
+        of <?= number_format($total_fines_count) ?> fine record<?= $total_fines_count === 1 ? '' : 's' ?>
+      </div>
+
       <div class="section-card">
         <div class="section-card__header">
           <span class="section-card__title">Fine Records</span>
-          <?php if (count($fines) > 0): ?>
-            <span class="badge <?= $filter === 'paid' ? 'badge-green' : 'badge-amber' ?>"><?= count($fines) ?> record<?= count($fines) !== 1 ? 's' : '' ?></span>
+          <?php if ($total_fines_count > 0): ?>
+            <span class="badge <?= $filter === 'paid' ? 'badge-green' : 'badge-amber' ?>"><?= number_format($total_fines_count) ?> record<?= $total_fines_count !== 1 ? 's' : '' ?></span>
           <?php endif; ?>
         </div>
         <div style="padding: var(--space-6)">
@@ -405,6 +448,35 @@ $extraStyles  = [
                 </tbody>
               </table>
             </div>
+
+            <nav class="records-pagination" aria-label="Fine records pagination">
+              <div class="records-pagination__page">
+                Showing <strong><?= number_format($fines_range_start) ?>-<?= number_format($fines_range_end) ?></strong>
+                of <strong><?= number_format($total_fines_count) ?></strong>
+              </div>
+              <div class="records-pagination__nav">
+                <a
+                  class="btn-ghost <?= $fines_page <= 1 ? 'records-pagination__disabled' : '' ?>"
+                  href="<?= htmlspecialchars($fine_page_url($fines_page - 1), ENT_QUOTES, 'UTF-8') ?>"
+                  aria-label="Go to previous fine records page">Previous</a>
+
+                <?php foreach ($fines_page_window as $page_number): ?>
+                  <?php if ($page_number === $fines_page): ?>
+                    <span class="records-pagination__page" aria-current="page">Page <?= number_format($fines_page) ?> of <?= number_format($fines_total_pages) ?></span>
+                  <?php else: ?>
+                    <a
+                      class="btn-ghost"
+                      href="<?= htmlspecialchars($fine_page_url($page_number), ENT_QUOTES, 'UTF-8') ?>"
+                      aria-label="Go to fine records page <?= (int) $page_number ?>"><?= (int) $page_number ?></a>
+                  <?php endif; ?>
+                <?php endforeach; ?>
+
+                <a
+                  class="btn-ghost <?= $fines_page >= $fines_total_pages ? 'records-pagination__disabled' : '' ?>"
+                  href="<?= htmlspecialchars($fine_page_url($fines_page + 1), ENT_QUOTES, 'UTF-8') ?>"
+                  aria-label="Go to next fine records page">Next</a>
+              </div>
+            </nav>
           <?php endif; ?>
         </div>
       </div>
