@@ -102,7 +102,7 @@ function format_currency($amount) {
 /**
  * Format date
  */
-function format_date($date, $format = 'M d, Y') {
+function format_date($date, $format = 'm-d-y') {
     $timestamp = is_numeric($date) ? $date : strtotime($date);
     return $timestamp ? date($format, $timestamp) : $date;
 }

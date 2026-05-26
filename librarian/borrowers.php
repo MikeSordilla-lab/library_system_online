@@ -450,7 +450,7 @@ $extraStyles = [
                   $statusClass = (int) $borrower['is_suspended'] === 1
                     ? 'badge-red'
                     : ((int) $borrower['is_verified'] === 1 ? 'badge-green' : 'badge-amber');
-                  $joinedDate = date('d M Y', strtotime((string) $borrower['created_at']));
+                  $joinedDate = date('m-d-y', strtotime((string) $borrower['created_at']));
                 ?>
                   <tr>
                     <td data-label="Borrower">

@@ -1804,7 +1804,7 @@ $has_feedback = $flash_success !== ''
                 $pending_email = htmlspecialchars((string) $pending['email'], ENT_QUOTES, 'UTF-8');
                 $pending_created_raw = (string) ($pending['created_at'] ?? '');
                 $pending_created_stamp = $pending_created_raw !== '' ? strtotime($pending_created_raw) : false;
-                $pending_created_text = $pending_created_stamp ? date('M j, Y', $pending_created_stamp) : 'Unknown date';
+                $pending_created_text = $pending_created_stamp ? date('m-d-y', $pending_created_stamp) : 'Unknown date';
                 ?>
                 <article class="users-pending-item">
                   <div class="users-pending-item__avatar" aria-hidden="true"><?= htmlspecialchars(mb_substr((string) $pending['full_name'], 0, 1), ENT_QUOTES, 'UTF-8') ?></div>
@@ -1850,7 +1850,7 @@ $has_feedback = $flash_success !== ''
                 $rejected_email = htmlspecialchars((string) $rejected['email'], ENT_QUOTES, 'UTF-8');
                 $rejected_at_raw = (string) ($rejected['staff_rejected_at'] ?? '');
                 $rejected_at_stamp = $rejected_at_raw !== '' ? strtotime($rejected_at_raw) : false;
-                $rejected_at_text = $rejected_at_stamp ? date('M j, Y', $rejected_at_stamp) : 'Unknown date';
+                $rejected_at_text = $rejected_at_stamp ? date('m-d-y', $rejected_at_stamp) : 'Unknown date';
                 $rejected_reason = trim((string) ($rejected['staff_rejection_reason'] ?? ''));
                 ?>
                 <article class="users-pending-item">
@@ -2016,7 +2016,7 @@ $has_feedback = $flash_success !== ''
                   $is_superadmin_row = (int) ($u['is_superadmin'] ?? 0) === 1;
                   $created_at_raw = (string) ($u['created_at'] ?? '');
                   $created_at_stamp = $created_at_raw !== '' ? strtotime($created_at_raw) : false;
-                  $created_at_text = $created_at_stamp ? date('M j, Y', $created_at_stamp) : 'Unknown date';
+                  $created_at_text = $created_at_stamp ? date('m-d-y', $created_at_stamp) : 'Unknown date';
                   ?>
                   <tr
                     class="users-row<?= $focus_user_id === $uid ? ' users-row--focus-target' : '' ?><?= !$verified ? ' users-row--needs-verification' : '' ?><?= $is_superadmin_row ? ' users-row--protected' : '' ?>"

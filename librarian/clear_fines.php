@@ -419,7 +419,7 @@ $extraStyles  = [
                         <?= htmlspecialchars($fine_reason((string) ($row['loan_status'] ?? '')), ENT_QUOTES, 'UTF-8') ?>
                       </td>
                       <td data-label="Date Assessed">
-                        <?= !empty($assessed_date) ? htmlspecialchars(date('d M Y', strtotime((string) $assessed_date)), ENT_QUOTES, 'UTF-8') : '—' ?>
+                        <?= !empty($assessed_date) ? htmlspecialchars(date('m-d-y', strtotime((string) $assessed_date)), ENT_QUOTES, 'UTF-8') : '—' ?>
                       </td>
                       <td data-label="Status">
                         <?php if ($is_unpaid): ?>

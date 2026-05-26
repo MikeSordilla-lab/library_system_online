@@ -441,11 +441,12 @@ $extraStyles = [
               </thead>
               <tbody>
                 <?php foreach ($loans as $loan): ?>
+                  <?php $loan_due_ts = strtotime((string) $loan['due_date']); ?>
                   <tr class="<?= $loan['status'] === 'overdue' ? 'row-overdue' : '' ?>">
                     <td data-label="Loan #"><?= (int) $loan['id'] ?></td>
                     <td data-label="Borrower"><?= htmlspecialchars($loan['full_name'], ENT_QUOTES, 'UTF-8') ?></td>
                     <td data-label="Book"><?= htmlspecialchars($loan['title'], ENT_QUOTES, 'UTF-8') ?></td>
-                    <td data-label="Due Date"><?= htmlspecialchars($loan['due_date'], ENT_QUOTES, 'UTF-8') ?></td>
+                    <td data-label="Due Date"><?= htmlspecialchars($loan_due_ts !== false ? date('m-d-y', $loan_due_ts) : (string) $loan['due_date'], ENT_QUOTES, 'UTF-8') ?></td>
                     <td data-label="Status">
                       <?php if ($loan['status'] === 'overdue'): ?>
                         <span class="badge badge-amber">Overdue</span>
@@ -562,9 +563,9 @@ $extraStyles = [
                   <?php
                     $rl_fine = (float) ($rl['fine_amount'] ?? 0);
                     $rl_fine_paid = (int) ($rl['fine_paid'] ?? 0);
-                    $checkout_fmt = !empty($rl['checkout_date']) ? date('M d, Y', strtotime((string) $rl['checkout_date'])) : '—';
-                    $due_fmt      = !empty($rl['due_date'])      ? date('M d, Y', strtotime((string) $rl['due_date']))      : '—';
-                    $return_fmt   = !empty($rl['return_date'])   ? date('M d, Y', strtotime((string) $rl['return_date']))   : '—';
+                    $checkout_fmt = !empty($rl['checkout_date']) ? date('m-d-y', strtotime((string) $rl['checkout_date'])) : '—';
+                    $due_fmt      = !empty($rl['due_date'])      ? date('m-d-y', strtotime((string) $rl['due_date']))      : '—';
+                    $return_fmt   = !empty($rl['return_date'])   ? date('m-d-y', strtotime((string) $rl['return_date']))   : '—';
                   ?>
                   <tr>
                     <td data-label="Loan #"><?= (int) $rl['id'] ?></td>

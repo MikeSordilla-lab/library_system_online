@@ -574,10 +574,10 @@ $co_base_url = BASE_URL . 'librarian/checkout.php';
                         <?php endif; ?>
                       </td>
                       <td data-label="Approved">
-                        <?= !empty($pickup['approved_at']) ? htmlspecialchars(date('d M Y', strtotime((string) $pickup['approved_at'])), ENT_QUOTES, 'UTF-8') : '—' ?>
+                        <?= !empty($pickup['approved_at']) ? htmlspecialchars(date('m-d-y', strtotime((string) $pickup['approved_at'])), ENT_QUOTES, 'UTF-8') : '—' ?>
                       </td>
                       <td data-label="Expires">
-                        <strong><?= $expires_ts !== false ? htmlspecialchars(date('d M Y', $expires_ts), ENT_QUOTES, 'UTF-8') : htmlspecialchars((string) $pickup['expires_at'], ENT_QUOTES, 'UTF-8') ?></strong>
+                        <strong><?= $expires_ts !== false ? htmlspecialchars(date('m-d-y', $expires_ts), ENT_QUOTES, 'UTF-8') : htmlspecialchars((string) $pickup['expires_at'], ENT_QUOTES, 'UTF-8') ?></strong>
                         <?php if ($expires_soon): ?>
                           <span class="badge badge-amber" style="margin-left:4px;">Expiring soon</span>
                         <?php endif; ?>
@@ -724,8 +724,8 @@ $co_base_url = BASE_URL . 'librarian/checkout.php';
               <tbody>
                 <?php foreach ($checked_out_loans as $co_loan):
                   $co_id = (int) $co_loan['id'];
-                  $co_checkout = !empty($co_loan['checkout_date']) ? date('M d, Y', strtotime($co_loan['checkout_date'])) : '—';
-                  $co_due      = !empty($co_loan['due_date'])      ? date('M d, Y', strtotime($co_loan['due_date']))      : '—';
+                  $co_checkout = !empty($co_loan['checkout_date']) ? date('m-d-y', strtotime($co_loan['checkout_date'])) : '—';
+                  $co_due      = !empty($co_loan['due_date'])      ? date('m-d-y', strtotime($co_loan['due_date']))      : '—';
                   if ($co_loan['_is_overdue']) {
                       $co_badge_class = 'co-badge--overdue';
                       $co_status_label = 'Overdue';

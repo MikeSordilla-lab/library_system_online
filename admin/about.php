@@ -39,7 +39,7 @@ try {
     $admin["status"] =
       (int) ($row["is_suspended"] ?? 0) === 1 ? "Suspended" : "Active";
     $admin["joined"] = !empty($row["created_at"])
-      ? date("F Y", strtotime((string) $row["created_at"]))
+      ? date("m-d-y", strtotime((string) $row["created_at"]))
       : "";
     $admin["permissions"] =
       (int) ($row["is_superadmin"] ?? 0) === 1

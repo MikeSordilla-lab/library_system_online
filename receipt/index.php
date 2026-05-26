@@ -437,7 +437,7 @@ $pageStyles = ob_get_clean();
                   <tr>
                     <td><strong><?= htmlspecialchars((string) $ticket['receipt_no'], ENT_QUOTES, 'UTF-8') ?></strong></td>
                     <td><?= htmlspecialchars((string) $ticket['type'], ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= htmlspecialchars((string) $ticket['issued_at'], ENT_QUOTES, 'UTF-8') ?></td>
+                    <td><?= htmlspecialchars(receipt_format_display_datetime($ticket['issued_at'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
                     <?php if ($viewer_role !== 'borrower'): ?>
                       <td><?= (int) $ticket['patron_user_id'] ?></td>
                     <?php endif; ?>

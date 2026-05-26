@@ -211,10 +211,10 @@ $extraStyles = [
       $status_label = ucfirst((string) $record['status']);
       $fine_amount = (float) ($record['fine_amount'] ?? 0);
       $fine_paid = (int) ($record['fine_paid'] ?? 0) === 1 ? 'Yes' : 'No';
-      $checked_out = !empty($record['checkout_date']) ? date('F d, Y h:i A', strtotime((string) $record['checkout_date'])) : 'N/A';
-      $due_date = !empty($record['due_date']) ? date('F d, Y h:i A', strtotime((string) $record['due_date'])) : 'N/A';
-      $returned = !empty($record['return_date']) ? date('F d, Y h:i A', strtotime((string) $record['return_date'])) : 'Not returned';
-      $generated_at = date('F d, Y h:i A');
+      $checked_out = !empty($record['checkout_date']) ? date('m-d-y h:i A', strtotime((string) $record['checkout_date'])) : 'N/A';
+      $due_date = !empty($record['due_date']) ? date('m-d-y h:i A', strtotime((string) $record['due_date'])) : 'N/A';
+      $returned = !empty($record['return_date']) ? date('m-d-y h:i A', strtotime((string) $record['return_date'])) : 'Not returned';
+      $generated_at = date('m-d-y h:i A');
       ?>
       <header class="print-sheet__header">
         <div class="print-sheet__library"><?= htmlspecialchars($library_name, ENT_QUOTES, 'UTF-8') ?></div>

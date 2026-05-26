@@ -211,8 +211,8 @@ $extraStyles = [
                       </div>
                     </td>
                     <td><?= htmlspecialchars($loan['author'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= htmlspecialchars(date('d M Y', strtotime($loan['checkout_date'])), ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><strong><?= htmlspecialchars(date('d M Y', strtotime($loan['due_date'])), ENT_QUOTES, 'UTF-8') ?></strong></td>
+                    <td><?= htmlspecialchars(date('m-d-y', strtotime($loan['checkout_date'])), ENT_QUOTES, 'UTF-8') ?></td>
+                    <td><strong><?= htmlspecialchars(date('m-d-y', strtotime($loan['due_date'])), ENT_QUOTES, 'UTF-8') ?></strong></td>
                     <td>
                       <?php if ($is_overdue): ?>
                         <span class="rd-badge rd-b-red">Overdue</span>
@@ -296,10 +296,10 @@ $extraStyles = [
                       </div>
                     </div>
                   </td>
-                  <td class="rd-pickup-date"><?= $res['approved_at'] ? htmlspecialchars(date('d M Y', strtotime($res['approved_at'])), ENT_QUOTES, 'UTF-8') : '—' ?></td>
+                  <td class="rd-pickup-date"><?= $res['approved_at'] ? htmlspecialchars(date('m-d-y', strtotime($res['approved_at'])), ENT_QUOTES, 'UTF-8') : '—' ?></td>
                   <td>
                     <span class="rd-pickup-date <?= $expires_soon ? 'rd-pickup-date--urgent' : '' ?>">
-                      <?= htmlspecialchars(date('d M Y', $expires_ts), ENT_QUOTES, 'UTF-8') ?>
+                      <?= htmlspecialchars(date('m-d-y', $expires_ts), ENT_QUOTES, 'UTF-8') ?>
                     </span>
                     <?php if ($expires_crit): ?>
                       <span class="rd-pickup-expiry-badge rd-pickup-expiry-badge--critical">⚠️ Expiring today!</span>
@@ -383,8 +383,8 @@ $extraStyles = [
                       </div>
                     </td>
                     <td><?= htmlspecialchars($res['author'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= htmlspecialchars(date('d M Y', strtotime($res['reserved_at'])), ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= htmlspecialchars(date('d M Y', strtotime($res['expires_at'])), ENT_QUOTES, 'UTF-8') ?></td>
+                    <td><?= htmlspecialchars(date('m-d-y', strtotime($res['reserved_at'])), ENT_QUOTES, 'UTF-8') ?></td>
+                    <td><?= htmlspecialchars(date('m-d-y', strtotime($res['expires_at'])), ENT_QUOTES, 'UTF-8') ?></td>
                     <td><span class="rd-badge rd-b-blue">#<?= (int)$res['queue_position'] ?></span></td>
                     <td><span class="rd-badge rd-b-orange">Awaiting Approval</span></td>
                     <td>
@@ -461,8 +461,8 @@ $extraStyles = [
                     </div>
                   </td>
                   <td><?= htmlspecialchars($res['author'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                  <td><?= htmlspecialchars(date('d M Y', strtotime($res['reserved_at'])), ENT_QUOTES, 'UTF-8') ?></td>
-                  <td><?= $ended_at ? htmlspecialchars(date('d M Y', strtotime((string) $ended_at)), ENT_QUOTES, 'UTF-8') : '—' ?></td>
+                  <td><?= htmlspecialchars(date('m-d-y', strtotime($res['reserved_at'])), ENT_QUOTES, 'UTF-8') ?></td>
+                  <td><?= $ended_at ? htmlspecialchars(date('m-d-y', strtotime((string) $ended_at)), ENT_QUOTES, 'UTF-8') : '—' ?></td>
                   <td>
                     <?php if ($is_cancelled): ?>
                       <span class="rd-badge rd-b-orange">Cancelled by you</span>
@@ -544,10 +544,10 @@ $extraStyles = [
                       </div>
                     </td>
                     <td><?= htmlspecialchars($h['author'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= htmlspecialchars(date('d M Y', strtotime($h['checkout_date'])), ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= htmlspecialchars(date('d M Y', strtotime($h['due_date'])), ENT_QUOTES, 'UTF-8') ?></td>
+                    <td><?= htmlspecialchars(date('m-d-y', strtotime($h['checkout_date'])), ENT_QUOTES, 'UTF-8') ?></td>
+                    <td><?= htmlspecialchars(date('m-d-y', strtotime($h['due_date'])), ENT_QUOTES, 'UTF-8') ?></td>
                     <td>
-                      <?= htmlspecialchars(date('d M Y', strtotime($h['return_date'])), ENT_QUOTES, 'UTF-8') ?>
+                      <?= htmlspecialchars(date('m-d-y', strtotime($h['return_date'])), ENT_QUOTES, 'UTF-8') ?>
                       <?php if ($returned_late): ?>
                         <span class="rd-badge rd-b-orange" style="margin-left:4px;">Late</span>
                       <?php endif; ?>

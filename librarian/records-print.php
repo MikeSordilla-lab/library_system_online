@@ -109,15 +109,15 @@ $summary = circulation_report_summary($records);
 $library_name = get_setting($pdo, 'library_name', 'LibraLink');
 $prepared_by  = (string) ($_SESSION['full_name'] ?? 'Librarian');
 $prepared_role = (string) ($_SESSION['role'] ?? 'librarian');
-$generated_at = date('M d, Y g:i A');
+$generated_at = date('m-d-y g:i A');
 $report_type_label = circulation_report_type_label($filter_report_type);
 
 // Build a human-readable filter description
 $filter_desc_parts = [];
 if ($filter_status !== '') $filter_desc_parts[] = 'Status: ' . circulation_status_label($filter_status);
 if ($filter_search !== '') $filter_desc_parts[] = 'Search: "' . htmlspecialchars($filter_search, ENT_QUOTES, 'UTF-8') . '"';
-if ($filter_date_from !== '') $filter_desc_parts[] = 'From: ' . date('M d, Y', strtotime($filter_date_from));
-if ($filter_date_to   !== '') $filter_desc_parts[] = 'To: '   . date('M d, Y', strtotime($filter_date_to));
+if ($filter_date_from !== '') $filter_desc_parts[] = 'From: ' . date('m-d-y', strtotime($filter_date_from));
+if ($filter_date_to   !== '') $filter_desc_parts[] = 'To: '   . date('m-d-y', strtotime($filter_date_to));
 $filter_desc_parts[] = 'Report Type: ' . htmlspecialchars($report_type_label, ENT_QUOTES, 'UTF-8');
 $filter_desc = count($filter_desc_parts) > 0 ? implode(' &nbsp;|&nbsp; ', $filter_desc_parts) : 'All records';
 
@@ -539,9 +539,9 @@ $back_url = htmlspecialchars(
               $status  = (string) $r['status_label'];
               $fine    = (float) ($r['calculated_fine'] ?? 0);
               $paid    = (int) ($r['fine_paid'] ?? 0) === 1 ? 'Yes' : 'No';
-              $co_date = !empty($r['checkout_date']) ? date('M d, Y', strtotime((string) $r['checkout_date'])) : '—';
-              $due_d   = !empty($r['due_date'])      ? date('M d, Y', strtotime((string) $r['due_date']))      : '—';
-              $ret_d   = !empty($r['return_date'])   ? date('M d, Y', strtotime((string) $r['return_date']))   : '—';
+              $co_date = !empty($r['checkout_date']) ? date('m-d-y', strtotime((string) $r['checkout_date'])) : '—';
+              $due_d   = !empty($r['due_date'])      ? date('m-d-y', strtotime((string) $r['due_date']))      : '—';
+              $ret_d   = !empty($r['return_date'])   ? date('m-d-y', strtotime((string) $r['return_date']))   : '—';
               ?>
               <tr>
                 <td>#<?= (int) $r['id'] ?></td>

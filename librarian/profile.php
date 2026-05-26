@@ -100,7 +100,7 @@ if ($display_name === '') {
   $email_local = (string)strtok((string)$email, '@');
   $display_name = $email_local !== '' ? $email_local : 'Librarian';
 }
-$joined     = !empty($user['created_at']) ? date('F j, Y', strtotime($user['created_at'])) : 'Unknown';
+$joined     = !empty($user['created_at']) ? date('m-d-y', strtotime($user['created_at'])) : 'Unknown';
 $avatar_url = $user['avatar_url'] ?? null;
 $avatar     = get_avatar_display($avatar_url, $full_name);
 

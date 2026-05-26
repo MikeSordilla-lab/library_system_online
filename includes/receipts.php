@@ -37,6 +37,21 @@ function receipt_format_money($amount, $currency = null): string
   return number_format((float) $amount, 2) . ' ' . receipt_display_currency($currency);
 }
 
+function receipt_format_display_datetime($value, bool $includeTimezone = false): string
+{
+  $raw = trim((string) $value);
+  if ($raw === '') {
+    return 'N/A';
+  }
+
+  $timestamp = strtotime($raw);
+  if ($timestamp === false) {
+    return $raw;
+  }
+
+  return date('m-d-y h:i A', $timestamp) . ($includeTimezone ? ' UTC' : '');
+}
+
 function receipt_table_columns(PDO $pdo, string $table): array
 {
   static $cache = [];
@@ -661,7 +676,7 @@ function build_receipt_view_model(PDO $pdo, array $receipt, bool $mask_pii = tru
       if (in_array($timezone, timezone_identifiers_list(), true)) {
         $dt->setTimezone(new DateTimeZone($timezone));
       }
-      $issued_fmt = $dt->format('M d, Y h:i A T');
+      $issued_fmt = $dt->format('m-d-y h:i A T');
     } catch (Throwable $e) {
       $issued_fmt = $issued;
     }
@@ -674,13 +689,13 @@ function build_receipt_view_model(PDO $pdo, array $receipt, bool $mask_pii = tru
   if ($type === 'checkout') {
     $detail_lines[] = ['Loan ID', (string) ($payload_clean['loan_id'] ?? $receipt['reference_id'])];
     $detail_lines[] = ['Book', (string) ($payload_clean['book_title'] ?? 'N/A')];
-    $detail_lines[] = ['Due Date', (string) ($payload_clean['due_date'] ?? 'N/A')];
+    $detail_lines[] = ['Due Date', receipt_format_display_datetime($payload_clean['due_date'] ?? '')];
     $detail_lines[] = ['Loan Period', (string) ($payload_clean['loan_days'] ?? 'N/A') . ' day(s)'];
   } elseif ($type === 'checkin') {
     $detail_lines[] = ['Loan ID', (string) ($payload_clean['loan_id'] ?? $receipt['reference_id'])];
     $detail_lines[] = ['Book', (string) ($payload_clean['book_title'] ?? 'N/A')];
-    $detail_lines[] = ['Due Date', (string) ($payload_clean['due_date'] ?? 'N/A')];
-    $detail_lines[] = ['Returned At', (string) ($payload_clean['returned_at'] ?? 'N/A')];
+    $detail_lines[] = ['Due Date', receipt_format_display_datetime($payload_clean['due_date'] ?? '')];
+    $detail_lines[] = ['Returned At', receipt_format_display_datetime($payload_clean['returned_at'] ?? '')];
     $detail_lines[] = ['Days Late', (string) ($payload_clean['days_late'] ?? '0')];
     $detail_lines[] = ['Fine Assessed', receipt_format_money($payload_clean['fine_amount'] ?? 0, $receipt['currency'] ?? null)];
   } elseif ($type === 'fine_payment') {
@@ -691,11 +706,11 @@ function build_receipt_view_model(PDO $pdo, array $receipt, bool $mask_pii = tru
     $detail_lines[] = ['Reservation ID', (string) ($payload_clean['reservation_id'] ?? $receipt['reference_id'])];
     $detail_lines[] = ['Book', (string) ($payload_clean['book_title'] ?? 'N/A')];
     $detail_lines[] = ['Queue Position', (string) ($payload_clean['queue_position'] ?? 'N/A')];
-    $detail_lines[] = ['Reservation Expires', (string) ($payload_clean['expires_at'] ?? 'N/A')];
+    $detail_lines[] = ['Reservation Expires', receipt_format_display_datetime($payload_clean['expires_at'] ?? '')];
   } elseif ($type === 'visitor_pass') {
     $detail_lines[] = ['Visitor', (string) ($payload_clean['visitor_name'] ?? 'N/A')];
     $detail_lines[] = ['Purpose', (string) ($payload_clean['purpose'] ?? 'Library Visit')];
-    $detail_lines[] = ['Valid Until', (string) ($payload_clean['valid_until'] ?? 'N/A')];
+    $detail_lines[] = ['Valid Until', receipt_format_display_datetime($payload_clean['valid_until'] ?? '')];
     $detail_lines[] = ['Issued By', (string) ($payload_clean['issued_by'] ?? 'Staff')];
   } else {
     foreach ($payload_clean as $k => $v) {

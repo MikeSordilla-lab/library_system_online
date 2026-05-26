@@ -208,7 +208,7 @@ function librarian_reservation_date($value): string
     return '—';
   }
 
-  return date('d M Y', $timestamp);
+  return date('m-d-y', $timestamp);
 }
 
 $flashError = (string) ($_SESSION['flash_error'] ?? '');

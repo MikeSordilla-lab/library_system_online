@@ -116,7 +116,7 @@ $active_filter_chips = [
   'Status: ' . ($filter_status !== '' ? circulation_status_label($filter_status) : 'All Statuses'),
   'Checkout: ' . (
     $filter_date_from !== '' || $filter_date_to !== ''
-      ? (($filter_date_from !== '' ? date('M d, Y', strtotime($filter_date_from)) : 'Any') . ' to ' . ($filter_date_to !== '' ? date('M d, Y', strtotime($filter_date_to)) : 'Any'))
+      ? (($filter_date_from !== '' ? date('m-d-y', strtotime($filter_date_from)) : 'Any') . ' to ' . ($filter_date_to !== '' ? date('m-d-y', strtotime($filter_date_to)) : 'Any'))
       : 'All Dates'
   ),
 ];
@@ -126,7 +126,7 @@ if ($filter_search !== '') {
 
 $library_name = get_setting($pdo, 'library_name', 'LibraLink');
 $prepared_by  = (string) ($_SESSION['full_name'] ?? 'Librarian');
-$generated_at = date('F d, Y h:i A');
+$generated_at = date('m-d-y h:i A');
 $report_type_label = circulation_report_type_label($filter_report_type);
 
 $current_page = 'librarian.records';
@@ -369,9 +369,9 @@ $extraStyles = [
                     $badge_class  = 'badge--' . strtolower((string) $r['effective_status']);
                     $fine_amt     = (float) ($r['calculated_fine'] ?? 0);
                     $fine_paid    = (int) ($r['fine_paid'] ?? 0) === 1 ? 'Yes' : 'No';
-                    $checkout_fmt = !empty($r['checkout_date']) ? date('M d, Y', strtotime((string) $r['checkout_date'])) : '—';
-                    $due_fmt      = !empty($r['due_date'])      ? date('M d, Y', strtotime((string) $r['due_date']))      : '—';
-                    $return_fmt   = !empty($r['return_date'])   ? date('M d, Y', strtotime((string) $r['return_date']))   : '—';
+                    $checkout_fmt = !empty($r['checkout_date']) ? date('m-d-y', strtotime((string) $r['checkout_date'])) : '—';
+                    $due_fmt      = !empty($r['due_date'])      ? date('m-d-y', strtotime((string) $r['due_date']))      : '—';
+                    $return_fmt   = !empty($r['return_date'])   ? date('m-d-y', strtotime((string) $r['return_date']))   : '—';
                     $print_url    = htmlspecialchars(
                         BASE_URL . 'librarian/print-record.php?loan_id=' . (int) $r['id'] . '&type=record',
                         ENT_QUOTES, 'UTF-8'

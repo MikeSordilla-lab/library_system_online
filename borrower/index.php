@@ -106,7 +106,7 @@ function borrower_dashboard_date($value): string
   }
 
   $timestamp = strtotime((string) $value);
-  return $timestamp === false ? (string) $value : date('d M Y', $timestamp);
+  return $timestamp === false ? (string) $value : date('m-d-y', $timestamp);
 }
 ?>
 <!DOCTYPE html>
@@ -149,7 +149,7 @@ function borrower_dashboard_date($value): string
             <p style="margin:0; color: #fbbf24;">
               <?= $due_soon_count === 1 ? '1 book is' : $due_soon_count . ' books are' ?> due soon
               <?php if ($next_return !== null): ?>
-                — next return: <strong><?= htmlspecialchars(date('d M Y', strtotime($next_return)), ENT_QUOTES, 'UTF-8') ?></strong>
+                — next return: <strong><?= htmlspecialchars(date('m-d-y', strtotime($next_return)), ENT_QUOTES, 'UTF-8') ?></strong>
               <?php endif; ?>
             </p>
           </div>
@@ -188,10 +188,10 @@ function borrower_dashboard_date($value): string
                   ?>
                   <tr>
                     <td><?= htmlspecialchars($ar['title'], ENT_QUOTES, 'UTF-8') ?></td>
-                    <td class="rd-pickup-date"><?= $ar['approved_at'] ? htmlspecialchars(date('d M Y', strtotime($ar['approved_at'])), ENT_QUOTES, 'UTF-8') : '—' ?></td>
+                    <td class="rd-pickup-date"><?= $ar['approved_at'] ? htmlspecialchars(date('m-d-y', strtotime($ar['approved_at'])), ENT_QUOTES, 'UTF-8') : '—' ?></td>
                     <td>
                       <span class="rd-pickup-date <?= $expires_soon ? 'rd-pickup-date--urgent' : '' ?>">
-                        <?= htmlspecialchars(date('d M Y', $expires_ts), ENT_QUOTES, 'UTF-8') ?>
+                        <?= htmlspecialchars(date('m-d-y', $expires_ts), ENT_QUOTES, 'UTF-8') ?>
                       </span>
                       <?php if ($expires_crit): ?>
                         <span class="rd-pickup-expiry-badge rd-pickup-expiry-badge--critical">⚠️ Expiring today!</span>
@@ -405,8 +405,8 @@ function borrower_dashboard_date($value): string
                     default    => '',
                   };
                   $dateLabel = $item['return_date']
-                    ? date('d M Y', strtotime($item['return_date']))
-                    : 'Due ' . date('d M Y', strtotime($item['due_date']));
+                    ? date('m-d-y', strtotime($item['return_date']))
+                    : 'Due ' . date('m-d-y', strtotime($item['due_date']));
                   ?>
                   <li class="rd-timeline-item">
                     <div class="rd-timeline-dot <?= $dotClass ?>"></div>
