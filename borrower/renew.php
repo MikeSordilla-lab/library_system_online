@@ -35,11 +35,12 @@ csrf_verify();
 $user_id = (int) $_SESSION['user_id'];
 $actor_role = (string) $_SESSION['role'];
 $loan_id = (int) ($_POST['loan_id'] ?? 0);
+$redirect_to = _sanitize_borrower_redirect((string) ($_POST['redirect_to'] ?? 'borrower/index.php'));
 
 // Validation
 if ($loan_id < 1) {
     $_SESSION['flash_error'] = 'Invalid loan reference.';
-    header('Location: ' . BASE_URL . 'borrower/index.php');
+    header('Location: ' . BASE_URL . $redirect_to);
     exit;
 }
 
@@ -70,7 +71,7 @@ try {
             'title' => 'Renewal blocked',
             'message' => 'Loan not found. Please try again.',
         ];
-        header('Location: ' . BASE_URL . 'borrower/index.php');
+        header('Location: ' . BASE_URL . $redirect_to);
         exit;
     }
 
@@ -88,7 +89,7 @@ try {
             'title' => 'Renewal blocked',
             'message' => 'You do not have permission to renew this loan.',
         ];
-        header('Location: ' . BASE_URL . 'borrower/index.php');
+        header('Location: ' . BASE_URL . $redirect_to);
         exit;
     }
 
@@ -109,7 +110,7 @@ try {
             'title' => 'Renewal blocked',
             'message' => $reason_messages[$check['reason_code']] ?? 'This loan cannot be renewed at this time.',
         ];
-        header('Location: ' . BASE_URL . 'borrower/index.php');
+        header('Location: ' . BASE_URL . $redirect_to);
         exit;
     }
 
@@ -153,5 +154,31 @@ try {
     ];
 }
 
-header('Location: ' . BASE_URL . 'borrower/index.php');
+header('Location: ' . BASE_URL . $redirect_to);
 exit;
+
+/**
+ * Sanitize and validate a borrower-relative redirect path.
+ * Rejects paths with control characters, path traversal, or non-borrower prefixes.
+ */
+function _sanitize_borrower_redirect(string $value): string
+{
+    $default = 'borrower/index.php';
+    $candidate = trim($value);
+    if ($candidate === '') {
+        return $default;
+    }
+    if (preg_match('/[\x00-\x1F\x7F]/', $candidate) === 1) {
+        return $default;
+    }
+    if (preg_match('/^(?:[a-z][a-z0-9+\-.]*:|\/\/|\\\\)/i', $candidate) === 1) {
+        return $default;
+    }
+    if (strpos($candidate, '..') !== false || strpos($candidate, '//') !== false) {
+        return $default;
+    }
+    if (!str_starts_with($candidate, 'borrower/')) {
+        return $default;
+    }
+    return $candidate;
+}
