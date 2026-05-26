@@ -9,6 +9,7 @@ require_once __DIR__ . '/../includes/auth_guard.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/circulation.php';
+require_once __DIR__ . '/../includes/pagination.php';
 
 $pdo = get_db();
 $actorId = (int) ($_SESSION['user_id'] ?? 0);
@@ -298,15 +299,44 @@ if ($fineFilter === 'unpaid') {
 $whereSql = ' WHERE ' . implode(' AND ', $where);
 $hasFilters = $q !== '' || $statusFilter !== '' || $loanFilter !== '' || $reservationFilter !== '' || $fineFilter !== '';
 
+$borrowersPerPage = 25;
+$requestedPage = max(1, (int) ($_GET['page'] ?? 1));
+
+$countStmt = $pdo->prepare('SELECT COUNT(*) FROM Users u' . $whereSql);
+$countStmt->execute($params);
+$totalBorrowers = (int) $countStmt->fetchColumn();
+$borrowersTotalPages = max(1, (int) ceil($totalBorrowers / $borrowersPerPage));
+$borrowersPage = pagination_clamp_page($requestedPage, $borrowersTotalPages);
+$borrowersOffset = ($borrowersPage - 1) * $borrowersPerPage;
+[$borrowersRangeStart, $borrowersRangeEnd] = pagination_result_range($totalBorrowers, $borrowersOffset, $borrowersPerPage);
+$borrowerPageWindow = pagination_page_window($borrowersPage, $borrowersTotalPages);
+
+$borrowerPageParams = [
+  'q' => $q,
+  'status' => $statusFilter,
+  'loans' => $loanFilter,
+  'reservations' => $reservationFilter,
+  'fines' => $fineFilter,
+];
+$borrowerPageUrl = static function (int $targetPage) use ($selfUrl, $borrowerPageParams): string {
+  return pagination_build_url($selfUrl, $borrowerPageParams, 'page', $targetPage);
+};
+
 $stmt = $pdo->prepare(
   'SELECT u.id, u.full_name, u.email, u.is_verified, u.is_suspended, u.created_at,
           (SELECT COUNT(*) FROM Circulation c WHERE c.user_id = u.id AND c.status IN (\'active\', \'overdue\')) AS active_loans,
           (SELECT COUNT(*) FROM Reservations r WHERE r.user_id = u.id AND r.status IN (\'pending\', \'approved\')) AS open_reservations,
           (SELECT COALESCE(SUM(c2.fine_amount), 0) FROM Circulation c2 WHERE c2.user_id = u.id AND c2.fine_paid = 0) AS unpaid_fines
      FROM Users u' . $whereSql . '
-    ORDER BY u.created_at DESC, u.id DESC'
+    ORDER BY u.created_at DESC, u.id DESC
+    LIMIT ? OFFSET ?'
 );
-$stmt->execute($params);
+foreach ($params as $index => $value) {
+  $stmt->bindValue($index + 1, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+}
+$stmt->bindValue(count($params) + 1, $borrowersPerPage, PDO::PARAM_INT);
+$stmt->bindValue(count($params) + 2, $borrowersOffset, PDO::PARAM_INT);
+$stmt->execute();
 $borrowers = $stmt->fetchAll();
 
 $flashError = (string) ($_SESSION['flash_error'] ?? '');
@@ -378,13 +408,14 @@ $extraStyles = [
         <?php endif; ?>
       </form>
       <div class="cat-count" aria-live="polite">
-        <?= number_format(count($borrowers)) ?> borrower<?= count($borrowers) === 1 ? '' : 's' ?> found
+        Showing <?= number_format($borrowersRangeStart) ?>-<?= number_format($borrowersRangeEnd) ?>
+        of <?= number_format($totalBorrowers) ?> borrower<?= $totalBorrowers === 1 ? '' : 's' ?>
       </div>
 
       <div class="section-card">
         <div class="section-card__header">
           <span class="section-card__title">Borrowers</span>
-          <span class="badge badge-blue"><?= count($borrowers) ?></span>
+          <span class="badge badge-blue"><?= number_format($totalBorrowers) ?></span>
         </div>
 
         <?php if (empty($borrowers)): ?>
@@ -459,6 +490,35 @@ $extraStyles = [
               </tbody>
             </table>
           </div>
+
+          <nav class="records-pagination" aria-label="Borrower management pagination">
+            <div class="records-pagination__page">
+              Showing <strong><?= number_format($borrowersRangeStart) ?>-<?= number_format($borrowersRangeEnd) ?></strong>
+              of <strong><?= number_format($totalBorrowers) ?></strong>
+            </div>
+            <div class="records-pagination__nav">
+              <a
+                class="btn-ghost <?= $borrowersPage <= 1 ? 'records-pagination__disabled' : '' ?>"
+                href="<?= htmlspecialchars($borrowerPageUrl($borrowersPage - 1), ENT_QUOTES, 'UTF-8') ?>"
+                aria-label="Go to previous borrowers page">Previous</a>
+
+              <?php foreach ($borrowerPageWindow as $pageNumber): ?>
+                <?php if ($pageNumber === $borrowersPage): ?>
+                  <span class="records-pagination__page" aria-current="page">Page <?= number_format($borrowersPage) ?> of <?= number_format($borrowersTotalPages) ?></span>
+                <?php else: ?>
+                  <a
+                    class="btn-ghost"
+                    href="<?= htmlspecialchars($borrowerPageUrl($pageNumber), ENT_QUOTES, 'UTF-8') ?>"
+                    aria-label="Go to borrowers page <?= (int) $pageNumber ?>"><?= (int) $pageNumber ?></a>
+                <?php endif; ?>
+              <?php endforeach; ?>
+
+              <a
+                class="btn-ghost <?= $borrowersPage >= $borrowersTotalPages ? 'records-pagination__disabled' : '' ?>"
+                href="<?= htmlspecialchars($borrowerPageUrl($borrowersPage + 1), ENT_QUOTES, 'UTF-8') ?>"
+                aria-label="Go to next borrowers page">Next</a>
+            </div>
+          </nav>
         <?php endif; ?>
       </div>
 
