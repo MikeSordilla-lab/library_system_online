@@ -153,42 +153,6 @@ test_case($pdo, 'checkout fulfills only approved borrower reservation', function
   assert_true((int) $reservation['id'] === $pendingId, 'Selected reservation should be the approved reservation.');
 });
 
-test_case($pdo, 'renewal blocks approved competing reservation', function (PDO $pdo): void {
-  $currentUser = seed_user($pdo, 'renew-current');
-  $waitingUser = seed_user($pdo, 'renew-waiting');
-  $bookId = seed_book($pdo, 'renew-held', 1, 0);
-  $loanId = seed_loan($pdo, $currentUser, $bookId, 'active', date('Y-m-d H:i:s', strtotime('+12 hours')), 0.00, 0);
-  seed_reservation($pdo, $waitingUser, $bookId, RESERVATION_STATUS_APPROVED);
-
-  require_once __DIR__ . '/../includes/RenewalEligibilityModule.php';
-  $check = RenewalEligibilityModule::check($pdo, $currentUser, $loanId);
-
-  assert_true($check['eligible'] === false, 'Renewal should be blocked.');
-  assert_true($check['reason_code'] === 'competing_reservation', 'Expected competing_reservation reason.');
-});
-
-test_case($pdo, 'borrower summary renewal eligibility matches enforcement', function (PDO $pdo): void {
-  require_once __DIR__ . '/../includes/BorrowerAccountSummaryModule.php';
-
-  $earlyUser = seed_user($pdo, 'renew-summary-early');
-  $earlyBook = seed_book($pdo, 'renew-summary-early');
-  seed_loan($pdo, $earlyUser, $earlyBook, 'active', date('Y-m-d H:i:s', strtotime('+3 days')), 0.00, 0);
-
-  $earlySummary = BorrowerAccountSummaryModule::getSummary($pdo, $earlyUser);
-  assert_true($earlySummary['active_loans'][0]['renewal_eligible'] === false, 'Too-early loan must not show Renew button.');
-  assert_true($earlySummary['active_loans'][0]['renewal_reason_code'] === 'too_early', 'Expected too_early reason.');
-
-  $heldUser = seed_user($pdo, 'renew-summary-held');
-  $waitingUser = seed_user($pdo, 'renew-summary-waiting');
-  $heldBook = seed_book($pdo, 'renew-summary-held', 1, 0);
-  seed_loan($pdo, $heldUser, $heldBook, 'active', date('Y-m-d H:i:s', strtotime('+12 hours')), 0.00, 0);
-  seed_reservation($pdo, $waitingUser, $heldBook, RESERVATION_STATUS_PENDING);
-
-  $heldSummary = BorrowerAccountSummaryModule::getSummary($pdo, $heldUser);
-  assert_true($heldSummary['active_loans'][0]['renewal_eligible'] === false, 'Competing reservation must not show Renew button.');
-  assert_true($heldSummary['active_loans'][0]['renewal_reason_code'] === 'competing_reservation', 'Expected competing_reservation reason.');
-});
-
 test_case($pdo, 'borrower reservation rejects missing book', function (PDO $pdo): void {
   require_once __DIR__ . '/../includes/BorrowerReservationModule.php';
   $userId = seed_user($pdo, 'missing-book');

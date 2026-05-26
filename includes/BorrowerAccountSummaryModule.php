@@ -3,7 +3,6 @@
 require_once __DIR__ . '/QueuePositionModule.php';
 require_once __DIR__ . '/circulation.php';
 require_once __DIR__ . '/constants.php';
-require_once __DIR__ . '/RenewalEligibilityModule.php';
 
 class BorrowerAccountSummaryModule
 {
@@ -29,11 +28,9 @@ class BorrowerAccountSummaryModule
    */
   public static function getSummary(PDO $pdo, int $userId): array
   {
-    $hasRenewalCount = circulation_column_exists($pdo, 'renewal_count');
     $hasApprovedAt = reservation_column_exists($pdo, 'approved_at');
     $hasUpdatedAt = reservation_column_exists($pdo, 'updated_at');
 
-    $renewalSelect = $hasRenewalCount ? ', c.renewal_count' : '';
     $approvedAtSelect = $hasApprovedAt ? 'r.approved_at AS approved_at' : 'NULL AS approved_at';
     $updatedAtSelect = $hasUpdatedAt ? 'r.updated_at AS updated_at' : 'NULL AS updated_at';
     $rejectedOrder = $hasUpdatedAt
@@ -41,7 +38,7 @@ class BorrowerAccountSummaryModule
       : 'COALESCE(r.rejected_at, r.reserved_at) DESC';
 
     $activeStmt = $pdo->prepare(
-      "SELECT c.id, c.book_id, c.checkout_date, c.due_date, c.status{$renewalSelect},
+      "SELECT c.id, c.book_id, c.checkout_date, c.due_date, c.status,
               b.title, b.author,
               DATEDIFF(NOW(), c.due_date) AS days_overdue
          FROM Circulation c
@@ -54,9 +51,6 @@ class BorrowerAccountSummaryModule
 
     foreach ($activeLoans as &$loan) {
       $loan['days_overdue'] = max(0, (int) ($loan['days_overdue'] ?? 0));
-      $renewalCheck = RenewalEligibilityModule::check($pdo, $userId, (int) $loan['id']);
-      $loan['renewal_eligible'] = $renewalCheck['eligible'];
-      $loan['renewal_reason_code'] = $renewalCheck['reason_code'];
     }
     unset($loan);
 
