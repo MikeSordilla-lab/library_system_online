@@ -55,6 +55,12 @@
       "skillPath": "skills/engineering/grill-with-docs/SKILL.md",
       "computedHash": "e95d83038cb68774469932969b060438bc457973657269a479571321c93a9140"
     },
+    "handoff": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/productivity/handoff/SKILL.md",
+      "computedHash": "3fdffd9dce6fc3e9f9f756ba79d694c5f162e11c7e7fbc72a0958f204312e0b1"
+    },
     "huashu-design": {
       "source": "alchaincyf/huashu-design",
       "sourceType": "github",
