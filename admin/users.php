@@ -19,6 +19,7 @@ require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/avatar.php';
 require_once __DIR__ . '/../includes/circulation.php';
 require_once __DIR__ . '/../includes/staff_approval.php';
+require_once __DIR__ . '/../includes/AdminUserManagementModule.php';
 require_once __DIR__ . '/../src/utils/helpers.php';
 
 $pdo = get_db();
@@ -543,74 +544,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if ($post_action === 'approve_librarian_request' || $post_action === 'reject_librarian_request') {
     $user_id = (int) ($_POST['user_id'] ?? 0);
     $is_approval = $post_action === 'approve_librarian_request';
-    $approval_actor_id = $actor_id > 0 ? $actor_id : null;
 
-    try {
-      if ($is_approval) {
-        $upd = $pdo->prepare(
-          'UPDATE Users
-              SET is_verified = 1,
-                  is_suspended = 0,
-                  verified_at = COALESCE(verified_at, NOW()),
-                  verification_token = NULL,
-                  staff_approval_status = ?,
-                  staff_approved_by = ?,
-                  staff_approved_at = NOW(),
-                  staff_rejected_by = NULL,
-                  staff_rejected_at = NULL,
-                  staff_rejection_reason = NULL
-            WHERE id = ?
-              AND role = ?
-              AND staff_approval_status = ?
-              AND COALESCE(is_superadmin, 0) = 0
-            LIMIT 1'
-        );
-        $upd->execute([STAFF_APPROVAL_APPROVED, $approval_actor_id, $user_id, 'librarian', STAFF_APPROVAL_PENDING]);
-      } else {
-        $reason = trim((string) ($_POST['rejection_reason'] ?? ''));
-        $upd = $pdo->prepare(
-          'UPDATE Users
-              SET is_verified = 0,
-                  is_suspended = 1,
-                  verification_token = NULL,
-                  staff_approval_status = ?,
-                  staff_rejected_by = ?,
-                  staff_rejected_at = NOW(),
-                  staff_rejection_reason = ?
-            WHERE id = ?
-              AND role = ?
-              AND staff_approval_status = ?
-              AND COALESCE(is_superadmin, 0) = 0
-            LIMIT 1'
-        );
-        $upd->execute([STAFF_APPROVAL_REJECTED, $approval_actor_id, $reason !== '' ? $reason : null, $user_id, 'librarian', STAFF_APPROVAL_PENDING]);
-      }
+    $result = AdminUserManagementModule::decideLibrarianRequest(
+      $pdo,
+      $actor_id,
+      $user_id,
+      $is_approval,
+      (string) ($_POST['rejection_reason'] ?? '')
+    );
 
-      if ($upd->rowCount() < 1) {
-        $_SESSION['flash_error_msg'] = 'That pending librarian request was not found.';
-        header('Location: ' . $self_url);
-        exit;
-      }
-
-      try {
-        log_admin_action($pdo, [
-          'actor_id' => $approval_actor_id,
-          'actor_role' => 'admin',
-          'action_type' => $is_approval ? 'librarian_request_approve' : 'librarian_request_reject',
-          'target_entity' => 'Users',
-          'target_id' => $user_id,
-          'outcome' => 'success',
-        ]);
-      } catch (PDOException $log_error) {
-        error_log('[admin/users.php] librarian request log DB error: ' . $log_error->getMessage());
-      }
-
+    if (!empty($result['success'])) {
       $_SESSION['flash_success'] = $is_approval
         ? 'Librarian request approved.'
         : 'Librarian request rejected.';
-    } catch (PDOException $e) {
-      error_log('[admin/users.php] librarian request update DB error: ' . $e->getMessage());
-      $_SESSION['flash_error_msg'] = 'We could not update the librarian request right now. DB error ' . $e->getCode() . ': ' . $e->getMessage();
+    } elseif (($result['reason_code'] ?? '') === 'pending_request_not_found') {
+      $_SESSION['flash_error_msg'] = 'That pending librarian request was not found.';
+    } else {
+      $_SESSION['flash_error_msg'] = 'We could not update the librarian request right now.';
     }
 
     header('Location: ' . $self_url);
@@ -1002,109 +952,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user_id = (int) ($_POST['user_id'] ?? 0);
     $new_role = (string) ($_POST['new_role'] ?? '');
 
-    if (!in_array($new_role, $allowed_roles_list, true)) {
-      $_SESSION['flash_error_msg'] = 'Select a valid role.';
-      header('Location: ' . $self_url);
-      exit;
-    }
+    $result = AdminUserManagementModule::changeRole($pdo, $actor_id, $user_id, $new_role, $allowed_roles_list);
 
-    try {
-      $pdo->beginTransaction();
-
-      $stmt = $pdo->prepare('SELECT id, role, is_verified, is_suspended, is_superadmin FROM Users WHERE id = ? FOR UPDATE');
-      $stmt->execute([$user_id]);
-      $target = $stmt->fetch();
-
-      if (!$target) {
-        $pdo->rollBack();
-        $_SESSION['flash_error_msg'] = 'That user account was not found.';
-        header('Location: ' . $self_url);
-        exit;
-      }
-
-      $target_verified = (int) ($target['is_verified'] ?? 0) === 1;
-      if ($role_requires_verification($new_role) && !$target_verified) {
-        $pdo->rollBack();
-        $pdo->beginTransaction();
-        log_admin_action($pdo, [
-          'actor_id' => $actor_id,
-          'actor_role' => 'admin',
-          'action_type' => 'role_change',
-          'target_entity' => 'Users',
-          'target_id' => $user_id,
-          'outcome' => 'failure:target_not_verified',
-        ]);
-        $pdo->commit();
-        $_SESSION['flash_error_msg'] = 'Admin and Librarian roles require a verified account first.';
-        header('Location: ' . $self_url);
-        exit;
-      }
-
-      if (is_superadmin_user($target)) {
-        $pdo->rollBack();
-        $pdo->beginTransaction();
-        log_admin_action($pdo, [
-          'actor_id' => $actor_id,
-          'actor_role' => 'admin',
-          'action_type' => 'role_change',
-          'target_entity' => 'Users',
-          'target_id' => $user_id,
-          'outcome' => 'failure:protected_superadmin',
-        ]);
-        $pdo->commit();
-        $_SESSION['flash_error_msg'] = 'You cannot change the Superadmin role.';
-        header('Location: ' . $self_url);
-        exit;
-      }
-
-      if ($target['role'] === 'admin' && $new_role !== 'admin') {
-        $active_admin_count = count_active_admins($pdo);
-        if ($active_admin_count <= 1) {
-          $pdo->rollBack();
-          $pdo->beginTransaction();
-          log_admin_action($pdo, [
-            'actor_id' => $actor_id,
-            'actor_role' => 'admin',
-            'action_type' => 'role_change',
-            'target_entity' => 'Users',
-            'target_id' => $user_id,
-            'outcome' => 'failure:last_active_admin',
-          ]);
-          $pdo->commit();
-          $_SESSION['flash_error_msg'] = 'You cannot demote the last active admin account.';
-          header('Location: ' . $self_url);
-          exit;
-        }
-      }
-
-      $upd = $pdo->prepare('UPDATE Users SET role = ? WHERE id = ? LIMIT 1');
-      $upd->execute([$new_role, $user_id]);
-
-      log_admin_action($pdo, [
-        'actor_id' => $actor_id,
-        'actor_role' => 'admin',
-        'action_type' => 'role_change',
-        'target_entity' => 'Users',
-        'target_id' => $user_id,
-        'outcome' => 'success',
-      ]);
-
-      $pdo->commit();
+    if (!empty($result['success'])) {
       $undo_token = bin2hex(random_bytes(16));
       $_SESSION['users_undo'] = [
         'token' => $undo_token,
         'type' => 'role_change',
         'user_id' => $user_id,
-        'previous_role' => (string) $target['role'],
+        'previous_role' => (string) ($result['previous_role'] ?? ''),
         'expires_at' => time() + 300,
       ];
       $_SESSION['flash_success'] = 'User role updated.';
-    } catch (PDOException $e) {
-      if ($pdo->inTransaction()) {
-        $pdo->rollBack();
+    } else {
+      switch ((string) ($result['reason_code'] ?? 'unexpected_error')) {
+        case 'invalid_role':
+          $_SESSION['flash_error_msg'] = 'Select a valid role.';
+          break;
+        case 'not_found':
+          $_SESSION['flash_error_msg'] = 'That user account was not found.';
+          break;
+        case 'target_not_verified':
+          $_SESSION['flash_error_msg'] = 'Admin and Librarian roles require a verified account first.';
+          break;
+        case 'protected_superadmin':
+          $_SESSION['flash_error_msg'] = 'You cannot change the Superadmin role.';
+          break;
+        case 'last_active_admin':
+          $_SESSION['flash_error_msg'] = 'You cannot demote the last active admin account.';
+          break;
+        case 'unexpected_error':
+        default:
+          $_SESSION['flash_error_msg'] = 'We could not update the role right now. Please try again.';
+          break;
       }
-      error_log('[admin/users.php] role_change DB error: ' . $e->getMessage());
-      $_SESSION['flash_error_msg'] = 'We could not update the role right now. Please try again.';
     }
 
     header('Location: ' . $self_url);

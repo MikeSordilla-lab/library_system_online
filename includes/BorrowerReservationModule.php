@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/QueuePositionModule.php';
+require_once __DIR__ . '/BookAvailabilityModule.php';
 require_once __DIR__ . '/constants.php';
 require_once __DIR__ . '/circulation.php';
 require_once __DIR__ . '/receipts.php';
@@ -22,34 +23,9 @@ class BorrowerReservationModule
 
     expire_stale_reservations($pdo);
 
-    $bookStmt = $pdo->prepare(
-      'SELECT id, total_copies, available_copies
-         FROM Books
-        WHERE id = ?
-        FOR UPDATE'
-    );
-    $bookStmt->execute([$bookId]);
-    $book = $bookStmt->fetch();
-
-    if (!$book) {
-      return ['success' => false, 'reason_code' => 'book_not_found'];
-    }
-
-    if ((int) $book['total_copies'] < 1) {
-      return ['success' => false, 'reason_code' => 'book_not_borrowable'];
-    }
-
-    $approvedStmt = $pdo->prepare(
-      'SELECT COUNT(*)
-         FROM Reservations
-        WHERE book_id = ?
-          AND status = ?'
-    );
-    $approvedStmt->execute([$bookId, RESERVATION_STATUS_APPROVED]);
-    $approvedHolds = (int) $approvedStmt->fetchColumn();
-
-    if (((int) $book['available_copies'] - $approvedHolds) < 1) {
-      return ['success' => false, 'reason_code' => 'no_available_copies'];
+    $availability = BookAvailabilityModule::canReserve($pdo, $bookId, true, true);
+    if (!$availability['allowed']) {
+      return ['success' => false, 'reason_code' => (string) $availability['reason_code']];
     }
 
     $unpaidFines = get_unpaid_fines_total($pdo, $userId);

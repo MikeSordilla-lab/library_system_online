@@ -16,127 +16,37 @@
 $allowed_roles = ['librarian'];
 require_once __DIR__ . '/../includes/auth_guard.php';
 require_once __DIR__ . '/../includes/circulation.php';
+require_once __DIR__ . '/../includes/CirculationRecordsReportModule.php';
 
 $pdo = get_db();
 
 // ---------------------------------------------------------------------------
-// Filter inputs (same as records.php)
+// Report assembly (same seam as records.php)
 // ---------------------------------------------------------------------------
-$filter_status    = trim((string) ($_GET['status']    ?? ''));
-$filter_search    = trim((string) ($_GET['search']    ?? ''));
-$filter_date_from = trim((string) ($_GET['date_from'] ?? ''));
-$filter_date_to   = trim((string) ($_GET['date_to']   ?? ''));
-$filter_report_type = circulation_normalize_report_type(trim((string) ($_GET['report_type'] ?? 'circulation_records')));
 $report_action = trim((string) ($_GET['action'] ?? 'preview'));
-
-function records_print_filter_date_to_sql(string $value): string
-{
-  $value = trim($value);
-  if ($value === '') {
-    return '';
-  }
-
-  foreach (['!m-d-y', '!Y-m-d'] as $format) {
-    $date = DateTimeImmutable::createFromFormat($format, $value);
-    $errors = DateTimeImmutable::getLastErrors();
-    if ($date instanceof DateTimeImmutable && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0))) {
-      return $date->format('Y-m-d');
-    }
-  }
-
-  return '';
-}
-
-function records_print_filter_date_display(string $sql_date): string
-{
-  $date = records_print_filter_date_to_sql($sql_date);
-  if ($date === '') {
-    return '';
-  }
-  return DateTimeImmutable::createFromFormat('!Y-m-d', $date)->format('m-d-y');
-}
-
-$filter_date_from_sql = records_print_filter_date_to_sql($filter_date_from);
-$filter_date_to_sql = records_print_filter_date_to_sql($filter_date_to);
-$filter_date_from = records_print_filter_date_display($filter_date_from_sql);
-$filter_date_to = records_print_filter_date_display($filter_date_to_sql);
-
-$allowed_statuses = ['', 'active', 'overdue', 'returned', 'returned_late'];
-if (!in_array($filter_status, $allowed_statuses, true)) {
-  $filter_status = '';
-}
 if (!in_array($report_action, ['preview', 'print', 'pdf'], true)) {
   $report_action = 'preview';
 }
 
-// ---------------------------------------------------------------------------
-// Build query
-// ---------------------------------------------------------------------------
-$where_parts = [];
-$params = [];
+$report = CirculationRecordsReportModule::build($pdo, [
+  'status' => $_GET['status'] ?? '',
+  'search' => $_GET['search'] ?? '',
+  'date_from' => $_GET['date_from'] ?? '',
+  'date_to' => $_GET['date_to'] ?? '',
+  'report_type' => $_GET['report_type'] ?? 'circulation_records',
+  'per_page' => 50,
+  'page' => 1,
+]);
 
-if ($filter_search !== '') {
-  $where_parts[] = '(u.full_name LIKE ? OR b.title LIKE ? OR u.email LIKE ?)';
-  $like = '%' . $filter_search . '%';
-  $params[] = $like;
-  $params[] = $like;
-  $params[] = $like;
-}
-
-if ($filter_date_from !== '') {
-  $where_parts[] = 'DATE(c.checkout_date) >= ?';
-  $params[] = $filter_date_from_sql;
-}
-
-if ($filter_date_to !== '') {
-  $where_parts[] = 'DATE(c.checkout_date) <= ?';
-  $params[] = $filter_date_to_sql;
-}
-
-$where_sql = count($where_parts) > 0 ? 'WHERE ' . implode(' AND ', $where_parts) : '';
-
-$stmt = $pdo->prepare(
-  "SELECT
-        c.id,
-        c.status,
-        c.checkout_date,
-        c.due_date,
-        c.return_date,
-        c.fine_amount,
-        c.fine_paid,
-        u.full_name  AS borrower_name,
-        u.email      AS borrower_email,
-        b.title      AS book_title,
-        b.author     AS book_author,
-        b.isbn       AS book_isbn
-     FROM Circulation c
-     JOIN Users u ON u.id = c.user_id
-     JOIN Books b ON b.id = c.book_id
-     {$where_sql}
-     ORDER BY c.checkout_date DESC
-     LIMIT 5000"
-);
-$stmt->execute($params);
-$raw_records = $stmt->fetchAll();
-
-$daily_fine_rate = (float) get_setting($pdo, 'fine_per_day', '0.00');
-$now = new DateTimeImmutable('now');
-$records = [];
-foreach ($raw_records as $record) {
-  $record = circulation_enrich_report_record($record, $daily_fine_rate, $now);
-  if ($filter_status !== '' && (string) $record['effective_status'] !== $filter_status) {
-    continue;
-  }
-  if (!circulation_record_matches_report_type($record, $filter_report_type)) {
-    continue;
-  }
-  $records[] = $record;
-}
-
-// ---------------------------------------------------------------------------
-// Totals
-// ---------------------------------------------------------------------------
-$summary = circulation_report_summary($records);
+$filters = $report['filters'];
+$filter_status = (string) $filters['status'];
+$filter_search = (string) $filters['search'];
+$filter_date_from = (string) $filters['date_from'];
+$filter_date_to = (string) $filters['date_to'];
+$filter_report_type = (string) $filters['report_type'];
+$records = $report['records'];
+$summary = $report['summary'];
+$report_type_label = (string) $report['report_type_label'];
 
 $library_name = get_setting($pdo, 'library_name', 'LibraLink');
 $prepared_by  = (string) ($_SESSION['full_name'] ?? 'Librarian');

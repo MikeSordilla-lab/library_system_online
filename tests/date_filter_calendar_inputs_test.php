@@ -13,9 +13,13 @@ function calendar_input_assert(bool $condition, string $message): void
 $root = dirname(__DIR__);
 $receiptPage = file_get_contents($root . '/receipt/index.php');
 $recordsPage = file_get_contents($root . '/librarian/records.php');
+$receiptWorkflowModule = file_get_contents($root . '/includes/ReceiptTicketWorkflowModule.php');
+$recordsReportModule = file_get_contents($root . '/includes/CirculationRecordsReportModule.php');
 
 calendar_input_assert(is_string($receiptPage), 'Could not read receipt index page.');
 calendar_input_assert(is_string($recordsPage), 'Could not read librarian records page.');
+calendar_input_assert(is_string($receiptWorkflowModule), 'Could not read receipt workflow module.');
+calendar_input_assert(is_string($recordsReportModule), 'Could not read records report module.');
 
 foreach ([
   'receipt date from' => [$receiptPage, 'id="receipt-date-from"', 'name="date_from"'],
@@ -31,8 +35,8 @@ calendar_input_assert(substr_count($receiptPage, 'data-calendar-trigger') >= 2, 
 calendar_input_assert(substr_count($recordsPage, 'data-calendar-trigger') >= 2, 'Records filters should include clickable calendar trigger buttons.');
 calendar_input_assert(str_contains($receiptPage, 'data-calendar-hidden'), 'Receipt filters should include hidden native date inputs.');
 calendar_input_assert(str_contains($recordsPage, 'data-calendar-hidden'), 'Records filters should include hidden native date inputs.');
-calendar_input_assert(str_contains($receiptPage, "->format('m-d-y')"), 'Receipt date values should render in mm-dd-yy.');
-calendar_input_assert(str_contains($recordsPage, "->format('m-d-y')"), 'Records date values should render in mm-dd-yy.');
+calendar_input_assert(str_contains($receiptPage . $receiptWorkflowModule, "->format('m-d-y')"), 'Receipt date values should render in mm-dd-yy.');
+calendar_input_assert(str_contains($recordsPage . $recordsReportModule, "->format('m-d-y')"), 'Records date values should render in mm-dd-yy.');
 calendar_input_assert(str_contains($receiptPage, 'date-calendar-fields.js'), 'Receipt filters should load calendar field behavior.');
 calendar_input_assert(str_contains($recordsPage, 'date-calendar-fields.js'), 'Records filters should load calendar field behavior.');
 

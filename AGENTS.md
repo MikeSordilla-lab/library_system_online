@@ -1,118 +1,83 @@
-# LibraLink — Agent Guide
+# DOX framework
 
-## Stack
-- PHP 8.x, MySQL (PDO, utf8mb4), PHPMailer (bundled in `src/utils/phpmailer/`)
+- DOX is highly performant AGENTS.md hierarchy installed here
+- Agent must follow DOX instructions across any edits
 
-## Entry Points & Roles
-| Role | Index | Auth |
-|------|-------|------|
-| Public | `index.php`, `catalog.php`, `login.php`, `register.php` | None |
-| Borrower | `borrower/index.php` | `['borrower']` |
-| Librarian | `librarian/index.php` | `['librarian']` |
+## Core Contract
 
-> **Note:** Public entry points in `public/` (e.g., `public/index.php`, `public/catalog.php`) are thin wrappers that `require_once` the root file. The root files remain canonical entry points.
+- AGENTS.md files are binding work contracts for their subtrees
+- Work products, source materials, instructions, records, assets, and durable docs must stay understandable from the nearest applicable AGENTS.md plus every parent AGENTS.md above it
 
-## Config Loading (critical)
-The system auto-detects environment via `.env.mode`:
-- `local` → `.env.local`
-- `production` → `.env.production`
-- fallback → `.env`
+## Read Before Editing
 
-On unknown hosts (not localhost/127.0.0.1), defaults to `production`.
+1. Read the root AGENTS.md
+2. Identify every file or folder you expect to touch
+3. Walk from the repository root to each target path
+4. Read every AGENTS.md found along each route
+5. If a parent AGENTS.md lists a child AGENTS.md whose scope contains the path, read that child and continue from there
+6. Use the nearest AGENTS.md as the local contract and parent docs for repo-wide rules
+7. If docs conflict, the closer doc controls local work details, but no child doc may weaken DOX
 
-Config values also live in `$GLOBALS['_APP_ENV']` for shared-host compatibility where `getenv()` may be restricted.
+Do not rely on memory. Re-read the applicable DOX chain in the current session before editing.
 
-Root `config.php` handles env detection. Main config logic is at `src/config/config.php`.
+## Update After Editing
 
-## Bootstrap
-For application pages: `require_once __DIR__ . '/bootstrap.php'`
-- Loads from `src/` paths: `src/config/config.php` (→ env), `src/config/constants.php`, `src/config/database.php`, `src/utils/helpers.php`, `src/utils/avatar.php`, `src/utils/circulation.php`, `src/utils/settings.php`, `src/middleware/auth_guard.php`, `src/middleware/csrf.php`
-- Starts session, sets CSRF token, loads user context
+Every meaningful change requires a DOX pass before the task is done.
 
-For scripts/CLI: `require_once __DIR__ . '/includes/db.php'`
-- Falls back to `config.php` if not yet loaded, returns PDO via `get_db()`
+Update the closest owning AGENTS.md when a change affects:
 
-## Auth Guard Usage
-```php
-$allowed_roles = ['admin']; // or ['admin', 'librarian'], or [] for any authenticated
-require_once __DIR__ . '/includes/auth_guard.php';
-```
-- Sessions re-validated against DB on every request (suspended/deleted accounts are logged out)
-- Role is synced from DB on each request
+- purpose, scope, ownership, or responsibilities
+- durable structure, contracts, workflows, or operating rules
+- required inputs, outputs, permissions, constraints, side effects, or artifacts
+- user preferences about behavior, communication, process, organization, or quality
+- AGENTS.md creation, deletion, move, rename, or index contents
 
-## DB Migrations
-SQL migration files live in `database/`:
-```
-database/infinityfree-import.sql
-database/migration-epic1-borrowing-lifecycle.sql
-database/migration-infinityfree-all-in-one.sql
-database/migration-receipts-phase1-safe.sql
-database/migration-receipts-phase1.sql
-database/migration-reservations-approval-phase1.sql
-database/migration-reservations-fk-safe.sql
-database/migration-reservations-table-create.sql
-```
+Update parent docs when parent-level structure, ownership, workflow, or child index changes. Update child docs when parent changes alter local rules. Remove stale or contradictory text immediately. Small edits that do not change behavior or contracts may leave docs unchanged, but the DOX pass still must happen.
 
-Apply manually via phpMyAdmin or CLI. No migration runner currently — `admin/migrations/runner.php` was removed.
+## Hierarchy
 
-## Default Credentials
-- Admin: `admin@library.local` / `admin123` (from `database/infinityfree-import.sql`)
-- Change immediately after first login
+- Root AGENTS.md is the DOX rail: project-wide instructions, global preferences, durable workflow rules, and the top-level Child DOX Index
+- Child AGENTS.md files own domain-specific instructions and their own Child DOX Index
+- Each parent explains what its direct children cover and what stays owned by the parent
+- The closer a doc is to the work, the more specific and practical it must be
 
-## Key Paths
-```
-ROOT_PATH     = project root
-SRC_PATH      = ROOT_PATH/src
-PUBLIC_PATH   = ROOT_PATH/public
-DATABASE_PATH = ROOT_PATH/database
-BASE_URL      = auto-detected, must end in /
-```
+## Child Doc Shape
 
-## Key Directories
-```
-src/
-├── api/v1/            — API endpoints (e.g., search-suggestions.php)
-├── config/            — Config, constants, database helper
-├── middleware/        — Auth guard, CSRF
-├── utils/            — Helpers, avatar, circulation, settings, PHPMailer
-└── views/            — Layouts & components
-    ├── components/   — Sidebar partials
-    └── layouts/
+- Create a child AGENTS.md when a folder becomes a durable boundary with its own purpose, rules, responsibilities, workflow, materials, or quality standards
+- Work Guidance must reflect the current standards of the project or user instructions; if there are no specific standards or instructions yet, leave it empty
+- Verification must reflect an existing check; if no verification framework exists yet, leave it empty and update it when one exists
 
-includes/             — Legacy includes (kept for backward compat)
-assets/
-├── css/              — Stylesheets (incl. borrower-redesign.css)
-├── js/               — JavaScript
-├── images/           — Images
-├── fonts/            — Font files
-└── avatars/          — Uploaded user avatars
-```
+Default section order:
+- Purpose
+- Ownership
+- Local Contracts
+- Work Guidance
+- Verification
+- Child DOX Index
 
-## Deployment
-- No automated build script currently (previous `build-deploy-zip.ps1` was removed)
-- `.htaccess` blocks direct access to `config.php` and all `.env*` files
-- `.user.ini` hides PHP errors from visitors
-- Config auto-detects HTTPS; set `DEBUG_MODE=false` in production
+## Style
 
-## Database Schema
-Tables: `Users`, `Books`, `Loans`, `Reservations`, `System_Logs`, `Receipt_Tickets`, `Receipt_Ticket_Logs`
+- Keep docs concise, current, and operational
+- Document stable contracts, not diary entries
+- Put broad rules in parent docs and concrete details in child docs
+- Prefer direct bullets with explicit names
+- Do not duplicate rules across many files unless each scope needs a local version
+- Delete stale notes instead of explaining history
+- Trim obvious statements, repeated rules, misplaced detail, and warnings for risks that no longer exist
 
-PHPMailer is bundled (no composer). Do not add it via composer.
+## Closeout
 
-## Seed Scripts
-- `seed-books.php` — original seed script
-- `seed-books-50.php` — seeds 50+ diverse books with cover images
+1. Re-check changed paths against the DOX chain
+2. Update nearest owning docs and any affected parents or children
+3. Refresh every affected Child DOX Index
+4. Remove stale or contradictory text
+5. Run existing verification when relevant
+6. Report any docs intentionally left unchanged and why
 
-## Agent skills
+## User Preferences
 
-### Issue tracker
+When the user requests a durable behavior change, record it here or in the relevant child AGENTS.md
 
-GitHub Issues. See `docs/agents/issue-tracker.md`.
+## Child DOX Index
 
-### Triage labels
-
-Default vocabulary (needs-triage, needs-info, ready-for-agent, ready-for-human, wontfix). See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-Single-context. See `docs/agents/domain.md`.
+This project is not yet indexed. Before continuing you must scan the project, build the DOX tree and replace this message with the actual index. Go deep and scan files recursively to properly evaluate complexity and create nested DOX files where needed.

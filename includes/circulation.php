@@ -24,6 +24,8 @@ define('CIRCULATION_PHP_LOADED', true);
 // Load settings helper (includes get_setting function)
 require_once __DIR__ . '/settings.php';
 require_once __DIR__ . '/constants.php';
+require_once __DIR__ . '/BookAvailabilityModule.php';
+require_once __DIR__ . '/QueuePositionModule.php';
 
 /**
  * Return the configured loan period in days.
@@ -492,28 +494,12 @@ function reject_pending_reservations_when_no_copies_left(
     throw new RuntimeException('reject_pending_reservations_when_no_copies_left must be called inside an active transaction.');
   }
 
-  $bookStmt = $pdo->prepare(
-    'SELECT id, title, available_copies
-       FROM Books
-      WHERE id = ?
-      FOR UPDATE'
-  );
-  $bookStmt->execute([$bookId]);
-  $book = $bookStmt->fetch();
-  if (!$book) {
+  $availability = BookAvailabilityModule::getAvailability($pdo, $bookId, true, true);
+  if (!$availability['exists']) {
     return [];
   }
 
-  $approvedStmt = $pdo->prepare(
-    'SELECT COUNT(*)
-       FROM Reservations
-      WHERE book_id = ?
-        AND status = ?'
-  );
-  $approvedStmt->execute([$bookId, RESERVATION_STATUS_APPROVED]);
-  $approvedHolds = (int) $approvedStmt->fetchColumn();
-
-  if (((int) $book['available_copies'] - $approvedHolds) > 0) {
+  if ((int) ($availability['reservable_copies'] ?? 0) > 0) {
     return [];
   }
 
@@ -526,6 +512,7 @@ function reject_pending_reservations_when_no_copies_left(
        JOIN Books b ON b.id = r.book_id
       WHERE r.book_id = ?
         AND r.status = ?
+        AND r.expires_at >= NOW()
       ORDER BY r.reserved_at ASC, r.id ASC
       FOR UPDATE'
   );
@@ -569,34 +556,12 @@ function checkout_reservation_policy(PDO $pdo, int $userId, int $bookId): array
     throw new RuntimeException('checkout_reservation_policy must be called inside an active transaction.');
   }
 
-  $orderSql = reservation_column_exists($pdo, 'approved_at')
-    ? 'approved_at ASC, reserved_at ASC, id ASC'
-    : 'reserved_at ASC, id ASC';
-
-  $stmt = $pdo->prepare(
-    "SELECT id, user_id, status
-       FROM Reservations
-      WHERE book_id = ?
-        AND status = ?
-      ORDER BY {$orderSql}
-      LIMIT 1
-      FOR UPDATE"
-  );
-  $stmt->execute([$bookId, RESERVATION_STATUS_APPROVED]);
-  $approved = $stmt->fetch();
-
-  if ($approved && (int) $approved['user_id'] !== $userId) {
-    return [
-      'allowed' => false,
-      'reason_code' => 'reserved_for_another_borrower',
-      'reservation_id' => (int) $approved['id'],
-    ];
-  }
+  $result = BookAvailabilityModule::checkoutPolicy($pdo, $userId, $bookId, null, true);
 
   return [
-    'allowed' => true,
-    'reason_code' => null,
-    'reservation_id' => $approved ? (int) $approved['id'] : null,
+    'allowed' => (bool) $result['allowed'],
+    'reason_code' => $result['reason_code'],
+    'reservation_id' => isset($result['reservation_id']) ? (int) $result['reservation_id'] : null,
   ];
 }
 
@@ -606,23 +571,7 @@ function checkout_reservation_to_fulfill(PDO $pdo, int $userId, int $bookId): ?a
     throw new RuntimeException('checkout_reservation_to_fulfill must be called inside an active transaction.');
   }
 
-  $orderSql = reservation_column_exists($pdo, 'approved_at')
-    ? 'approved_at ASC, reserved_at ASC, id ASC'
-    : 'reserved_at ASC, id ASC';
-
-  $stmt = $pdo->prepare(
-    "SELECT id, status
-       FROM Reservations
-      WHERE user_id = ?
-        AND book_id = ?
-        AND status = ?
-      ORDER BY {$orderSql}
-      LIMIT 1
-      FOR UPDATE"
-  );
-  $stmt->execute([$userId, $bookId, RESERVATION_STATUS_APPROVED]);
-  $row = $stmt->fetch();
-  return $row === false ? null : $row;
+  return BookAvailabilityModule::approvedHoldForBorrower($pdo, $userId, $bookId, true);
 }
 
 /**
@@ -633,28 +582,7 @@ function checkout_reservation_to_fulfill(PDO $pdo, int $userId, int $bookId): ?a
  */
 function get_pending_reservation_queue(PDO $pdo): array
 {
-  $stmt = $pdo->prepare(
-    'SELECT r.id, r.user_id, r.book_id, r.status, r.reserved_at, r.expires_at,
-            (
-              SELECT COUNT(*) + 1
-                FROM Reservations q
-               WHERE q.book_id = r.book_id
-                 AND q.status = ?
-                 AND (
-                   q.reserved_at < r.reserved_at
-                   OR (q.reserved_at = r.reserved_at AND q.id < r.id)
-                 )
-            ) AS queue_position,
-            u.full_name AS borrower_name, u.email AS borrower_email,
-            b.title AS book_title, b.author AS book_author
-       FROM Reservations r
-       JOIN Users u ON r.user_id = u.id
-       JOIN Books b ON r.book_id = b.id
-       WHERE r.status = ?
-       ORDER BY r.reserved_at ASC, r.id ASC'
-  );
-  $stmt->execute([RESERVATION_STATUS_PENDING, RESERVATION_STATUS_PENDING]);
-  return $stmt->fetchAll();
+  return QueuePositionModule::getPendingQueue($pdo);
 }
 
 function complete_checkin_loan(PDO $pdo, int $loanId, float $fine): bool

@@ -29,25 +29,25 @@ require_once SRC_PATH . '/middleware/security_headers.php';
 // Load main configuration (handles .env file parsing)
 require_once SRC_PATH . '/config/config.php';
 
-// Load application constants
-require_once SRC_PATH . '/config/constants.php';
+// Load application constants from the canonical shared helper path.
+require_once ROOT_PATH . '/includes/constants.php';
 
-// Load database connection helper
+// Load database connection helper (src/config/database.php delegates to includes/db.php).
 require_once SRC_PATH . '/config/database.php';
 
 // ============================================================================
 // 3. LOAD UTILITIES & HELPERS
 // ============================================================================
 require_once SRC_PATH . '/utils/helpers.php';
-require_once SRC_PATH . '/utils/avatar.php';
-require_once SRC_PATH . '/utils/circulation.php';
-require_once SRC_PATH . '/utils/settings.php';
+require_once ROOT_PATH . '/includes/avatar.php';
+require_once ROOT_PATH . '/includes/circulation.php';
+require_once ROOT_PATH . '/includes/settings.php';
 
 // ============================================================================
 // 4. LOAD MIDDLEWARE
 // ============================================================================
-require_once SRC_PATH . '/middleware/auth_guard.php';
-require_once SRC_PATH . '/middleware/csrf.php';
+require_once ROOT_PATH . '/includes/auth_guard.php';
+require_once ROOT_PATH . '/includes/csrf.php';
 
 // ============================================================================
 // 5. SESSION INITIALIZATION

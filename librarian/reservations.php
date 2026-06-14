@@ -12,216 +12,74 @@ require_once __DIR__ . '/../includes/auth_guard.php';
 require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/circulation.php';
 require_once __DIR__ . '/../includes/mailer.php';
+require_once __DIR__ . '/../includes/LibrarianReservationManagementModule.php';
 
 $pdo = get_db();
+
+function librarian_reservation_apply_flash(array $result): void
+{
+  if (!empty($result['success'])) {
+    if ((string) ($result['action'] ?? '') === 'approve') {
+      $_SESSION['flash_success'] = 'Reservation approved.'
+        . (!empty($result['approval_mail_sent']) ? ' Borrower notification email sent.' : '')
+        . ((int) ($result['auto_rejected_count'] ?? 0) > 0
+          ? ' ' . (int) $result['auto_rejected_count'] . ' competing reservation(s) were removed and notified.'
+          : '');
+      if (empty($result['approval_mail_sent'])) {
+        $_SESSION['flash_info'] = 'Reservation approved, but the borrower notification email could not be sent.';
+      }
+      return;
+    }
+
+    $_SESSION['flash_success'] = 'Reservation rejected.';
+    return;
+  }
+
+  switch ((string) ($result['reason_code'] ?? 'unexpected_error')) {
+    case 'invalid_request':
+      $_SESSION['flash_error'] = 'Invalid reservation action request.';
+      return;
+    case 'not_found':
+      $_SESSION['flash_error'] = 'Reservation not found.';
+      return;
+    case 'already_processed':
+      $_SESSION['flash_info'] = 'Reservation was already processed by another request.';
+      return;
+    case 'status_changed':
+      $_SESSION['flash_info'] = 'Reservation status changed by another request.';
+      return;
+    case 'unexpected_error':
+    default:
+      $_SESSION['flash_error'] = 'Unable to update reservation right now. Please try again.';
+      return;
+  }
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   csrf_verify();
 
-  $reservationId = (int) ($_POST['reservation_id'] ?? 0);
-  $action = (string) ($_POST['action'] ?? '');
-  $actorId = (int) ($_SESSION['user_id'] ?? 0);
-  $actorRole = (string) ($_SESSION['role'] ?? '');
+  $result = LibrarianReservationManagementModule::process(
+    $pdo,
+    (int) ($_POST['reservation_id'] ?? 0),
+    (string) ($_POST['action'] ?? ''),
+    (int) ($_SESSION['user_id'] ?? 0),
+    (string) ($_SESSION['role'] ?? ''),
+    $_POST
+  );
 
-  if ($reservationId < 1 || !in_array($action, ['approve', 'reject'], true)) {
-    $_SESSION['flash_error'] = 'Invalid reservation action request.';
-    header('Location: ' . BASE_URL . 'librarian/reservations.php');
-    exit;
-  }
-
-  $pdo->beginTransaction();
-
-  try {
-    expire_stale_reservations($pdo);
-
-    $lockStmt = $pdo->prepare(
-      'SELECT r.id, r.book_id, r.status, r.expires_at,
-              u.full_name AS borrower_name, u.email AS borrower_email,
-              b.title AS book_title, b.author AS book_author
-         FROM Reservations r
-         JOIN Users u ON u.id = r.user_id
-         JOIN Books b ON b.id = r.book_id
-        WHERE r.id = ?
-        FOR UPDATE'
-    );
-    $lockStmt->execute([$reservationId]);
-    $reservation = $lockStmt->fetch();
-
-    if (!$reservation) {
-      $pdo->rollBack();
-      $_SESSION['flash_error'] = 'Reservation not found.';
-      header('Location: ' . BASE_URL . 'librarian/reservations.php');
-      exit;
-    }
-
-    $currentStatus = (string) ($reservation['status'] ?? '');
-    if ($currentStatus !== RESERVATION_STATUS_PENDING) {
-      $pdo->commit();
-      $_SESSION['flash_info'] = 'Reservation was already processed by another request.';
-      header('Location: ' . BASE_URL . 'librarian/reservations.php');
-      exit;
-    }
-
-    if ($action === 'approve') {
-      $changed = transition_reservation_status(
-        $pdo,
-        $reservationId,
-        RESERVATION_STATUS_PENDING,
-        RESERVATION_STATUS_APPROVED,
-        [
-          'actor_id' => $actorId,
-          'actor_role' => $actorRole,
-          'action_type' => 'reservation_approve',
-        ]
-      );
-
-      $autoRejected = [];
-      if ($changed) {
-        $autoRejected = reject_pending_reservations_when_no_copies_left(
-          $pdo,
-          (int) $reservation['book_id'],
-          $actorId,
-          $actorRole
-        );
-      }
-
-      $pdo->commit();
-
-      $approvalMailSent = true;
-      if ($changed) {
-        $approvalMailError = '';
-        $approvalMailSent = send_reservation_approved_mail(
-          (string) $reservation['borrower_email'],
-          (string) $reservation['borrower_name'],
-          (string) $reservation['book_title'],
-          (string) ($reservation['book_author'] ?? ''),
-          (string) ($reservation['expires_at'] ?? ''),
-          $approvalMailError
-        );
-
-        if (!$approvalMailSent) {
-          error_log('[reservations.php] approval email failed for reservation '
-            . $reservationId . ': ' . $approvalMailError);
-        }
-      }
-
-      foreach ($autoRejected as $rejectedReservation) {
-        $mailError = '';
-        if (!send_reservation_unavailable_mail(
-          (string) $rejectedReservation['borrower_email'],
-          (string) $rejectedReservation['borrower_name'],
-          (string) $rejectedReservation['book_title'],
-          $mailError
-        )) {
-          error_log('[reservations.php] auto-rejection email failed for reservation '
-            . (int) $rejectedReservation['id'] . ': ' . $mailError);
-        }
-      }
-
-      if ($changed) {
-        $_SESSION['flash_success'] = 'Reservation approved.'
-          . ($approvalMailSent ? ' Borrower notification email sent.' : '')
-          . (!empty($autoRejected)
-            ? ' ' . count($autoRejected) . ' competing reservation(s) were removed and notified.'
-            : '');
-        if (!$approvalMailSent) {
-          $_SESSION['flash_info'] = 'Reservation approved, but the borrower notification email could not be sent.';
-        }
-      } else {
-        $_SESSION['flash_info'] = 'Reservation status changed by another request.';
-      }
-
-      header('Location: ' . BASE_URL . 'librarian/reservations.php');
-      exit;
-    }
-
-    $rejectionReason = trim((string) ($_POST['rejection_reason'] ?? ''));
-    if (strlen($rejectionReason) > 255) {
-      $rejectionReason = substr($rejectionReason, 0, 255);
-    }
-
-    $meta = [
-      'actor_id' => $actorId,
-      'actor_role' => $actorRole,
-      'action_type' => 'reservation_reject',
-    ];
-    if ($rejectionReason !== '') {
-      $meta['rejection_reason'] = $rejectionReason;
-    }
-
-    $changed = transition_reservation_status(
-      $pdo,
-      $reservationId,
-      RESERVATION_STATUS_PENDING,
-      RESERVATION_STATUS_REJECTED,
-      $meta
-    );
-
-    $pdo->commit();
-
-    if ($changed) {
-      $_SESSION['flash_success'] = 'Reservation rejected.';
-    } else {
-      $_SESSION['flash_info'] = 'Reservation status changed by another request.';
-    }
-
-    header('Location: ' . BASE_URL . 'librarian/reservations.php');
-    exit;
-  } catch (Throwable $e) {
-    if ($pdo->inTransaction()) {
-      $pdo->rollBack();
-    }
-    error_log('[reservations.php] reservation action failed: ' . $e->getMessage());
-    $_SESSION['flash_error'] = 'Unable to update reservation right now. Please try again.';
-    header('Location: ' . BASE_URL . 'librarian/reservations.php');
-    exit;
-  }
+  librarian_reservation_apply_flash($result);
+  header('Location: ' . BASE_URL . 'librarian/reservations.php');
+  exit;
 }
 
-expire_stale_reservations($pdo);
-$rows = get_pending_reservation_queue($pdo);
-
-// EPIC 1: Also fetch approved reservations so librarians can see what's awaiting pickup
-$approved_rows_stmt = $pdo->prepare(
-  'SELECT r.id, r.user_id, r.book_id, r.reserved_at, r.approved_at, r.expires_at,
-          u.full_name AS borrower_name, u.email AS borrower_email,
-          b.title AS book_title, b.author AS book_author,
-          (SELECT full_name FROM Users WHERE id = r.approved_by LIMIT 1) AS approved_by_name
-     FROM Reservations r
-     JOIN Users u ON r.user_id = u.id
-     JOIN Books b ON r.book_id = b.id
-    WHERE r.status = ?
-    ORDER BY r.expires_at ASC'
-);
-$approved_rows_stmt->execute([RESERVATION_STATUS_APPROVED]);
-$approved_rows = $approved_rows_stmt->fetchAll();
-
-$processed_rows_stmt = $pdo->prepare(
-  'SELECT r.id, r.status, r.reserved_at, r.approved_at, r.rejected_at, r.updated_at, r.rejection_reason,
-          u.full_name AS borrower_name, u.email AS borrower_email,
-          b.title AS book_title, b.author AS book_author,
-          approver.full_name AS approved_by_name,
-          rejecter.full_name AS rejected_by_name
-     FROM Reservations r
-     JOIN Users u ON r.user_id = u.id
-     JOIN Books b ON r.book_id = b.id
-LEFT JOIN Users approver ON approver.id = r.approved_by
-LEFT JOIN Users rejecter ON rejecter.id = r.rejected_by
-    WHERE r.status IN (?, ?, ?)
-    ORDER BY COALESCE(r.updated_at, r.rejected_at, r.approved_at, r.reserved_at) DESC, r.id DESC'
-);
-$processed_rows_stmt->execute([RESERVATION_STATUS_APPROVED, RESERVATION_STATUS_REJECTED, RESERVATION_STATUS_FULFILLED]);
-$processed_rows = $processed_rows_stmt->fetchAll();
-
-$pendingCount = count($rows);
-$approvedCount = count($approved_rows);
-$processedCount = count($processed_rows);
-$rejectedCount = 0;
-foreach ($processed_rows as $processedRow) {
-  if (($processedRow['status'] ?? '') === RESERVATION_STATUS_REJECTED) {
-    $rejectedCount++;
-  }
-}
+$reservationPageModel = LibrarianReservationManagementModule::pageModel($pdo);
+$rows = $reservationPageModel['pending_rows'];
+$approved_rows = $reservationPageModel['approved_rows'];
+$processed_rows = $reservationPageModel['processed_rows'];
+$pendingCount = (int) $reservationPageModel['pending_count'];
+$approvedCount = (int) $reservationPageModel['approved_count'];
+$processedCount = (int) $reservationPageModel['processed_count'];
+$rejectedCount = (int) $reservationPageModel['rejected_count'];
 
 function librarian_reservation_date($value): string
 {

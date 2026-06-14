@@ -9,130 +9,34 @@
 
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/src/utils/helpers.php';
+require_once __DIR__ . '/includes/CatalogDiscoveryModule.php';
 
 $pdo = get_db();
 
-$q = trim((string) ($_GET['q'] ?? ''));
-$category = trim((string) ($_GET['category'] ?? ''));
-$availability = trim((string) ($_GET['availability'] ?? 'all'));
-$sort = trim((string) ($_GET['sort'] ?? 'title_asc'));
-$page = max(1, (int) ($_GET['page'] ?? 1));
-$per_page = 12;
+$catalogModel = CatalogDiscoveryModule::publicCatalog($pdo, $_GET, 12);
+$catalogFilters = $catalogModel['filters'];
 
-$allowed_sorts = [
-  'title_asc' => 'b.title ASC',
-  'title_desc' => 'b.title DESC',
-  'author_asc' => 'b.author ASC',
-  'newest' => 'b.created_at DESC',
-];
-$order_by = $allowed_sorts[$sort] ?? $allowed_sorts['title_asc'];
+$q = (string) $catalogFilters['q'];
+$category = (string) $catalogFilters['category'];
+$availability = (string) $catalogFilters['availability'];
+$sort = (string) $catalogFilters['sort'];
+$page = (int) $catalogFilters['page'];
+$per_page = (int) $catalogFilters['per_page'];
 
-$where_parts = [];
-$params = [];
-
-if ($q !== '') {
-  $where_parts[] = '(b.title LIKE :q OR b.author LIKE :q OR b.isbn LIKE :q OR b.category LIKE :q)';
-  $params[':q'] = '%' . escape_like_wildcards($q) . '%';
-}
-
-if ($category !== '') {
-  $where_parts[] = 'b.category = :category';
-  $params[':category'] = $category;
-}
-
-if ($availability === 'available') {
-  $where_parts[] = 'b.available_copies > 0';
-} elseif ($availability === 'unavailable') {
-  $where_parts[] = 'b.available_copies = 0';
-}
-
-$where_sql = '';
-if (!empty($where_parts)) {
-  $where_sql = 'WHERE ' . implode(' AND ', $where_parts);
-}
-
-$sql = 'SELECT b.id, b.title, b.author, b.isbn, b.category, b.available_copies, b.total_copies,
-               (bc.book_id IS NOT NULL) AS has_cover
-           FROM Books b
-           LEFT JOIN book_covers bc ON bc.book_id = b.id
-           ' . $where_sql . '
-           ORDER BY ' . $order_by;
-
-// Get total count for pagination
-try {
-  $count_sql = 'SELECT COUNT(DISTINCT b.id) FROM Books b ' . $where_sql;
-  $count_stmt = $pdo->prepare($count_sql);
-  $count_stmt->execute($params);
-  $total_books_count = (int) $count_stmt->fetchColumn();
-} catch (PDOException $e) {
-  error_log('Count query error: ' . $e->getMessage());
-  $total_books_count = 0;
-}
-
-// Calculate pagination
-$total_pages = max(1, ceil($total_books_count / $per_page));
-$page = min($page, $total_pages);
-$offset = ($page - 1) * $per_page;
-
-// Add LIMIT to main query
-$sql .= ' LIMIT ' . $per_page . ' OFFSET ' . $offset;
-
-try {
-  $stmt = $pdo->prepare($sql);
-  $stmt->execute($params);
-  $books = $stmt->fetchAll();
-} catch (PDOException $e) {
-  error_log('Catalog query error: ' . $e->getMessage());
-  $books = [];
-}
-
-// Featured books (newest, available)
-$featured_sql = 'SELECT b.id, b.title, b.author, b.isbn, b.category, b.available_copies, b.total_copies,
-                        (bc.book_id IS NOT NULL) AS has_cover
-                   FROM Books b
-                   LEFT JOIN book_covers bc ON bc.book_id = b.id
-                   WHERE b.available_copies > 0
-                   ORDER BY b.created_at DESC
-                   LIMIT 6';
-$featured_stmt = $pdo->query($featured_sql);
-$featured_books = $featured_stmt->fetchAll();
-
-// Recently Added section
-$recent_sql = 'SELECT b.id, b.title, b.author, b.isbn, b.category, b.available_copies, b.total_copies,
-                       (bc.book_id IS NOT NULL) AS has_cover
-                  FROM Books b
-                  LEFT JOIN book_covers bc ON bc.book_id = b.id
-                  ORDER BY b.created_at DESC
-                  LIMIT 6';
-$recent_stmt = $pdo->query($recent_sql);
-$recent_books = $recent_stmt->fetchAll();
-
-// Most Popular section (based on checkout count)
-$popular_sql = 'SELECT b.id, b.title, b.author, b.isbn, b.category, b.available_copies, b.total_copies,
-                        (bc.book_id IS NOT NULL) AS has_cover,
-            COUNT(c.id) as checkout_count
-                   FROM Books b
-                   LEFT JOIN book_covers bc ON bc.book_id = b.id
-          LEFT JOIN Circulation c ON c.book_id = b.id
-                   GROUP BY b.id
-                   ORDER BY checkout_count DESC
-                   LIMIT 6';
-try {
-  $popular_stmt = $pdo->query($popular_sql);
-  $popular_books = $popular_stmt->fetchAll();
-} catch (PDOException $e) {
-  error_log('Popular books query error: ' . $e->getMessage());
-  $popular_books = [];
-}
-
-// Get all unique categories with counts
-$categories_stmt = $pdo->query('SELECT DISTINCT category FROM Books ORDER BY category ASC');
-$all_categories = $categories_stmt->fetchAll(PDO::FETCH_COLUMN);
-$category_count = count($all_categories);
-
-$total_books = (int) $pdo->query('SELECT COUNT(*) FROM Books')->fetchColumn();
-$available_books = (int) $pdo->query('SELECT COUNT(*) FROM Books WHERE available_copies > 0')->fetchColumn();
-$unavailable_books = $total_books - $available_books;
+$books = $catalogModel['books'];
+$featured_books = $catalogModel['featured_books'];
+$recent_books = $catalogModel['recent_books'];
+$popular_books = $catalogModel['popular_books'];
+$all_categories = $catalogModel['all_categories'];
+$category_count = (int) $catalogModel['category_count'];
+$total_books = (int) $catalogModel['total_books'];
+$available_books = (int) $catalogModel['available_books'];
+$unavailable_books = (int) $catalogModel['unavailable_books'];
+$total_books_count = (int) $catalogModel['total_books_count'];
+$total_pages = (int) $catalogModel['total_pages'];
+$offset = (int) $catalogModel['offset'];
+$is_searching = (bool) $catalogModel['is_searching'];
+$active_filter_count = (int) $catalogModel['active_filter_count'];
 
 $q_escaped = htmlspecialchars($q, ENT_QUOTES, 'UTF-8');
 $category_escaped = htmlspecialchars($category, ENT_QUOTES, 'UTF-8');
@@ -179,7 +83,7 @@ function render_book_card(array $book): void
   $author = esc($book['author'] ?? 'Unknown Author');
   $isbn = esc($book['isbn'] ?? '');
   $category = esc($book['category'] ?? 'Uncategorized');
-  $available = (int) ($book['available_copies'] ?? 0);
+  $available = (int) ($book['reservable_copies'] ?? $book['available_copies'] ?? 0);
   $total = (int) ($book['total_copies'] ?? 0);
   $has_cover = !empty($book['has_cover']);
 ?>

@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/_bootstrap.php';
 require_once __DIR__ . '/../../src/utils/rate_limit.php';
+require_once __DIR__ . '/../../includes/ReceiptTicketWorkflowModule.php';
 
 receipt_api_require_method('POST');
 
@@ -12,51 +13,11 @@ if (!rate_limit('api_receipts_create', 20, 60)) {
 $pdo = get_db();
 receipt_api_phase1_guard($pdo);
 $actor = receipt_api_actor($pdo);
-
-if ($actor['role'] !== 'admin' && $actor['role'] !== 'librarian' && $actor['role'] !== 'borrower') {
-  receipt_api_json(403, false, 'Role is not allowed to create receipts.');
-}
-
 $body = receipt_api_read_json_body();
 
-$patron_user_id = isset($body['patron_user_id']) ? (int) $body['patron_user_id'] : $actor['id'];
-if ($actor['role'] === 'borrower' && $patron_user_id !== $actor['id']) {
-  receipt_api_json(403, false, 'Borrowers can only create receipts for themselves.');
-}
-
-$type = trim((string) ($body['type'] ?? ''));
-$reference_table = trim((string) ($body['reference_table'] ?? ''));
-$reference_id = (int) ($body['reference_id'] ?? 0);
-
-if ($type === '' || $reference_table === '' || $reference_id < 1 || $patron_user_id < 1) {
-  receipt_api_json(422, false, 'type, patron_user_id, reference_table, reference_id are required.');
-}
-
-try {
-  $receipt = issue_receipt_ticket($pdo, [
-    'type' => $type,
-    'actor_user_id' => $actor['id'],
-    'actor_role' => $actor['role'],
-    'patron_user_id' => $patron_user_id,
-    'reference_table' => $reference_table,
-    'reference_id' => $reference_id,
-    'idempotency_key' => (string) ($body['idempotency_key'] ?? ''),
-    'amount' => isset($body['amount']) ? (float) $body['amount'] : null,
-    'currency' => (string) ($body['currency'] ?? receipt_default_currency()),
-    'payload' => is_array($body['payload'] ?? null) ? $body['payload'] : [],
-    'status' => (string) ($body['status'] ?? 'issued'),
-    'format' => (string) ($body['format'] ?? 'thermal'),
-    'locale' => (string) ($body['locale'] ?? 'en_US'),
-    'timezone' => (string) ($body['timezone'] ?? 'UTC'),
-    'branch_id' => isset($body['branch_id']) ? (int) $body['branch_id'] : null,
-    'channel' => (string) ($body['channel'] ?? 'api'),
-    'reason' => (string) ($body['reason'] ?? ''),
-  ]);
-
-  if (!can_access_receipt_ticket($receipt, $actor['id'], $actor['role'])) {
-    receipt_api_json(403, false, 'Not allowed to access created receipt.');
-  }
-
+$result = ReceiptTicketWorkflowModule::createFromRequest($pdo, $actor, $body);
+if (!empty($result['success'])) {
+  $receipt = $result['receipt'];
   receipt_api_json(201, true, 'Receipt created.', [
     'receipt' => receipt_public_api_data($pdo, $receipt, true),
     'urls' => [
@@ -64,9 +25,23 @@ try {
       'kiosk' => receipt_kiosk_url($receipt),
     ],
   ]);
-} catch (InvalidArgumentException $e) {
-  receipt_api_json(422, false, $e->getMessage());
-} catch (Throwable $e) {
-  error_log('[api/receipts/create] ' . $e->getMessage());
-  receipt_api_json(500, false, 'Failed to create receipt.');
+}
+
+switch ((string) ($result['reason_code'] ?? 'create_failed')) {
+  case 'role_not_allowed':
+  case 'borrower_patron_mismatch':
+  case 'created_receipt_forbidden':
+    receipt_api_json(403, false, $result['reason_code'] === 'borrower_patron_mismatch'
+      ? 'Borrowers can only create receipts for themselves.'
+      : ($result['reason_code'] === 'created_receipt_forbidden' ? 'Not allowed to access created receipt.' : 'Role is not allowed to create receipts.'));
+    break;
+  case 'missing_required_fields':
+    receipt_api_json(422, false, 'type, patron_user_id, reference_table, reference_id are required.');
+    break;
+  case 'invalid_payload':
+    receipt_api_json(422, false, (string) ($result['message'] ?? 'Invalid receipt payload.'));
+    break;
+  case 'create_failed':
+  default:
+    receipt_api_json(500, false, 'Failed to create receipt.');
 }

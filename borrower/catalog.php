@@ -25,6 +25,9 @@ $allCategories = $catStmt->fetchAll(PDO::FETCH_COLUMN);
 
 $conditions = [];
 $params = [];
+$availabilityJoinSql = BookAvailabilityModule::catalogApprovedHoldJoinSql('b', 'availability_holds');
+$approvedHoldsSql = BookAvailabilityModule::approvedHoldsSql('availability_holds');
+$reservableCopiesSql = BookAvailabilityModule::reservableCopiesSql('b', 'availability_holds');
 
 if ($q !== '') {
 	$like = '%' . $q . '%';
@@ -41,9 +44,9 @@ if ($filter_category !== '') {
 }
 
 if ($filter_availability === 'available') {
-	$conditions[] = 'b.available_copies > 0';
+	$conditions[] = '(' . $reservableCopiesSql . ') > 0';
 } elseif ($filter_availability === 'not_available') {
-	$conditions[] = 'b.available_copies = 0';
+	$conditions[] = '(' . $reservableCopiesSql . ') = 0';
 }
 
 $whereSql = $conditions !== [] ? ' WHERE ' . implode(' AND ', $conditions) : '';
@@ -55,7 +58,7 @@ if ($sort === 'newest') {
 	$orderSql = ' ORDER BY b.total_copies DESC, b.title ASC';
 }
 
-$countStmt = $pdo->prepare('SELECT COUNT(*) FROM Books b' . $whereSql);
+$countStmt = $pdo->prepare('SELECT COUNT(*) FROM Books b' . $availabilityJoinSql . $whereSql);
 foreach ($params as $key => $value) {
 	$countStmt->bindValue($key, $value, PDO::PARAM_STR);
 }
@@ -71,6 +74,9 @@ $offset = ($page - 1) * $perPage;
 
 $listSql =
 	'SELECT b.id, b.title, b.author, b.isbn, b.category, b.available_copies, b.total_copies,
+					' . $approvedHoldsSql . ' AS approved_holds,
+					' . $reservableCopiesSql . ' AS reservable_copies,
+					CASE WHEN b.total_copies >= 1 AND ' . $reservableCopiesSql . ' > 0 THEN 1 ELSE 0 END AS has_reservable_copy,
 					EXISTS(SELECT 1 FROM book_covers bc WHERE bc.book_id = b.id) AS has_cover,
 					EXISTS(
 						SELECT 1
@@ -78,8 +84,10 @@ $listSql =
 						WHERE r.book_id = b.id
 							AND r.user_id = :current_user_id
 							AND r.status IN (\'pending\', \'approved\')
+							AND r.expires_at >= NOW()
 					) AS has_active_reservation
 	 FROM Books b' .
+	$availabilityJoinSql .
 	$whereSql .
 	$orderSql .
 	' LIMIT :limit OFFSET :offset';
@@ -228,6 +236,11 @@ $remainingReservationSlots = max(0, $maxBorrowLimit - $currentLoanCount - $curre
 						</div>
 					<?php else: ?>
 						<?php foreach ($books as $book): ?>
+							<?php
+							$reservableCopies = (int) ($book['reservable_copies'] ?? $book['available_copies']);
+							$physicalCopies = (int) ($book['available_copies'] ?? 0);
+							$hasReservableCopy = !empty($book['has_reservable_copy']);
+							?>
 							<article class="catalog-book" aria-label="<?= htmlspecialchars($book['title'], ENT_QUOTES, 'UTF-8') ?>">
 								<div class="catalog-book__cover-wrap">
 									<?php if (!empty($book['has_cover'])): ?>
@@ -253,8 +266,10 @@ $remainingReservationSlots = max(0, $maxBorrowLimit - $currentLoanCount - $curre
 										>
 									<?php endif; ?>
 
-									<?php if ((int) $book['available_copies'] > 0): ?>
-										<span class="catalog-book__badge catalog-book__badge--available">Available (<?= (int) $book['available_copies'] ?>)</span>
+									<?php if ($hasReservableCopy): ?>
+										<span class="catalog-book__badge catalog-book__badge--available">Available (<?= $reservableCopies ?>)</span>
+									<?php elseif ($physicalCopies > 0): ?>
+										<span class="catalog-book__badge catalog-book__badge--unavailable">Reserved for Pickup</span>
 									<?php else: ?>
 										<span class="catalog-book__badge catalog-book__badge--unavailable">Unavailable</span>
 									<?php endif; ?>
@@ -272,7 +287,7 @@ $remainingReservationSlots = max(0, $maxBorrowLimit - $currentLoanCount - $curre
 									<div class="catalog-book__action">
 										<?php if (!empty($book['has_active_reservation'])): ?>
 											<button type="button" class="catalog-book__btn catalog-book__btn--disabled" disabled aria-disabled="true">Already Reserved</button>
-										<?php elseif ((int) $book['available_copies'] > 0): ?>
+										<?php elseif ($hasReservableCopy): ?>
 											<button
 												type="button"
 												class="catalog-book__bulk-check js-book-select"

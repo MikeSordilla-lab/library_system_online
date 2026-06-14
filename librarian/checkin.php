@@ -17,149 +17,77 @@ require_once __DIR__ . '/../includes/auth_guard.php';
 require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/circulation.php';
 require_once __DIR__ . '/../includes/receipts.php';
+require_once __DIR__ . '/../includes/LibrarianCheckinModule.php';
 
 $pdo = get_db();
 
 // ---------------------------------------------------------------------------
 // POST handler — T014–T016
 // ---------------------------------------------------------------------------
+function checkin_apply_result_flash(PDO $pdo, array $result): void
+{
+  $reason = (string) ($result['reason_code'] ?? '');
+  if (empty($result['success'])) {
+    switch ($reason) {
+      case 'invalid_loan':
+        $_SESSION['flash_error'] = 'Invalid loan reference. Please select a valid loan from the list.';
+        return;
+      case 'not_found_or_returned':
+        $_SESSION['flash_error'] = 'Loan not found or has already been returned.';
+        return;
+      case 'missing_book_reference':
+        $_SESSION['flash_error'] = 'This loan record is missing a valid book reference and cannot be processed.';
+        return;
+      case 'already_returned':
+        $_SESSION['flash_error'] = 'Loan was already returned by another request.';
+        return;
+      case 'unexpected_error':
+      default:
+        $_SESSION['flash_error'] = 'An unexpected error occurred. Please try again.';
+        return;
+    }
+  }
+
+  $loanId = (int) ($result['loan_id'] ?? 0);
+  $fine = (float) ($result['fine_amount'] ?? 0.0);
+  $fineMsg = $fine > 0.00
+    ? ' Total fine assessed: ' . format_circulation_money($pdo, $fine) . '. Borrower cannot borrow another book until this fine is paid.'
+    : ' No fine.';
+
+  $alertMsg = !empty($result['has_pending_reservations'])
+    ? ' ⚠️ Note: There are pending reservations for this book. Please place it on the Hold shelf.'
+    : '';
+
+  $_SESSION['flash_success'] = 'Book returned successfully. Loan ID: ' . $loanId . '.' . $fineMsg . $alertMsg;
+  $_SESSION['flash_receipt_no'] = (string) ($result['receipt']['receipt_no'] ?? '');
+  $_SESSION['flash_print_url'] = BASE_URL . 'librarian/print-record.php?loan_id=' . $loanId . '&type=checkin';
+  $_SESSION['flash_print_label'] = 'Print Return Record';
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   csrf_verify();
 
-  $loan_id    = filter_var($_POST['loan_id'] ?? '', FILTER_VALIDATE_INT);
-  $loan_id    = ($loan_id !== false && $loan_id > 0) ? (int) $loan_id : 0;
-  $actor_id   = (int) $_SESSION['user_id'];
-  $actor_role = (string) $_SESSION['role'];
+  $loanId = filter_var($_POST['loan_id'] ?? '', FILTER_VALIDATE_INT);
+  $loanId = ($loanId !== false && $loanId > 0) ? (int) $loanId : 0;
 
-  if ($loan_id < 1) {
-    $_SESSION['flash_error'] = 'Invalid loan reference. Please select a valid loan from the list.';
-    header('Location: ' . BASE_URL . 'librarian/checkin.php');
-    exit;
-  }
-
-  // T014 — Fetch loan; reject if not found or already returned
-  $loan_stmt = $pdo->prepare(
-    'SELECT c.id, c.user_id, c.book_id, c.due_date, c.status,
-            b.title AS book_title,
-            u.full_name AS borrower_name
-       FROM Circulation c
-       JOIN Books b ON c.book_id = b.id
-       JOIN Users u ON c.user_id = u.id
-      WHERE c.id = ?
-      LIMIT 1'
+  $result = LibrarianCheckinModule::process(
+    $pdo,
+    $loanId,
+    (int) $_SESSION['user_id'],
+    (string) $_SESSION['role']
   );
-  $loan_stmt->execute([$loan_id]);
-  $loan = $loan_stmt->fetch();
 
-  if (!$loan || $loan['status'] === 'returned') {
-    $_SESSION['flash_error'] = 'Loan not found or has already been returned.';
-    header('Location: ' . BASE_URL . 'librarian/checkin.php');
-    exit;
-  }
-
-  // Guard: ensure the loan has a valid book_id (prevent orphaned record processing)
-  if (empty($loan['book_id']) || (int) $loan['book_id'] < 1) {
-    $_SESSION['flash_error'] = 'This loan record is missing a valid book reference and cannot be processed.';
-    header('Location: ' . BASE_URL . 'librarian/checkin.php');
-    exit;
-  }
-
-  // T015 — Calculate fine in PHP
-  $return_ts = time();
-  $due_ts    = strtotime($loan['due_date']);
-  $days_late = max(0, (int) ceil(($return_ts - $due_ts) / 86400));
-  $rate      = (float) get_setting($pdo, 'fine_per_day', '0.00');
-  $fine      = round($days_late * $rate, 2);
-
-  // T016 — Transactional update
-  $pdo->beginTransaction();
-
-  try {
-    $updated = complete_checkin_loan($pdo, $loan_id, $fine);
-
-    if (!$updated) {
-      $pdo->rollBack();
-      $_SESSION['flash_error'] = 'Loan was already returned by another request.';
-      header('Location: ' . BASE_URL . 'librarian/checkin.php');
-      exit;
-    }
-
-    $upd_book = $pdo->prepare(
-      'UPDATE Books
-                SET available_copies = LEAST(available_copies + 1, total_copies)
-              WHERE id = ?'
-    );
-    $upd_book->execute([(int) $loan['book_id']]);
-
-    log_circulation($pdo, [
-      'actor_id'      => $actor_id,
-      'actor_role'    => $actor_role,
-      'action_type'   => 'checkin',
-      'target_entity' => 'Circulation',
-      'target_id'     => $loan_id,
-      'outcome'       => 'success',
-    ]);
-
-    $receipt = issue_receipt_ticket($pdo, [
-      'type'            => 'checkin',
-      'actor_user_id'   => $actor_id,
-      'actor_role'      => $actor_role,
-      'patron_user_id'  => (int) $loan['user_id'],
-      'reference_table' => 'Circulation',
-      'reference_id'    => $loan_id,
-      'format'          => 'thermal',
-      'channel'         => 'librarian_console',
-      'payload'         => [
-        'loan_id'       => $loan_id,
-        'book_id'       => (int) $loan['book_id'],
-        'book_title'    => (string) ($loan['book_title'] ?? ''),
-        'patron_name'   => (string) ($loan['borrower_name'] ?? ''),
-        'due_date'      => (string) ($loan['due_date'] ?? ''),
-        'returned_at'   => date('Y-m-d H:i:s'),
-        'days_late'     => $days_late,
-        'fine_amount'   => $fine,
-      ],
-    ]);
-
-    $pdo->commit();
-
-    // --- NEW LOGIC: Reservation Alert ---
-    $res_check = $pdo->prepare("SELECT COUNT(*) FROM Reservations WHERE book_id = ? AND status = 'pending'");
-    $res_check->execute([(int) $loan['book_id']]);
-    $has_reservations = (int) $res_check->fetchColumn();
-
-    $fine_msg = ($fine > 0.00)
-      ? ' Total fine assessed: ' . format_circulation_money($pdo, $fine) . '. Borrower cannot borrow another book until this fine is paid.'
-      : ' No fine.';
-      
-    $alert_msg = ($has_reservations > 0) 
-      ? ' ⚠️ Note: There are pending reservations for this book. Please place it on the Hold shelf.'
-      : '';
-
-    $_SESSION['flash_success'] = 'Book returned successfully. Loan ID: ' . $loan_id . '.' . $fine_msg . $alert_msg;
-    $_SESSION['flash_receipt_no'] = (string) ($receipt['receipt_no'] ?? '');
-    $_SESSION['flash_print_url'] = BASE_URL . 'librarian/print-record.php?loan_id=' . $loan_id . '&type=checkin';
-    $_SESSION['flash_print_label'] = 'Print Return Record';
-    header('Location: ' . BASE_URL . 'librarian/checkin.php');
-    exit;
-  } catch (Throwable $e) {
-    $pdo->rollBack();
-    error_log('[checkin.php] Transaction failed: ' . $e->getMessage());
-    $_SESSION['flash_error'] = 'An unexpected error occurred. Please try again.';
-    header('Location: ' . BASE_URL . 'librarian/checkin.php');
-    exit;
-  }
+  checkin_apply_result_flash($pdo, $result);
+  header('Location: ' . BASE_URL . 'librarian/checkin.php');
+  exit;
 }
 
 // ---------------------------------------------------------------------------
 // GET handler — T013
 // ---------------------------------------------------------------------------
 
-// Bulk overdue UPDATE: mark active loans past due_date as overdue
-$pdo->exec(
-  "UPDATE Circulation SET status = 'overdue'
-      WHERE status = 'active' AND due_date < NOW()"
-);
+// Bulk overdue update is routed through the check-in module seam.
+LibrarianCheckinModule::markOverdueLoans($pdo);
 
 // Count active + overdue total (for pagination)
 $count_loans_stmt = $pdo->query(

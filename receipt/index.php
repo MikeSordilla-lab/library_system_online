@@ -3,150 +3,31 @@
 $allowed_roles = ['librarian', 'borrower'];
 require_once __DIR__ . '/../includes/auth_guard.php';
 require_once __DIR__ . '/../includes/receipts.php';
+require_once __DIR__ . '/../includes/ReceiptTicketWorkflowModule.php';
 
 $pdo = get_db();
 $viewer_id = (int) $_SESSION['user_id'];
 $viewer_role = (string) $_SESSION['role'];
 
-$q = isset($_GET['q']) ? trim((string) $_GET['q']) : '';
-$filter_status = isset($_GET['status']) ? trim((string) $_GET['status']) : '';
-$filter_type = isset($_GET['type']) ? trim((string) $_GET['type']) : '';
-$date_from = isset($_GET['date_from']) ? trim((string) $_GET['date_from']) : '';
-$date_to = isset($_GET['date_to']) ? trim((string) $_GET['date_to']) : '';
-$page = max(1, (int) ($_GET['page'] ?? 1));
-$per_page = isset($_GET['per_page']) ? max(5, min(100, (int) $_GET['per_page'])) : 10;
-$valid_per_page = [10, 25, 50];
-if (!in_array($per_page, $valid_per_page, true)) {
-    $per_page = 10;
-}
-$offset = ($page - 1) * $per_page;
+$receiptListModel = ReceiptTicketWorkflowModule::listModel($pdo, $viewer_id, $viewer_role, $_GET);
+$receiptFilters = $receiptListModel['filters'];
 
-function receipt_filter_date_to_sql(string $value): string
-{
-  $value = trim($value);
-  if ($value === '') {
-    return '';
-  }
-
-  foreach (['!m-d-y', '!Y-m-d'] as $format) {
-    $date = DateTimeImmutable::createFromFormat($format, $value);
-    $errors = DateTimeImmutable::getLastErrors();
-    if ($date instanceof DateTimeImmutable && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0))) {
-      return $date->format('Y-m-d');
-    }
-  }
-
-  return '';
-}
-
-function receipt_filter_date_display(string $sql_date): string
-{
-  $date = receipt_filter_date_to_sql($sql_date);
-  if ($date === '') {
-    return '';
-  }
-  return DateTimeImmutable::createFromFormat('!Y-m-d', $date)->format('m-d-y');
-}
-
-$date_from_sql = receipt_filter_date_to_sql($date_from);
-$date_to_sql_base = receipt_filter_date_to_sql($date_to);
-$date_from = receipt_filter_date_display($date_from_sql);
-$date_to = receipt_filter_date_display($date_to_sql_base);
-
-$allowed_statuses = [];
-$allowed_types = [];
-try {
-  $base_option_sql = '';
-  $base_option_params = [];
-  if ($viewer_role === 'borrower') {
-    $base_option_sql = ' WHERE patron_user_id = ?';
-    $base_option_params = [$viewer_id];
-  }
-
-  $status_stmt = $pdo->prepare("SELECT DISTINCT status FROM Receipt_Tickets{$base_option_sql} ORDER BY status ASC");
-  $status_stmt->execute($base_option_params);
-  $allowed_statuses = array_values(array_filter(array_map('strval', $status_stmt->fetchAll(PDO::FETCH_COLUMN) ?: [])));
-
-  $type_stmt = $pdo->prepare("SELECT DISTINCT type FROM Receipt_Tickets{$base_option_sql} ORDER BY type ASC");
-  $type_stmt->execute($base_option_params);
-  $allowed_types = array_values(array_filter(array_map('strval', $type_stmt->fetchAll(PDO::FETCH_COLUMN) ?: [])));
-} catch (Throwable $e) {
-  $allowed_statuses = [];
-  $allowed_types = [];
-}
-
-$conditions = [];
-$params = [];
-if ($viewer_role === 'borrower') {
-  $conditions[] = 'patron_user_id = :viewer_id';
-  $params[':viewer_id'] = $viewer_id;
-}
-
-if ($q !== '') {
-  $conditions[] = '(receipt_no LIKE :q_receipt OR type LIKE :q_type OR status LIKE :q_status)';
-  $params[':q_receipt'] = '%' . $q . '%';
-  $params[':q_type'] = '%' . $q . '%';
-  $params[':q_status'] = '%' . $q . '%';
-}
-
-if ($filter_status !== '' && in_array($filter_status, $allowed_statuses, true)) {
-  $conditions[] = 'status = :status';
-  $params[':status'] = $filter_status;
-} elseif ($filter_status !== '') {
-  $filter_status = '';
-}
-
-if ($filter_type !== '' && in_array($filter_type, $allowed_types, true)) {
-  $conditions[] = 'type = :type';
-  $params[':type'] = $filter_type;
-} elseif ($filter_type !== '') {
-  $filter_type = '';
-}
-
-$date_to_sql = '';
-if ($date_to !== '') {
-  $date_to_ts = strtotime($date_to_sql_base . ' +1 day');
-  if ($date_to_ts !== false) {
-    $date_to_sql = date('Y-m-d', $date_to_ts);
-  } else {
-    $date_to = '';
-  }
-}
-
-if ($date_from !== '') {
-  $conditions[] = 'issued_at >= :date_from';
-  $params[':date_from'] = $date_from_sql . ' 00:00:00';
-}
-if ($date_to !== '' && $date_to_sql !== '') {
-  $conditions[] = 'issued_at < :date_to';
-  $params[':date_to'] = $date_to_sql . ' 00:00:00';
-}
-
-$where_sql = $conditions !== [] ? 'WHERE ' . implode(' AND ', $conditions) : '';
-
-$count_sql = "SELECT COUNT(*) FROM Receipt_Tickets {$where_sql}";
-$count_stmt = $pdo->prepare($count_sql);
-foreach ($params as $key => $value) {
-  $count_stmt->bindValue($key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
-}
-$count_stmt->execute();
-$total_tickets = (int) $count_stmt->fetchColumn();
-$total_pages = max(1, (int) ceil($total_tickets / $per_page));
-$page = min($page, $total_pages);
-$offset = ($page - 1) * $per_page;
-
-$tickets_stmt = $pdo->prepare(
-  'SELECT ' . receipt_select_clause($pdo) . '
-   FROM Receipt_Tickets
-   ' . $where_sql . '
-   ORDER BY issued_at DESC, id DESC
-   LIMIT ' . (int) $per_page . ' OFFSET ' . (int) $offset
-);
-foreach ($params as $key => $value) {
-  $tickets_stmt->bindValue($key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
-}
-$tickets_stmt->execute();
-$tickets = $tickets_stmt->fetchAll() ?: [];
+$q = (string) $receiptFilters['q'];
+$filter_status = (string) $receiptFilters['status'];
+$filter_type = (string) $receiptFilters['type'];
+$date_from = (string) $receiptFilters['date_from'];
+$date_to = (string) $receiptFilters['date_to'];
+$page = (int) $receiptFilters['page'];
+$per_page = (int) $receiptFilters['per_page'];
+$offset = (int) $receiptListModel['offset'];
+$allowed_statuses = $receiptListModel['allowed_statuses'];
+$allowed_types = $receiptListModel['allowed_types'];
+$tickets = $receiptListModel['tickets'];
+$total_tickets = (int) $receiptListModel['total_tickets'];
+$total_pages = (int) $receiptListModel['total_pages'];
+$shown_start = (int) $receiptListModel['shown_start'];
+$shown_end = (int) $receiptListModel['shown_end'];
+$has_filters = (bool) $receiptListModel['has_filters'];
 
 $base_url = defined('BASE_URL') ? (string) constant('BASE_URL') : '/';
 $shown_start = $total_tickets > 0 ? $offset + 1 : 0;
