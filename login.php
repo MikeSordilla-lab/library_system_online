@@ -24,9 +24,80 @@ if (session_status() === PHP_SESSION_NONE) {
   session_start();
 }
 
-if (!rate_limit('login', 5, 900)) {
+$isLoginSubmission = $_SERVER['REQUEST_METHOD'] === 'POST';
+$loginRateLimit = $isLoginSubmission
+  ? rate_limit_check('login', 5, 900)
+  : rate_limit_status('login', 5, 900);
+rate_limit_headers($loginRateLimit, 5);
+
+if (!$loginRateLimit['allowed']) {
   http_response_code(429);
-  exit('Too many login attempts. Please try again later.');
+
+  $retryAfterSeconds = (int) ($loginRateLimit['retry_after'] ?? 900);
+  $retryMinutes = max(1, (int) ceil($retryAfterSeconds / 60));
+  $retryCopy = $retryMinutes === 1 ? 'about 1 minute' : 'about ' . $retryMinutes . ' minutes';
+  $pageTitle = 'Too Many Login Attempts | LibraLink';
+  $includeSweetAlert = false;
+  ?>
+  <!DOCTYPE html>
+  <html lang="en">
+
+  <head>
+    <?php require_once __DIR__ . '/includes/head.php'; ?>
+  </head>
+
+  <body>
+    <main class="auth-wrap auth-lockout page-fade-in" aria-labelledby="lockout-title">
+      <section class="auth-hero auth-lockout__hero" aria-label="LibraLink security notice">
+        <a href="<?= htmlspecialchars(BASE_URL . 'index.php', ENT_QUOTES, 'UTF-8') ?>" class="auth-hero__brand auth-hero__brand--linked">
+          <img src="<?= BASE_URL ?>assets/images/library_logo_cropped.png" alt="LibraLink Logo" class="auth-hero__logo" onerror="this.onerror=null;this.src='<?= BASE_URL ?>assets/images/logo.svg';">
+          <span>LibraLink</span>
+        </a>
+        <hr class="auth-hero__divider">
+        <p class="auth-hero__tagline">We pause sign-ins when activity looks unusual, so library accounts stay protected.</p>
+        <ul class="auth-hero__features">
+          <li>Your loans and reservations stay safe</li>
+          <li>The pause clears automatically</li>
+          <li>No account changes were made</li>
+        </ul>
+      </section>
+
+      <section class="auth-panel auth-lockout__panel" role="alert" aria-live="polite" aria-atomic="true">
+        <div class="auth-panel__inner auth-lockout__inner">
+          <div class="auth-lockout__mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3 4.5 6.2v5.7c0 4.6 3.1 7.2 7.5 9.1 4.4-1.9 7.5-4.5 7.5-9.1V6.2L12 3Z" />
+              <path d="M9.6 12.1 11.3 14l3.4-4" />
+            </svg>
+          </div>
+
+          <p class="auth-lockout__status">Sign-in paused</p>
+          <h1 id="lockout-title" class="auth-panel__heading auth-lockout__heading">Too many login attempts</h1>
+          <p class="auth-panel__sub auth-lockout__sub">
+            For your protection, LibraLink has temporarily paused new sign-in attempts from this browser. Try again in <?= htmlspecialchars($retryCopy, ENT_QUOTES, 'UTF-8') ?>.
+          </p>
+
+          <div class="auth-lockout__notice">
+            <strong>Nothing is wrong with your account.</strong>
+            <span>If you forgot your password, wait for the pause to end, then reset it before trying again.</span>
+          </div>
+
+          <div class="auth-lockout__actions" aria-label="Next steps">
+            <a href="<?= htmlspecialchars(BASE_URL . 'index.php', ENT_QUOTES, 'UTF-8') ?>" class="btn-primary btn-block">Return to library home</a>
+            <a href="<?= htmlspecialchars(BASE_URL . 'forgot-password.php', ENT_QUOTES, 'UTF-8') ?>" class="auth-lockout__secondary">Reset password later</a>
+          </div>
+
+          <p class="auth-note auth-note--center auth-lockout__footnote">
+            This limit helps prevent unauthorized access to borrower and staff accounts.
+          </p>
+        </div>
+      </section>
+    </main>
+  </body>
+
+  </html>
+  <?php
+  exit;
 }
 
 // FR-020: Redirect already-logged-in users to their role landing page

@@ -35,9 +35,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     expire_stale_reservations($pdo);
 
     $lockStmt = $pdo->prepare(
-      'SELECT id, book_id, status
-         FROM Reservations
-        WHERE id = ?
+      'SELECT r.id, r.book_id, r.status, r.expires_at,
+              u.full_name AS borrower_name, u.email AS borrower_email,
+              b.title AS book_title, b.author AS book_author
+         FROM Reservations r
+         JOIN Users u ON u.id = r.user_id
+         JOIN Books b ON b.id = r.book_id
+        WHERE r.id = ?
         FOR UPDATE'
     );
     $lockStmt->execute([$reservationId]);
@@ -83,6 +87,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       $pdo->commit();
 
+      $approvalMailSent = true;
+      if ($changed) {
+        $approvalMailError = '';
+        $approvalMailSent = send_reservation_approved_mail(
+          (string) $reservation['borrower_email'],
+          (string) $reservation['borrower_name'],
+          (string) $reservation['book_title'],
+          (string) ($reservation['book_author'] ?? ''),
+          (string) ($reservation['expires_at'] ?? ''),
+          $approvalMailError
+        );
+
+        if (!$approvalMailSent) {
+          error_log('[reservations.php] approval email failed for reservation '
+            . $reservationId . ': ' . $approvalMailError);
+        }
+      }
+
       foreach ($autoRejected as $rejectedReservation) {
         $mailError = '';
         if (!send_reservation_unavailable_mail(
@@ -98,9 +120,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       if ($changed) {
         $_SESSION['flash_success'] = 'Reservation approved.'
+          . ($approvalMailSent ? ' Borrower notification email sent.' : '')
           . (!empty($autoRejected)
             ? ' ' . count($autoRejected) . ' competing reservation(s) were removed and notified.'
             : '');
+        if (!$approvalMailSent) {
+          $_SESSION['flash_info'] = 'Reservation approved, but the borrower notification email could not be sent.';
+        }
       } else {
         $_SESSION['flash_info'] = 'Reservation status changed by another request.';
       }

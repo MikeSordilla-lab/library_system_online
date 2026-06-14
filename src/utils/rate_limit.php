@@ -48,6 +48,62 @@ function rate_limit_set_record(string $action, array $record, ?string $identifie
 }
 
 /**
+ * Read the current rate-limit state without consuming an attempt.
+ *
+ * Use this when rendering pages that should respect an active lockout but should
+ * not count as a new action, such as GET /login.php.
+ *
+ * @param string $action Action identifier (e.g., 'login', 'register', 'otp_verify')
+ * @param int $max_attempts Maximum attempts allowed in the window
+ * @param int $window_seconds Window size in seconds
+ * @param string|null $identifier Optional custom identifier (defaults to IP address)
+ * @return array{allowed: bool, remaining: int, reset: int, retry_after: int|null}
+ */
+function rate_limit_status(string $action, int $max_attempts, int $window_seconds, ?string $identifier = null): array {
+    $identifier = $identifier ?? ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+    $now = microtime(true);
+
+    $record = rate_limit_get_record($action, $identifier);
+
+    if ($record === null) {
+        return [
+            'allowed' => true,
+            'remaining' => $max_attempts,
+            'reset' => (int) ceil($now + $window_seconds),
+            'retry_after' => null,
+        ];
+    }
+
+    $window_elapsed = $now - $record['window_start'];
+
+    if ($window_elapsed >= $window_seconds) {
+        return [
+            'allowed' => true,
+            'remaining' => $max_attempts,
+            'reset' => (int) ceil($now + $window_seconds),
+            'retry_after' => null,
+        ];
+    }
+
+    if ($record['count'] >= $max_attempts) {
+        $retry_after = (int) ceil($window_seconds - $window_elapsed);
+        return [
+            'allowed' => false,
+            'remaining' => 0,
+            'reset' => (int) ceil($record['window_start'] + $window_seconds),
+            'retry_after' => max(1, $retry_after),
+        ];
+    }
+
+    return [
+        'allowed' => true,
+        'remaining' => max(0, $max_attempts - (int) $record['count']),
+        'reset' => (int) ceil($record['window_start'] + $window_seconds),
+        'retry_after' => null,
+    ];
+}
+
+/**
  * Check if an action is rate limited using sliding window algorithm.
  *
  * @param string $action Action identifier (e.g., 'login', 'register', 'otp_verify')

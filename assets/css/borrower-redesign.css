@@ -1,7 +1,7 @@
 :root {
   --rd-bg: #1c1a17;
-  --rd-surface: rgba(42, 39, 35, 0.85); /* dark surface with transparency */
-  --rd-border: rgba(201, 168, 76, 0.2); /* faint gold border */
+  --rd-surface: #2a2723; /* solid dark surface for dashboard cards */
+  --rd-border: rgba(201, 168, 76, 0.22); /* faint gold border */
   --rd-text: #ece8db; /* very bright cream for high contrast */
   --rd-text-bold: #ffffff; /* crisp white for emphasis */
   --rd-text-muted: #b0a99f; /* brighter muted golden-gray */
@@ -10,12 +10,20 @@
   --rd-success: #10b981;
   --rd-warning: #f59e0b;
   --rd-danger: #ef4444;
-  --rd-radius: 24px;
-  --rd-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  --rd-shadow-hover: 0 10px 40px rgba(201, 168, 76, 0.15);
+  --rd-radius: 16px;
+  --rd-shadow: 0 2px 10px rgba(0, 0, 0, 0.24);
+  --rd-shadow-hover: 0 6px 18px rgba(201, 168, 76, 0.12);
+  --rd-chart-1: #c9a84c;
+  --rd-chart-2: #dfc476;
+  --rd-chart-3: #b8942d;
+  --rd-chart-4: #9b7625;
+  --rd-chart-5: #fef08a;
+  --rd-chart-6: #10b981;
+  --rd-chart-7: #34d399;
+  --rd-chart-grid: rgba(255, 255, 255, 0.03);
 
   /* Serif stat font */
-  --rd-font-serif: "Playfair Display", Georgia, serif;
+  --rd-font-serif: var(--font-serif, "Playfair Display", Georgia, serif);
 }
 
 /* Serif stat value — mixed sans/serif hierarchy for visual punch */
@@ -31,7 +39,7 @@
 }
 
 .borrower-dashboard-new {
-  font-family: "Outfit", system-ui, sans-serif;
+  font-family: var(--font-sans, "DM Sans", system-ui, sans-serif);
   color: var(--rd-text);
   background: var(--rd-bg) !important;
   min-height: 100vh;
@@ -76,30 +84,29 @@
   border-radius: 12px;
   font-weight: 600;
   text-decoration: none;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
+  transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
 }
 
 .rd-btn-primary {
-  background: linear-gradient(135deg, var(--rd-primary), #b8942d);
+  background: var(--rd-primary);
   color: #1c1a17 !important;
-  box-shadow: 0 8px 16px rgba(201, 168, 76, 0.25);
+  box-shadow: 0 2px 8px rgba(201, 168, 76, 0.22);
 }
 
 .rd-btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 24px rgba(201, 168, 76, 0.35);
+  background: var(--rd-primary-light);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(201, 168, 76, 0.24);
 }
 
-/* Glass Cards */
+/* Dashboard cards */
 .rd-card {
   background: var(--rd-surface);
-  backdrop-filter: blur(20px);
   border: 1px solid var(--rd-border);
   border-radius: var(--rd-radius);
   padding: 1.5rem;
   box-shadow: var(--rd-shadow);
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
 }
 
@@ -538,10 +545,13 @@
   background: transparent;
 }
 
-/* ── Overdue row left border accent ── */
+/* ── Overdue row state ── */
+tr.rd-row-overdue td {
+  background: color-mix(in srgb, var(--rd-danger) 10%, transparent);
+}
+
 tr.rd-row-overdue td:first-child {
-  border-left: 3px solid var(--rd-danger);
-  padding-left: calc(1rem - 3px);
+  padding-left: 1rem;
 }
 
 /* ── Section title with underline accent ── */
@@ -560,18 +570,18 @@ tr.rd-row-overdue td:first-child {
   border-radius: 2px;
 }
 
-/* ── Section card border variants for My Books lifecycle ── */
+/* ── Section card state variants for My Books lifecycle ── */
 .rd-card-border-green {
-  border-left: 3px solid var(--rd-success) !important;
+  border-color: color-mix(in srgb, var(--rd-success) 55%, var(--rd-border)) !important;
 }
 .rd-card-border-blue {
-  border-left: 3px solid #60a5fa !important;
+  border-color: color-mix(in srgb, #60a5fa 55%, var(--rd-border)) !important;
 }
 .rd-card-border-red {
-  border-left: 3px solid var(--rd-danger) !important;
+  border-color: color-mix(in srgb, var(--rd-danger) 55%, var(--rd-border)) !important;
 }
 .rd-card-border-orange {
-  border-left: 3px solid var(--rd-warning) !important;
+  border-color: color-mix(in srgb, var(--rd-warning) 55%, var(--rd-border)) !important;
 }
 
 /* ── Enhanced lifecycle step ── */
@@ -630,7 +640,6 @@ tr.rd-row-overdue td:first-child {
     rgba(16, 185, 129, 0.05)
   );
   border: 1px solid rgba(16, 185, 129, 0.4);
-  border-left: 4px solid var(--rd-success, #10b981);
   border-radius: 20px;
   padding: 1.75rem;
   margin-bottom: 2rem;
@@ -805,7 +814,7 @@ tr.rd-row-overdue td:first-child {
   background: rgba(239, 68, 68, 0.15);
   color: #fca5a5;
   border: 1px solid rgba(239, 68, 68, 0.25);
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
   white-space: nowrap;
 }
 
@@ -1030,4 +1039,110 @@ tr.rd-row-overdue td:first-child {
 
 .borrower-dashboard-new .catalog-book__cover {
   background: rgba(255, 255, 255, 0.05);
+}
+
+/* Borrower dashboard polish */
+.rd-btn-with-icon {
+  gap: 0.5rem;
+}
+
+.rd-btn__icon {
+  flex-shrink: 0;
+}
+
+.rd-flash {
+  animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.rd-alert-warning {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: color-mix(in srgb, var(--rd-warning) 55%, var(--rd-border));
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.14);
+}
+
+.rd-alert-warning .rd-alert-icon,
+.rd-alert-warning .rd-alert-heading {
+  color: var(--rd-warning);
+}
+
+.rd-alert-warning .rd-alert-body,
+.rd-alert-warning .rd-alert-body strong {
+  color: #fbbf24;
+}
+
+.rd-i-fine {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--rd-danger);
+}
+
+.rd-section-card {
+  margin-bottom: 2rem;
+}
+
+.rd-empty-state {
+  color: var(--rd-text-muted);
+  padding: 2rem 0;
+  text-align: center;
+}
+
+.rd-empty-state__icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.rd-table-scroll {
+  overflow-x: auto;
+}
+
+.rd-book-cell {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.rd-book-cover {
+  border: 1px solid var(--rd-border, #e2e8f0);
+  border-radius: 4px;
+  flex-shrink: 0;
+  height: 60px;
+  object-fit: cover;
+  width: 40px;
+}
+
+.rd-muted,
+.rd-empty-copy {
+  color: var(--rd-text-muted);
+}
+
+.rd-empty-copy {
+  text-align: center;
+}
+
+.rd-inline-form {
+  margin: 0;
+}
+
+.rd-card-heading {
+  color: var(--rd-primary);
+  font-weight: 600;
+  margin: 0 0 1rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .borrower-dashboard-new *,
+  .borrower-dashboard-new *::before,
+  .borrower-dashboard-new *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .borrower-dashboard-new .rd-card:hover,
+  .borrower-dashboard-new .rd-btn-primary:hover,
+  .borrower-dashboard-new .rd-btn-action:hover,
+  .borrower-dashboard-new .rd-stat:hover .rd-stat-icon {
+    transform: none !important;
+  }
 }

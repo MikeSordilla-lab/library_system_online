@@ -1582,64 +1582,14 @@ $has_feedback = $flash_success !== ''
 <head>
   <?php
   $extraStyles = [
-    'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap',
     BASE_URL . 'assets/css/borrower-redesign.css',
     BASE_URL . 'assets/css/admin-redesign.css'
   ];
   require_once __DIR__ . '/../includes/head.php';
 ?>
-<style>
-  body.admin-themed {
-    background: #fff !important;
-    color: #1c1a17;
-  }
-  .admin-themed .main-content {
-    background: #fff !important;
-    padding: 2.5rem;
-  }
-  .admin-themed .page-header h1 {
-    color: #1c1a17;
-    text-shadow: none;
-  }
-  .admin-themed .page-header p {
-    color: #666;
-  }
-  .admin-themed .section-card,
-  .admin-themed .card {
-    background: #fff;
-    border: 1px solid #e5e5e5;
-  }
-  .admin-themed .btn-primary {
-    background: linear-gradient(135deg, #c9a84c, #b8942d);
-    color: #fff !important;
-    border: none;
-  }
-  .admin-themed .btn-ghost {
-    background: transparent;
-    border: 1px solid #ddd;
-    color: #333;
-  }
-  .admin-themed .btn-ghost:hover {
-    background: #f5f5f5;
-    border-color: #ccc;
-  }
-  /* Fix hard-to-see input text in modals/panels */
-  .admin-themed .modal-overlay .field-input,
-  .admin-themed .modal-overlay .field-select,
-  .admin-themed .panel-overlay .field-input,
-  .admin-themed .panel-overlay .field-select {
-    color: #1c1a17 !important;
-    background: #fff !important;
-    border: 1px solid #ddd !important;
-  }
-  .admin-themed .modal-overlay .field-input::placeholder,
-  .admin-themed .panel-overlay .field-input::placeholder {
-    color: #999 !important;
-  }
-</style>
 </head>
 
-<body class="admin-themed">
+<body class="admin-themed admin-users-shell">
   <div class="app-shell">
     <?php require_once __DIR__ . '/../includes/sidebar-admin.php'; ?>
     <main class="main-content admin-users-page users-v2">
@@ -1661,7 +1611,7 @@ $has_feedback = $flash_success !== ''
       </noscript>
 
       <!-- Onboarding banner for first-time admins -->
-      <div class="users-onboarding-banner" id="users-onboarding-banner" style="display: none;">
+      <div class="users-onboarding-banner" id="users-onboarding-banner" hidden>
         <p><strong>Welcome to User Management!</strong> Here you can manage user accounts, assign roles, and control access. <strong>Tip:</strong> Use <kbd>Cmd+K</kbd> (Mac) or <kbd>Ctrl+K</kbd> (Windows) to quickly search users, or <kbd>Cmd+N</kbd>/<kbd>Ctrl+N</kbd> to add a new user.</p>
         <button type="button" class="users-onboarding-banner__dismiss" id="dismiss-onboarding" aria-label="Dismiss help banner">Got it</button>
       </div>
@@ -1669,11 +1619,11 @@ $has_feedback = $flash_success !== ''
       <?php if ($has_feedback): ?>
         <div class="users-feedback-stack" aria-live="polite" aria-atomic="true">
           <?php if ($flash_success !== ''): ?>
-            <div id="users-flash-success" data-message="<?= htmlspecialchars($flash_success, ENT_QUOTES, 'UTF-8') ?>" style="display:none;"></div>
+            <div id="users-flash-success" data-message="<?= htmlspecialchars($flash_success, ENT_QUOTES, 'UTF-8') ?>" hidden></div>
             <div class="flash flash-success" role="alert"><?= htmlspecialchars($flash_success, ENT_QUOTES, 'UTF-8') ?></div>
           <?php endif; ?>
           <?php if ($flash_error !== ''): ?>
-            <div id="users-flash-error" data-message="<?= htmlspecialchars($flash_error, ENT_QUOTES, 'UTF-8') ?>" style="display:none;"></div>
+            <div id="users-flash-error" data-message="<?= htmlspecialchars($flash_error, ENT_QUOTES, 'UTF-8') ?>" hidden></div>
             <div class="flash flash-error" role="alert" aria-live="assertive"><?= htmlspecialchars($flash_error, ENT_QUOTES, 'UTF-8') ?></div>
           <?php endif; ?>
 
@@ -1790,7 +1740,7 @@ $has_feedback = $flash_success !== ''
           <section class="section-card users-pending-panel" aria-labelledby="pending-librarian-title">
             <div class="users-pending-panel__header">
               <div>
-                <span class="users-pending-panel__eyebrow">Action required</span>
+                <span class="users-pending-panel__eyebrow">Needs review</span>
                 <h2 id="pending-librarian-title">Pending Librarian Requests</h2>
               </div>
               <a class="btn-ghost users-pending-panel__filter" href="<?= htmlspecialchars($self_url . '?status=pending_librarian', ENT_QUOTES, 'UTF-8') ?>">View all</a>
@@ -1837,7 +1787,7 @@ $has_feedback = $flash_success !== ''
           <section class="section-card users-pending-panel" aria-labelledby="rejected-librarian-title">
             <div class="users-pending-panel__header">
               <div>
-                <span class="users-pending-panel__eyebrow">Rejected requests</span>
+                <span class="users-pending-panel__eyebrow">Recently rejected</span>
                 <h2 id="rejected-librarian-title">Rejected Librarian Requests</h2>
               </div>
               <a class="btn-ghost users-pending-panel__filter" href="<?= htmlspecialchars($self_url . '?status=rejected_librarian', ENT_QUOTES, 'UTF-8') ?>">View all</a>
@@ -2017,6 +1967,7 @@ $has_feedback = $flash_success !== ''
                   $created_at_raw = (string) ($u['created_at'] ?? '');
                   $created_at_stamp = $created_at_raw !== '' ? strtotime($created_at_raw) : false;
                   $created_at_text = $created_at_stamp ? date('m-d-y', $created_at_stamp) : 'Unknown date';
+                  $avatar_tone = ($uid % 8) + 1;
                   ?>
                   <tr
                     class="users-row<?= $focus_user_id === $uid ? ' users-row--focus-target' : '' ?><?= !$verified ? ' users-row--needs-verification' : '' ?><?= $is_superadmin_row ? ' users-row--protected' : '' ?>"
@@ -2049,7 +2000,7 @@ $has_feedback = $flash_success !== ''
                         <?php if ($avatar['type'] === 'image'): ?>
                           <img src="<?= htmlspecialchars($avatar['url'], ENT_QUOTES, 'UTF-8') ?>" alt="" class="users-avatar-initial users-avatar-img" width="40" height="40" loading="lazy">
                         <?php else: ?>
-                          <div class="users-avatar-initial" aria-hidden="true" data-initials="<?= htmlspecialchars(mb_substr((string) $u['full_name'], 0, 1), ENT_QUOTES, 'UTF-8') ?>" style="--avatar-color: hsl(<?= ($uid * 47 + 210) % 360 ?>, 55%, 62%)"><?= htmlspecialchars(mb_substr((string) $u['full_name'], 0, 1), ENT_QUOTES, 'UTF-8') ?></div>
+                          <div class="users-avatar-initial users-avatar-tone--<?= (int) $avatar_tone ?>" aria-hidden="true" data-initials="<?= htmlspecialchars(mb_substr((string) $u['full_name'], 0, 1), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(mb_substr((string) $u['full_name'], 0, 1), ENT_QUOTES, 'UTF-8') ?></div>
                         <?php endif; ?>
                         <p class="users-identity__name"><?= $safe_name ?></p>
                         <p class="users-identity__email"><?= $safe_email ?></p>
@@ -2344,7 +2295,7 @@ $has_feedback = $flash_success !== ''
            </div>
 
            <!-- Form Error Message -->
-           <div id="modal-form-error" class="field-error" role="alert" aria-live="polite" style="<?= $create_user_error !== '' ? 'display:block;' : 'display:none;' ?> margin-bottom: var(--space-4);"><?= htmlspecialchars($create_user_error, ENT_QUOTES, 'UTF-8') ?></div>
+           <div id="modal-form-error" class="field-error users-modal-form-error<?= $create_user_error !== '' ? ' is-visible' : '' ?>" role="alert" aria-live="polite"><?= htmlspecialchars($create_user_error, ENT_QUOTES, 'UTF-8') ?></div>
          </form>
        </div>
        <div class="modal-footer">

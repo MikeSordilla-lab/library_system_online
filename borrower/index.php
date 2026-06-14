@@ -95,7 +95,6 @@ $logout_url = htmlspecialchars(BASE_URL . 'logout.php', ENT_QUOTES, 'UTF-8');
 $current_page = 'borrower.index';
 $pageTitle    = 'My Account | LibraLink';
 $extraStyles = [
-  'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap',
   BASE_URL . 'assets/css/borrower-redesign.css'
 ];
 
@@ -127,26 +126,26 @@ function borrower_dashboard_date($value): string
           <p>Welcome back, <?= $name ?>. Here's what's happening with your account.</p>
         </div>
         <div>
-          <a class="rd-btn rd-btn-primary" href="<?= htmlspecialchars(BASE_URL . 'borrower/catalog.php', ENT_QUOTES, 'UTF-8') ?>">
-            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="margin-right:8px;vertical-align:middle;display:inline;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-            <span style="vertical-align:middle;">Browse Catalog</span>
+          <a class="rd-btn rd-btn-primary rd-btn-with-icon" href="<?= htmlspecialchars(BASE_URL . 'borrower/catalog.php', ENT_QUOTES, 'UTF-8') ?>">
+            <svg class="rd-btn__icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            <span>Browse Catalog</span>
           </a>
         </div>
       </div>
 
       <?php if ($flash_error !== ''): ?>
-        <div class="flash flash-error" role="alert" style="animation:slideDown 0.4s cubic-bezier(0.16,1,0.3,1) forwards;" aria-live="assertive"><?= htmlspecialchars($flash_error, ENT_QUOTES, 'UTF-8') ?></div>
+        <div class="flash flash-error rd-flash" role="alert" aria-live="assertive"><?= htmlspecialchars($flash_error, ENT_QUOTES, 'UTF-8') ?></div>
       <?php endif; ?>
       <?php if ($flash_success !== ''): ?>
-        <div class="flash flash-success" role="alert" style="animation:slideDown 0.4s cubic-bezier(0.16,1,0.3,1) forwards;" aria-live="polite"><?= htmlspecialchars($flash_success, ENT_QUOTES, 'UTF-8') ?></div>
+        <div class="flash flash-success rd-flash" role="alert" aria-live="polite"><?= htmlspecialchars($flash_success, ENT_QUOTES, 'UTF-8') ?></div>
       <?php endif; ?>
 
       <?php if ($due_soon_count > 0): ?>
-        <div class="rd-alert" style="background: rgba(245, 158, 11, 0.1); border-left-color: var(--rd-warning);">
-          <div class="rd-alert-icon">⚠️</div>
+        <div class="rd-alert rd-alert-warning">
+          <div class="rd-alert-icon" aria-hidden="true">⚠️</div>
           <div>
-            <h4 style="margin:0 0 0.25rem 0; color: #f59e0b; font-size:1.1rem; font-weight:600;">Heads up!</h4>
-            <p style="margin:0; color: #fbbf24;">
+            <h4 class="rd-alert-heading">Heads up!</h4>
+            <p class="rd-alert-body">
               <?= $due_soon_count === 1 ? '1 book is' : $due_soon_count . ' books are' ?> due soon
               <?php if ($next_return !== null): ?>
                 — next return: <strong><?= htmlspecialchars(date('m-d-y', strtotime($next_return)), ENT_QUOTES, 'UTF-8') ?></strong>
@@ -174,6 +173,7 @@ function borrower_dashboard_date($value): string
           </p>
           <div class="rd-pickup-table-wrap">
             <table class="rd-pickup-table">
+              <caption class="sr-only">Approved reservations ready for pickup</caption>
               <thead>
                 <tr><th>Book</th><th>Approved On</th><th>Pickup By</th></tr>
               </thead>
@@ -241,7 +241,7 @@ function borrower_dashboard_date($value): string
           <div class="rd-stat-sub">pending</div>
         </div>
         <div class="rd-card rd-stat">
-          <div class="rd-stat-icon rd-i-red" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">
+          <div class="rd-stat-icon rd-i-red rd-i-fine">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
           </div>
           <div class="rd-stat-val rd-stat-val-serif">₱<?= number_format($total_fines, 2) ?></div>
@@ -260,15 +260,16 @@ function borrower_dashboard_date($value): string
             <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
             Active Loans
           </div>
-          <div class="rd-card" style="margin-bottom: 2rem;">
+          <div class="rd-card rd-section-card">
             <?php if (empty($active_loans)): ?>
-              <div style="text-align:center; padding: 2rem 0; color: var(--rd-text-muted);">
-                <div style="font-size: 3rem; margin-bottom: 1rem; opacity:0.5;">📚</div>
+              <div class="rd-empty-state">
+                <div class="rd-empty-state__icon" aria-hidden="true">📚</div>
                 <p>No active or overdue loans.</p>
               </div>
             <?php else: ?>
-              <div style="overflow-x:auto;">
+              <div class="rd-table-scroll">
                 <table class="rd-table-glass">
+                  <caption class="sr-only">Active and overdue loans</caption>
                   <thead>
                     <tr>
                       <th>Book</th>
@@ -281,14 +282,14 @@ function borrower_dashboard_date($value): string
                     <?php foreach ($active_loans as $loan): ?>
                       <tr>
                         <td>
-                          <div style="display: flex; gap: 12px; align-items: flex-start;">
+                          <div class="rd-book-cell">
                             <img src="<?= htmlspecialchars(BASE_URL . 'public/book-cover.php?book_id=' . (int)$loan['book_id'], ENT_QUOTES, 'UTF-8') ?>"
-                                 alt="Cover"
+                                 alt=""
                                  onerror="this.onerror=null;this.src='<?= htmlspecialchars(BASE_URL . 'assets/images/placeholder-book.png', ENT_QUOTES, 'UTF-8') ?>';"
-                                 style="width: 40px; height: 60px; object-fit: cover; border-radius: 4px; flex-shrink: 0; border: 1px solid var(--rd-border, #e2e8f0);">
+                                 class="rd-book-cover">
                             <div>
                               <strong><?= htmlspecialchars($loan['title'], ENT_QUOTES, 'UTF-8') ?></strong><br>
-                              <small style="color:var(--rd-text-muted);">#<?= (int) $loan['id'] ?></small>
+                              <small class="rd-muted">Loan #<?= (int) $loan['id'] ?></small>
                             </div>
                           </div>
                         </td>
@@ -314,15 +315,16 @@ function borrower_dashboard_date($value): string
             <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             Pending Reservations
           </div>
-          <div class="rd-card" style="margin-bottom: 2rem;">
+          <div class="rd-card rd-section-card">
             <?php if (empty($pending_reservations)): ?>
-              <div style="text-align:center; padding: 2rem 0; color: var(--rd-text-muted);">
-                <div style="font-size: 3rem; margin-bottom: 1rem; opacity:0.5;">🔖</div>
+              <div class="rd-empty-state">
+                <div class="rd-empty-state__icon" aria-hidden="true">🔖</div>
                 <p>No pending reservations.</p>
               </div>
             <?php else: ?>
-              <div style="overflow-x:auto;">
+              <div class="rd-table-scroll">
                 <table class="rd-table-glass">
+                  <caption class="sr-only">Pending reservations</caption>
                   <thead>
                     <tr>
                       <th>Book</th>
@@ -336,11 +338,11 @@ function borrower_dashboard_date($value): string
                     <?php foreach ($pending_reservations as $res): ?>
                       <tr>
                         <td>
-                          <div style="display: flex; gap: 12px; align-items: flex-start;">
+                          <div class="rd-book-cell">
                             <img src="<?= htmlspecialchars(BASE_URL . 'public/book-cover.php?book_id=' . (int)$res['book_id'], ENT_QUOTES, 'UTF-8') ?>"
-                                 alt="Cover"
+                                 alt=""
                                  onerror="this.onerror=null;this.src='<?= htmlspecialchars(BASE_URL . 'assets/images/placeholder-book.png', ENT_QUOTES, 'UTF-8') ?>';"
-                                 style="width: 40px; height: 60px; object-fit: cover; border-radius: 4px; flex-shrink: 0; border: 1px solid var(--rd-border, #e2e8f0);">
+                                 class="rd-book-cover">
                             <div>
                               <strong><?= htmlspecialchars($res['title'], ENT_QUOTES, 'UTF-8') ?></strong>
                             </div>
@@ -350,7 +352,7 @@ function borrower_dashboard_date($value): string
                         <td><?= htmlspecialchars(borrower_dashboard_date($res['expires_at']), ENT_QUOTES, 'UTF-8') ?></td>
                         <td><span class="rd-badge rd-b-orange">#<?= (int) $res['queue_position'] ?></span></td>
                         <td>
-                          <form method="POST" action="<?= htmlspecialchars(BASE_URL . 'borrower/reserve.php', ENT_QUOTES, 'UTF-8') ?>" style="margin:0;">
+                          <form method="POST" action="<?= htmlspecialchars(BASE_URL . 'borrower/reserve.php', ENT_QUOTES, 'UTF-8') ?>" class="rd-inline-form">
                             <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                             <input type="hidden" name="action" value="cancel">
                             <input type="hidden" name="reservation_id" value="<?= (int) $res['id'] ?>">
@@ -372,16 +374,22 @@ function borrower_dashboard_date($value): string
           </div>
           <div class="rd-charts">
             <div class="rd-card">
-              <h4 style="margin-top:0; margin-bottom:1rem;color:var(--rd-primary);font-weight:600;">Books by Category</h4>
+              <h4 class="rd-card-heading" id="categoryChartTitle">Books by Category</h4>
               <div class="rd-chart-wrap">
-                <canvas id="categoryChart"></canvas>
+                <canvas id="categoryChart" role="img" aria-labelledby="categoryChartTitle categoryChartSummary"></canvas>
               </div>
+              <p id="categoryChartSummary" class="sr-only">
+                Category history summary: <?= empty($categories) ? 'No completed category data yet.' : htmlspecialchars(implode(', ', array_map(static fn($r) => ($r['category'] ?: 'Uncategorised') . ': ' . (int) $r['cnt'], $categories)), ENT_QUOTES, 'UTF-8') ?>.
+              </p>
             </div>
             <div class="rd-card">
-              <h4 style="margin-top:0; margin-bottom:1rem;color:var(--rd-primary);font-weight:600;">Monthly Activity</h4>
+              <h4 class="rd-card-heading" id="monthlyChartTitle">Monthly Activity</h4>
               <div class="rd-chart-wrap">
-                <canvas id="monthlyChart"></canvas>
+                <canvas id="monthlyChart" role="img" aria-labelledby="monthlyChartTitle monthlyChartSummary"></canvas>
               </div>
+              <p id="monthlyChartSummary" class="sr-only">
+                Monthly checkout activity for the last 12 months: <?= htmlspecialchars(implode(', ', array_map(static fn($label, $value) => $label . ': ' . (int) $value, $month_labels, $month_values)), ENT_QUOTES, 'UTF-8') ?>.
+              </p>
             </div>
           </div>
         </div>
@@ -393,7 +401,7 @@ function borrower_dashboard_date($value): string
             <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             Activity Timeline
           </div>
-          <div class="rd-card" style="margin-bottom: 2rem;">
+          <div class="rd-card rd-section-card">
             <?php if (!empty($timeline)): ?>
               <ul class="rd-timeline">
                 <?php foreach ($timeline as $item): ?>
@@ -416,7 +424,7 @@ function borrower_dashboard_date($value): string
                 <?php endforeach; ?>
               </ul>
             <?php else: ?>
-              <p style="color:var(--rd-text-muted); text-align:center;">No recent activity.</p>
+              <p class="rd-empty-copy">No recent activity.</p>
             <?php endif; ?>
           </div>
 
@@ -433,8 +441,23 @@ function borrower_dashboard_date($value): string
     (function() {
       if (typeof Chart === 'undefined') return;
 
-      Chart.defaults.font.family = "'Outfit', system-ui, sans-serif";
-      Chart.defaults.color = '#8a8278';
+      var styles = getComputedStyle(document.documentElement);
+      var chartColor = function(name, fallback) {
+        return (styles.getPropertyValue(name).trim() || fallback);
+      };
+      var withAlpha = function(color, alpha) {
+        if (!color || color.charAt(0) !== '#') return color;
+        var hex = color.replace('#', '');
+        if (hex.length === 3) {
+          hex = hex.split('').map(function(ch) { return ch + ch; }).join('');
+        }
+        var intValue = parseInt(hex, 16);
+        return 'rgba(' + ((intValue >> 16) & 255) + ', ' + ((intValue >> 8) & 255) + ', ' + (intValue & 255) + ', ' + alpha + ')';
+      };
+      var primaryChartColor = chartColor('--rd-chart-1', '#c9a84c');
+
+      Chart.defaults.font.family = "'DM Sans', system-ui, sans-serif";
+      Chart.defaults.color = chartColor('--rd-text-muted', '#b0a99f');
 
       // Category Chart
       var catCtx = document.getElementById('categoryChart');
@@ -447,7 +470,15 @@ function borrower_dashboard_date($value): string
             labels: catLabels,
             datasets: [{
               data: catValues,
-              backgroundColor: ['#c9a84c', '#dfc476', '#b8942d', '#9b7625', '#fef08a', '#10b981', '#34d399'],
+              backgroundColor: [
+                chartColor('--rd-chart-1', '#c9a84c'),
+                chartColor('--rd-chart-2', '#dfc476'),
+                chartColor('--rd-chart-3', '#b8942d'),
+                chartColor('--rd-chart-4', '#9b7625'),
+                chartColor('--rd-chart-5', '#fef08a'),
+                chartColor('--rd-chart-6', '#10b981'),
+                chartColor('--rd-chart-7', '#34d399')
+              ],
               borderWidth: 0,
               hoverOffset: 4
             }]
@@ -470,8 +501,8 @@ function borrower_dashboard_date($value): string
         var monthValues = <?= json_encode($month_values, JSON_HEX_TAG | JSON_HEX_AMP) ?>;
 
         let gradient = monthCtx.getContext('2d').createLinearGradient(0, 0, 0, 400);
-        gradient.addColorStop(0, 'rgba(201, 168, 76, 0.8)');
-        gradient.addColorStop(1, 'rgba(201, 168, 76, 0.1)');
+        gradient.addColorStop(0, withAlpha(primaryChartColor, 0.82));
+        gradient.addColorStop(1, withAlpha(primaryChartColor, 0.12));
 
         new Chart(monthCtx, {
           type: 'bar',
@@ -489,7 +520,7 @@ function borrower_dashboard_date($value): string
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-              y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.03)', drawBorder: false }, ticks: { stepSize: 1 } },
+              y: { beginAtZero: true, grid: { color: chartColor('--rd-chart-grid', 'rgba(255,255,255,0.03)'), drawBorder: false }, ticks: { stepSize: 1 } },
               x: { grid: { display: false, drawBorder: false } }
             },
             plugins: { legend: { display: false } }

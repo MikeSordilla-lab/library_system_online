@@ -86,6 +86,7 @@
   const ONBOARDING_KEY = 'libris_users_onboarding_dismissed';
   const onboardingBanner = document.getElementById('users-onboarding-banner');
   const onboardingDismiss = document.getElementById('dismiss-onboarding');
+  const appShell = document.querySelector('.app-shell');
 
   const panelState = {
     isOpen: false,
@@ -101,7 +102,7 @@
 
   function escapeHtml(text) {
     return String(text || '').replace(/[&<>"']/g, function (char) {
-      var map = { '&': '&', '<': '<', '>': '>', '"': '"', "'": '&#039;' };
+      var map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
       return map[char] || char;
     });
   }
@@ -119,12 +120,20 @@
   function lockBodyScroll() {
     scrollLocks += 1;
     document.body.style.overflow = 'hidden';
+    if (appShell) {
+      appShell.setAttribute('inert', '');
+      appShell.setAttribute('aria-hidden', 'true');
+    }
   }
 
   function unlockBodyScroll() {
     scrollLocks = Math.max(0, scrollLocks - 1);
     if (scrollLocks === 0) {
       document.body.style.overflow = '';
+      if (appShell) {
+        appShell.removeAttribute('inert');
+        appShell.removeAttribute('aria-hidden');
+      }
     }
   }
 
@@ -295,7 +304,9 @@
         'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
       )
     ).filter(function (el) {
-      return !el.hasAttribute('hidden') && el.getAttribute('aria-hidden') !== 'true';
+      return !el.hasAttribute('hidden')
+        && el.getAttribute('aria-hidden') !== 'true'
+        && el.offsetParent !== null;
     });
   }
 
@@ -565,8 +576,10 @@
     }
 
     var wasOpen = panelState.isOpen;
+    var trigger = panelState.trigger;
     panelState.isOpen = false;
     panelState.row = null;
+    panelState.trigger = null;
     managePanelOverlay.classList.remove('active');
     managePanelOverlay.setAttribute('aria-hidden', 'true');
 
@@ -574,8 +587,8 @@
       unlockBodyScroll();
     }
 
-    if (restoreFocus !== false && panelState.trigger && typeof panelState.trigger.focus === 'function') {
-      panelState.trigger.focus();
+    if (restoreFocus !== false && trigger && typeof trigger.focus === 'function') {
+      trigger.focus();
     }
   }
 
@@ -595,6 +608,10 @@
     }
     window.alert(message);
     return Promise.resolve();
+  }
+
+  function dialogNote(text) {
+    return '<p class="users-dialog-note">' + escapeHtml(text) + '</p>';
   }
 
   function maybeConfirmAction(title, html, confirmText, cancelText) {
@@ -673,7 +690,7 @@
 
     var result = await maybeConfirmAction(
       'Save Credential Changes?',
-      '<p><strong>' + escapeHtml(userName) + '</strong></p><p style="margin-top: 10px; font-size: 0.9rem;">Updates to full name and email will take effect immediately.</p>',
+      '<p><strong>' + escapeHtml(userName) + '</strong></p>' + dialogNote('Updates to full name and email will take effect immediately.'),
       'Save Credentials',
       'Cancel'
     );
@@ -709,7 +726,7 @@
 
     var result = await maybeConfirmAction(
       'Save Verification Status?',
-      '<p><strong>' + escapeHtml(userName) + '</strong></p><p style="margin-top: 10px; font-size: 0.9rem;">The account will be marked as ' + (nextVerified ? '<strong>Verified</strong>' : '<strong>Not verified</strong>') + ' immediately.</p>',
+      '<p><strong>' + escapeHtml(userName) + '</strong></p><p class="users-dialog-note">The account will be marked as ' + (nextVerified ? '<strong>Verified</strong>' : '<strong>Not verified</strong>') + ' immediately.</p>',
       'Save Verification',
       'Cancel'
     );
@@ -782,7 +799,7 @@
 
     var result = await maybeConfirmAction(
       'Reset User Password?',
-      '<p><strong>' + escapeHtml(userName) + '</strong></p><p style="margin-top: 10px; font-size: 0.9rem;">This will replace the user\'s current password immediately.</p>',
+      '<p><strong>' + escapeHtml(userName) + '</strong></p>' + dialogNote('This will replace the user\'s current password immediately.'),
       'Update Password',
       'Cancel'
     );
@@ -907,6 +924,7 @@
     closeManagePanel(false);
     createModalOverlay.classList.add('active');
     createModalOverlay.setAttribute('aria-hidden', 'false');
+    createModalOverlay.dataset.restoreFocusId = document.activeElement && document.activeElement.id ? document.activeElement.id : '';
     lockBodyScroll();
     updateCreateRolePolicy();
 
@@ -928,17 +946,15 @@
     clearCreateModalErrors();
     createForm.reset();
     updateCreateRolePolicy();
-  if (createFormError) {
-    createFormError.style.display = 'none';
-  }
-  if (createUserTrigger) {
-    createUserTrigger.focus();
-  }
-  if (createUserTrigger) {
-    createUserTrigger.focus();
-  }
-    if (createUserTrigger) {
-      createUserTrigger.focus();
+    if (createFormError) {
+      createFormError.style.display = 'none';
+    }
+    var restoreTarget = createModalOverlay.dataset.restoreFocusId
+      ? document.getElementById(createModalOverlay.dataset.restoreFocusId)
+      : createUserTrigger;
+    createModalOverlay.dataset.restoreFocusId = '';
+    if (restoreTarget && typeof restoreTarget.focus === 'function') {
+      restoreTarget.focus();
     }
   }
 
@@ -998,7 +1014,7 @@
         if (blocked > 0) {
           var blockedResult = await maybeConfirmAction(
             'Continue With Eligible Users?',
-            '<p>' + blocked + ' selected user(s) are not verified and will be skipped.</p><p style="margin-top: 10px;">Continue with ' + eligibleUsers.length + ' eligible user(s)?</p>',
+            '<p>' + blocked + ' selected user(s) are not verified and will be skipped.</p>' + dialogNote('Continue with ' + eligibleUsers.length + ' eligible user(s)?'),
             'Continue',
             'Cancel'
           );
@@ -1235,10 +1251,10 @@
       try {
         var dismissed = localStorage.getItem(ONBOARDING_KEY);
         if (!dismissed) {
-          onboardingBanner.style.display = 'grid';
+          onboardingBanner.hidden = false;
         }
       } catch (error) {
-        onboardingBanner.style.display = 'grid';
+        onboardingBanner.hidden = false;
       }
 
       if (onboardingDismiss) {
@@ -1248,7 +1264,7 @@
           } catch (error) {
             // ignore storage failures
           }
-          onboardingBanner.style.display = 'none';
+          onboardingBanner.hidden = true;
         });
       }
     }

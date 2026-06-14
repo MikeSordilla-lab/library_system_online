@@ -930,9 +930,9 @@ textarea {
 }
 
 .sidebar--admin.sidebar--admin-simple .sidebar-item.active {
-  border-left: 3px solid var(--gold);
+  border: 1px solid color-mix(in srgb, var(--gold) 58%, transparent);
   box-shadow: none;
-  padding-left: calc(var(--space-5) - 3px);
+  padding-left: var(--space-5);
 }
 
 .sidebar-item__content {
@@ -2363,7 +2363,7 @@ textarea {
   background: var(--border);
   border-radius: 999px;
   overflow: hidden;
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .password-strength-indicator__value {
@@ -2807,7 +2807,7 @@ a:focus-visible {
   border-radius: 999px;
   background: var(--border);
   box-shadow: inset 0 1px 2px color-mix(in srgb, var(--ink) 4%, transparent);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Badge Polish */
@@ -10182,7 +10182,7 @@ img.book-thumb {
 .modern-tips {
   margin-top: 20px;
   padding: 15px;
-  border-left: 4px solid #4f46e5;
+  border: 1px solid rgba(79, 70, 229, 0.22);
   background: rgba(79, 70, 229, 0.05);
   border-radius: 10px;
 }
@@ -11629,4 +11629,121 @@ img.book-thumb {
   width: 14px;
   height: 14px;
   flex-shrink: 0;
+}
+
+/* ── Auth lockout screen ───────────────────────────────────── */
+.auth-lockout__inner {
+  max-width: 460px;
+}
+
+.auth-lockout__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: var(--space-6);
+  border-radius: var(--radius-xl);
+  background: color-mix(in srgb, var(--warning-bg) 76%, var(--card));
+  color: var(--warning-text);
+  box-shadow: 0 4px 8px rgba(146, 64, 14, 0.1);
+}
+
+.auth-lockout__status {
+  margin-bottom: var(--space-2);
+  color: var(--accent-dark);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.auth-lockout__heading {
+  margin-bottom: var(--space-3);
+  text-wrap: balance;
+}
+
+.auth-lockout__sub {
+  max-width: 58ch;
+  margin-bottom: var(--space-6);
+  color: var(--muted);
+  font-size: var(--text-base);
+  line-height: 1.7;
+  text-wrap: pretty;
+}
+
+.auth-lockout__notice {
+  display: grid;
+  gap: var(--space-2);
+  margin-bottom: var(--space-8);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--warning-bg) 58%, var(--card));
+  color: var(--ink);
+}
+
+.auth-lockout__notice strong {
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.auth-lockout__notice span {
+  color: #4f3c22;
+  line-height: 1.6;
+}
+
+.auth-lockout__actions {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.auth-lockout__secondary {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--gold) 70%, transparent);
+  text-underline-offset: 0.22em;
+  transition:
+    color 180ms cubic-bezier(0.25, 1, 0.5, 1),
+    text-decoration-color 180ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.auth-lockout__secondary:hover,
+.auth-lockout__secondary:focus-visible {
+  color: var(--accent-dark);
+  text-decoration-color: currentColor;
+}
+
+.auth-lockout__secondary:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 38%, transparent);
+  outline-offset: 4px;
+  border-radius: var(--radius-sm);
+}
+
+.auth-lockout__footnote {
+  margin-top: var(--space-8);
+  max-width: 46ch;
+  margin-inline: auto;
+}
+
+@media (max-width: 899px) {
+  .auth-lockout__panel {
+    align-items: flex-start;
+    padding-top: var(--space-12);
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-lockout__mark {
+    width: 56px;
+    height: 56px;
+    margin-bottom: var(--space-5);
+  }
+
+  .auth-lockout__notice {
+    padding: var(--space-4);
+  }
 }

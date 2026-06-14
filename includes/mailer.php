@@ -243,6 +243,47 @@ if (!function_exists('send_smtp_mail')) {
   }
 }
 
+if (!function_exists('mailer_format_datetime')) {
+  function mailer_format_datetime(string $value): string
+  {
+    $timestamp = strtotime($value);
+    return $timestamp ? date('m-d-Y h:i A', $timestamp) : 'the listed pickup deadline';
+  }
+}
+
+if (!function_exists('send_reservation_approved_mail')) {
+  function send_reservation_approved_mail(
+    string $toEmail,
+    string $toName,
+    string $bookTitle,
+    string $bookAuthor,
+    string $expiresAt,
+    string &$error = ''
+  ): bool {
+    $displayName = $toName !== '' ? $toName : 'Borrower';
+    $displayTitle = $bookTitle !== '' ? $bookTitle : 'your reserved book';
+    $displayAuthor = $bookAuthor !== '' ? $bookAuthor : 'Unknown author';
+    $displayDeadline = mailer_format_datetime($expiresAt);
+
+    $safeName = htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8');
+    $safeTitle = htmlspecialchars($displayTitle, ENT_QUOTES, 'UTF-8');
+    $safeAuthor = htmlspecialchars($displayAuthor, ENT_QUOTES, 'UTF-8');
+    $safeDeadline = htmlspecialchars($displayDeadline, ENT_QUOTES, 'UTF-8');
+
+    $subject = 'Reservation approved: ' . $displayTitle;
+    $htmlBody = '<p>Hello ' . $safeName . ',</p>'
+      . '<p>Your reservation for <strong>' . $safeTitle . '</strong> by ' . $safeAuthor . ' has been approved and is ready for pickup.</p>'
+      . '<p>Please visit the library check-out desk before <strong>' . $safeDeadline . '</strong>. Your reservation may expire after this deadline.</p>'
+      . '<p>Thank you,<br>LibraLink</p>';
+    $altBody = "Hello " . $displayName . ",\n\n"
+      . "Your reservation for " . $displayTitle . " by " . $displayAuthor . " has been approved and is ready for pickup.\n\n"
+      . "Please visit the library check-out desk before " . $displayDeadline . ". Your reservation may expire after this deadline.\n\n"
+      . "Thank you,\nLibraLink";
+
+    return send_smtp_mail($toEmail, $toName, $subject, $htmlBody, $altBody, $error);
+  }
+}
+
 if (!function_exists('send_reservation_unavailable_mail')) {
   function send_reservation_unavailable_mail(
     string $toEmail,
