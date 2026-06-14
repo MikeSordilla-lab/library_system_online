@@ -143,32 +143,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email_sent = false;
         $email_error = '';
 
-      // Build verification link with email pre-filled
-      $verify_link = BASE_URL . 'verify.php?email=' . urlencode($email);
+        // Build verification link with email pre-filled
+        $verify_link = BASE_URL . 'verify.php?email=' . urlencode($email);
 
-      $mail_body = '<!DOCTYPE html><html><body>'
-        . '<p>Hello ' . htmlspecialchars($full_name, ENT_QUOTES, 'UTF-8') . ',</p>'
-        . '<p>Thank you for registering. Enter the verification code below on the verification page to activate your account:</p>'
-        . '<p style="font-size:32px;font-weight:bold;letter-spacing:8px;text-align:center;margin:24px 0;">'
-        . htmlspecialchars($token, ENT_QUOTES, 'UTF-8')
-        . '</p>'
-        . '<p style="text-align:center;"><a href="' . htmlspecialchars($verify_link, ENT_QUOTES, 'UTF-8') . '" style="display:inline-block;padding:10px 20px;background-color:#4CAF50;color:white;text-decoration:none;border-radius:4px;">Verify Email</a></p>'
-        . '<p style="text-align:center;">Or visit <a href="' . htmlspecialchars($verify_link, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($verify_link, ENT_QUOTES, 'UTF-8') . '</a> and enter this code.</p>'
-        . '<p>If you did not register, you can safely ignore this email.</p>'
-        . '</body></html>';
-
-      $mail_alt = "Hello {$full_name},\n\nYour verification code is: {$token}\n\n"
-        . 'Visit ' . $verify_link . " and enter this code.\n\n"
-        . "If you did not register, you can safely ignore this email.";
-
-      $email_sent = send_smtp_mail(
-        $email,
-        $full_name,
-        'Verify your LibraLink account',
-        $mail_body,
-        $mail_alt,
-        $email_error
-      );
+        $email_sent = send_registration_verification_mail(
+          $email,
+          $full_name,
+          $token,
+          $verify_link,
+          $email_error
+        );
 
         if (!$email_sent) {
           // --- 9. Log SMTP failure with email capture (FR-011) ---

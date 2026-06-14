@@ -9,7 +9,7 @@
  *   count_active_admins()        — Count non-suspended admin accounts (last-Admin guard)
  *   save_setting()               — Update a Settings value and log the change
  *   log_admin_action()           — Insert a System_Logs row for admin write actions
- *   send_account_status_email()  — PHPMailer notification for suspend/reinstate
+ *   send_account_status_email()  — shared mailer notification for suspend/reinstate
  *
  * Note: get_setting() is provided by includes/settings.php
  *
@@ -22,8 +22,9 @@ if (defined('ADMIN_PHP_LOADED')) {
 }
 define('ADMIN_PHP_LOADED', true);
 
-// Load settings helper (includes get_setting function)
+// Load settings helper (includes get_setting function) and shared mailer helpers.
 require_once __DIR__ . '/settings.php';
+require_once __DIR__ . '/mailer.php';
 
 /**
  * Count the number of active (non-suspended) Admin accounts.
@@ -224,73 +225,4 @@ function change_user_password(PDO $pdo, int $actor_id, string $current_password,
   }
 }
 
-/**
- * Send a suspension or reinstatement notification email via PHPMailer.
- *
- * @param string $to_email Recipient email address
- * @param string $to_name  Recipient display name
- * @param string $action   'suspended' or 'reinstated'
- * @return bool true on success, false on failure (non-fatal — caller must not roll back)
- */
-function send_account_status_email(string $to_email, string $to_name, string $action): bool
-{
-  try {
-    $include_base = dirname(__DIR__) . '/includes/';
-    require_once $include_base . 'phpmailer/src/Exception.php';
-    require_once $include_base . 'phpmailer/src/PHPMailer.php';
-    require_once $include_base . 'phpmailer/src/SMTP.php';
-
-    // Ensure config constants are available
-    if (!defined('SMTP_HOST')) {
-      require_once dirname(__DIR__) . '/config.php';
-    }
-
-    $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
-
-    $mail->isSMTP();
-    $mail->Host       = SMTP_HOST;
-    $mail->SMTPAuth   = true;
-    $mail->Username   = SMTP_USER;
-    $mail->Password   = SMTP_PASS;
-    $mail->SMTPSecure = SMTP_SECURE;
-    $mail->Port       = SMTP_PORT;
-
-    $mail->setFrom(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
-    $mail->addAddress($to_email, $to_name);
-    $mail->isHTML(true);
-
-    $safe_name = htmlspecialchars($to_name, ENT_QUOTES, 'UTF-8');
-
-    if ($action === 'suspended') {
-      $mail->Subject = 'Your LibraLink account has been suspended';
-      $mail->Body    = '<!DOCTYPE html><html><body>'
-        . '<p>Hello ' . $safe_name . ',</p>'
-        . '<p>Your LibraLink account has been <strong>suspended</strong> by an administrator.</p>'
-        . '<p>You will not be able to log in until your account is reinstated. '
-        . 'Please contact the library if you believe this is in error.</p>'
-        . '</body></html>';
-      $mail->AltBody = "Hello {$to_name},\n\nYour LibraLink account has been suspended by an administrator.\n"
-        . "You will not be able to log in until your account is reinstated.\n"
-        . "Please contact the library if you believe this is in error.";
-    } else {
-      // reinstated
-      $mail->Subject = 'Your LibraLink account has been reinstated';
-      $mail->Body    = '<!DOCTYPE html><html><body>'
-        . '<p>Hello ' . $safe_name . ',</p>'
-        . '<p>Your LibraLink account has been <strong>reinstated</strong>. '
-        . 'You may now log in normally.</p>'
-        . '</body></html>';
-      $mail->AltBody = "Hello {$to_name},\n\nYour LibraLink account has been reinstated.\n"
-        . "You may now log in normally.";
-    }
-
-    $mail->send();
-    return true;
-  } catch (\PHPMailer\PHPMailer\Exception $e) {
-    error_log('[admin.php] send_account_status_email() PHPMailer failed for ' . $to_email . ': ' . $e->getMessage());
-    return false;
-  } catch (\Throwable $e) {
-    error_log('[admin.php] send_account_status_email() error for ' . $to_email . ': ' . $e->getMessage());
-    return false;
-  }
-}
+// Account status email delivery is provided by includes/mailer.php.

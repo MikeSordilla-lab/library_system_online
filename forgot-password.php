@@ -77,36 +77,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           );
           $stmt->execute([$reset_token, $user['id']]);
 
-          // Send password reset email via PHPMailer
+          // Send password reset email via shared mailer/template layer
           $email_sent = false;
           $email_error = '';
 
           // Reset link
           $reset_link = BASE_URL . 'reset-password.php?token=' . urlencode($reset_token);
 
-          $mail_body = '<!DOCTYPE html><html><body>'
-            . '<p>Hello ' . htmlspecialchars($user['full_name'], ENT_QUOTES, 'UTF-8') . ',</p>'
-            . '<p>We received a request to reset your password. Click the button below to create a new password:</p>'
-            . '<p style="text-align:center;margin:24px 0;"><a href="' . htmlspecialchars($reset_link, ENT_QUOTES, 'UTF-8') . '" style="display:inline-block;padding:12px 24px;background-color:#4CAF50;color:white;text-decoration:none;border-radius:4px;font-weight:bold;">Reset Password</a></p>'
-            . '<p>Or copy and paste this link into your browser:</p>'
-            . '<p style="word-break:break-all;"><a href="' . htmlspecialchars($reset_link, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($reset_link, ENT_QUOTES, 'UTF-8') . '</a></p>'
-            . '<p style="color:#666;font-size:0.875rem;">This link will expire in 1 hour.</p>'
-            . '<p style="color:#666;font-size:0.875rem;">If you did not request a password reset, you can safely ignore this email or contact support if you have concerns.</p>'
-            . '</body></html>';
-
-          $mail_alt = "Hello {$user['full_name']},\n\n"
-            . "We received a request to reset your password.\n\n"
-            . "Visit this link to reset your password:\n"
-            . "{$reset_link}\n\n"
-            . "This link will expire in 1 hour.\n\n"
-            . "If you did not request a password reset, you can safely ignore this email.\n";
-
-          $email_sent = send_smtp_mail(
-            $user['email'],
-            $user['full_name'],
-            'Reset your LibraLink password',
-            $mail_body,
-            $mail_alt,
+          $email_sent = send_password_reset_mail(
+            (string) $user['email'],
+            (string) $user['full_name'],
+            $reset_link,
             $email_error
           );
 

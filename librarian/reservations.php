@@ -273,6 +273,7 @@ $extraStyles = [
         <div class="flash flash-error" role="alert" aria-live="assertive" aria-atomic="true"><?= htmlspecialchars($flashError, ENT_QUOTES, 'UTF-8') ?></div>
       <?php endif; ?>
       <?php if ($flashSuccess !== ''): ?>
+        <div id="reservations-flash-success" data-message="<?= htmlspecialchars($flashSuccess, ENT_QUOTES, 'UTF-8') ?>" hidden></div>
         <div class="flash flash-success" role="status" aria-live="polite" aria-atomic="true"><?= htmlspecialchars($flashSuccess, ENT_QUOTES, 'UTF-8') ?></div>
       <?php endif; ?>
       <?php if ($flashInfo !== ''): ?>
@@ -677,6 +678,34 @@ $extraStyles = [
     }
   </style>
   <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var successNotice = document.getElementById('reservations-flash-success');
+      if (!successNotice || typeof window.sweetAlertUtils === 'undefined') {
+        return;
+      }
+
+      var message = successNotice.getAttribute('data-message') || '';
+      if (message === '') {
+        return;
+      }
+
+      var escapeHtml = function(text) {
+        return text.replace(/[&<>"']/g, function(char) {
+          return {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+          }[char];
+        });
+      };
+
+      window.setTimeout(function() {
+        void window.sweetAlertUtils.showSuccess('Success', escapeHtml(message), 3000);
+      }, 300);
+    });
+
     (function() {
       var tabs = Array.prototype.slice.call(document.querySelectorAll('[data-reservation-tab]'));
       var panels = Array.prototype.slice.call(document.querySelectorAll('[data-reservation-panel]'));
