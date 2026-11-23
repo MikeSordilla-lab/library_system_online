@@ -75,6 +75,13 @@ assert_true(staff_approval_status_column_is_compatible([
 ]) === true, 'Production-compatible staff approval status schema should pass.');
 
 assert_true(staff_approval_status_column_is_compatible([
+  'DATA_TYPE' => 'varchar',
+  'CHARACTER_MAXIMUM_LENGTH' => 20,
+  'IS_NULLABLE' => 'NO',
+  'COLUMN_DEFAULT' => "'none'",
+]) === true, 'MariaDB quoted staff approval default should pass.');
+
+assert_true(staff_approval_status_column_is_compatible([
   'DATA_TYPE' => 'enum',
   'CHARACTER_MAXIMUM_LENGTH' => null,
   'IS_NULLABLE' => 'NO',

@@ -11,6 +11,7 @@ error_log
 *.cache
 .env*
 !.env.production
+/database/library_system.sql
 *.tmp
 *.swp
 testsprite_execution.log

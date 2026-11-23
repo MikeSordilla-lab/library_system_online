@@ -80,4 +80,18 @@ When the user requests a durable behavior change, record it here or in the relev
 
 ## Child DOX Index
 
-This project is not yet indexed. Before continuing you must scan the project, build the DOX tree and replace this message with the actual index. Go deep and scan files recursively to properly evaluate complexity and create nested DOX files where needed.
+The root owns entry-point wrappers, bootstrap, environment selection, deployment documentation and top-level SQL dumps and seed scripts. `.scratch/` holds planning notes and `.playwright-mcp/` holds browser snapshots. `testsprite_tests/` contains browser scenarios, the frontend test plan and generated reports.
+
+- `admin/AGENTS.md` covers admin dashboard, account settings, user management, reports and audit logs.
+- `api/AGENTS.md` covers HTTP endpoints for application actions and lookups.
+- `assets/AGENTS.md` covers shared frontend assets and uploaded media.
+- `borrower/AGENTS.md` covers authenticated borrower pages.
+- `config/AGENTS.md` covers database environment configuration.
+- `database/AGENTS.md` covers LibraLink database schema and data setup.
+- `docs/AGENTS.md` covers project documentation.
+- `includes/AGENTS.md` covers shared application logic and page components.
+- `librarian/AGENTS.md` covers authenticated librarian pages.
+- `public/AGENTS.md` covers public application pages.
+- `receipt/AGENTS.md` covers receipt-facing web pages.
+- `src/AGENTS.md` covers application bootstrap support.
+- `tests/AGENTS.md` covers PHP regression tests and test helpers.

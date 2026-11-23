@@ -166,10 +166,11 @@ function staff_approval_status_column_is_compatible(?array $definition): bool
   $nullable = strtoupper((string) ($definition['IS_NULLABLE'] ?? ''));
   $default = (string) ($definition['COLUMN_DEFAULT'] ?? '');
 
+  // MariaDB quotes literal defaults in INFORMATION_SCHEMA.
   return $dataType === 'varchar'
     && $length >= 20
     && $nullable === 'NO'
-    && $default === STAFF_APPROVAL_NONE;
+    && in_array($default, [STAFF_APPROVAL_NONE, "'" . STAFF_APPROVAL_NONE . "'"], true);
 }
 
 function ensure_staff_approval_support(PDO $pdo): void
